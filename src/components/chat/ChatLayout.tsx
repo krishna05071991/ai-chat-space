@@ -4,7 +4,6 @@ import { ChatArea } from './ChatArea'
 import { LimitExceededModal, UsageLimitError } from '../usage/LimitExceededModal'
 import { PricingModal } from '../pricing/PricingModal'
 import { useAuth } from '../../hooks/useAuth'
-import { useDatabaseSync } from '../../hooks/useDatabaseSync'
 import { databaseService } from '../../lib/databaseService'
 import { AI_MODELS, AIModel, Message, StreamingState, TokenUsage, getDefaultModel } from '../../types/chat'
 import { streamingService } from '../../lib/streamingService'
@@ -31,6 +30,7 @@ export function ChatLayout() {
     messageId: null
   })
   const [error, setError] = useState<string | null>(null)
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false)
 
   // USAGE LIMIT MODAL STATE
   const [limitExceededModal, setLimitExceededModal] = useState<{
@@ -45,13 +45,6 @@ export function ChatLayout() {
   }>({ isOpen: false })
 
   const abortControllerRef = useRef<AbortController | null>(null)
-
-  // Database sync hook
-  const { saveImmediately, syncWithDatabase, lastSync, hasLoadedInitial } = useDatabaseSync({
-    conversations,
-    onConversationsUpdated: setConversations,
-    autoSaveInterval: 30000
-  })
 
   // Listen for usage limit exceeded events
   useEffect(() => {
@@ -69,22 +62,56 @@ export function ChatLayout() {
     }
   }, [])
 
+  // CRITICAL: Load conversations from database when user authenticates
+  useEffect(() => {
+    const loadConversationsFromDB = async () => {
+      if (!user) {
+        setConversations([])
+        setActiveConversationId(null)
+        return
+      }
+
+      setIsLoadingConversations(true)
+      try {
+        console.log('📥 Loading conversations from database for user:', user.id)
+        const dbConversations = await databaseService.loadConversations()
+        
+        if (dbConversations && dbConversations.length > 0) {
+          console.log('✅ Loaded conversations:', {
+            count: dbConversations.length,
+            withMessages: dbConversations.filter(c => c.messages.length > 0).length
+          })
+          
+          // Convert to our state format
+          const stateConversations: ConversationState[] = dbConversations.map(conv => ({
+            id: conv.id,
+            title: conv.title,
+            messages: conv.messages || [],
+            created_at: conv.created_at,
+            updated_at: conv.updated_at
+          }))
+          
+          setConversations(stateConversations)
+          
+          // If no active conversation is selected, don't auto-select one
+          // Let user click to select
+        } else {
+          console.log('📭 No conversations found in database')
+          setConversations([])
+        }
+      } catch (error) {
+        console.error('❌ Failed to load conversations:', error)
+        setError('Failed to load conversations. Please refresh the page.')
+      } finally {
+        setIsLoadingConversations(false)
+      }
+    }
+
+    loadConversationsFromDB()
+  }, [user])
+
   // Get active conversation from React state
   const activeConversation = conversations.find(c => c.id === activeConversationId) || null
-
-  // Clear conversations when user signs out
-  useEffect(() => {
-    if (!user) {
-      setConversations([])
-      setActiveConversationId(null)
-      setError(null)
-      setStreamingState({
-        isStreaming: false,
-        currentMessage: '',
-        messageId: null
-      })
-    }
-  }, [user])
 
   // Helper function to create new conversation
   const createNewConversation = useCallback((title: string): ConversationState => {
@@ -111,8 +138,6 @@ export function ChatLayout() {
     )
   }, [])
 
-
-
   const handleNewChat = useCallback(() => {
     if (!user) return
     
@@ -127,11 +152,57 @@ export function ChatLayout() {
     })
   }, [user, createNewConversation])
 
-  const handleSelectConversation = useCallback((id: string) => {
+  // CRITICAL: Fixed conversation selection to properly load messages
+  const handleSelectConversation = useCallback(async (id: string) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
     streamingService.cancelStreaming()
+    
+    console.log('🔄 Selecting conversation:', id)
+    
+    // Find conversation in current state
+    const conversation = conversations.find(c => c.id === id)
+    
+    if (conversation) {
+      console.log('✅ Found conversation in state:', {
+        id: conversation.id,
+        title: conversation.title,
+        messageCount: conversation.messages.length
+      })
+      
+      // If conversation has no messages, try to reload from database
+      if (conversation.messages.length === 0) {
+        console.log('🔄 Conversation has no messages, reloading from database...')
+        try {
+          const dbConversations = await databaseService.loadConversations()
+          const dbConversation = dbConversations.find(c => c.id === id)
+          
+          if (dbConversation && dbConversation.messages.length > 0) {
+            console.log('✅ Found messages in database:', dbConversation.messages.length)
+            
+            // Update the conversation in state with messages
+            const updatedConversation: ConversationState = {
+              id: dbConversation.id,
+              title: dbConversation.title,
+              messages: dbConversation.messages,
+              created_at: dbConversation.created_at,
+              updated_at: dbConversation.updated_at
+            }
+            
+            setConversations(prev => 
+              prev.map(conv => 
+                conv.id === id ? updatedConversation : conv
+              )
+            )
+          }
+        } catch (error) {
+          console.error('❌ Failed to reload conversation from database:', error)
+        }
+      }
+    } else {
+      console.warn('⚠️ Conversation not found in state:', id)
+    }
     
     setActiveConversationId(id)
     setSidebarOpen(false)
@@ -141,7 +212,7 @@ export function ChatLayout() {
       currentMessage: '',
       messageId: null
     })
-  }, [])
+  }, [conversations])
 
   const handleModelChange = useCallback((model: AIModel) => {
     setSelectedModel(model)
@@ -391,7 +462,8 @@ export function ChatLayout() {
   // Other handlers remain the same
   const handleRenameConversation = (id: string, newTitle: string) => {
     updateConversation(id, { title: newTitle })
-    saveImmediately()
+    // Save to database
+    databaseService.saveConversationMetadata(conversations.find(c => c.id === id)!)
   }
   
   const handleDeleteConversation = async (id: string) => {
@@ -404,7 +476,12 @@ export function ChatLayout() {
         setActiveConversationId(null)
       }
     }
-    await saveImmediately()
+    
+    try {
+      await databaseService.deleteConversation(id)
+    } catch (error) {
+      console.error('Failed to delete conversation from database:', error)
+    }
   }
   
   const handleClearAllConversations = async () => {
@@ -425,12 +502,22 @@ export function ChatLayout() {
         setActiveConversationId(newConversation.id)
       }
       
-      await saveImmediately()
       console.log('✅ Clear conversations completed successfully')
     } catch (error) {
       console.error('❌ Failed to clear conversations:', error)
       setError('Failed to clear conversations. Please try again.')
     }
+  }
+
+  if (isLoadingConversations) {
+    return (
+      <div className="h-screen flex bg-gray-50 overflow-hidden items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading conversations...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

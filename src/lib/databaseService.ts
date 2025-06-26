@@ -67,14 +67,15 @@ class DatabaseService {
   }
 
   /**
-   * Wrapper for database operations that require authentication
+   * FIXED: Wrapper for database operations that require authentication
+   * Now throws errors instead of returning null when authentication fails
    */
-  private async withAuth<T>(operation: () => Promise<T>, operationName: string): Promise<T | null> {
+  private async withAuth<T>(operation: () => Promise<T>, operationName: string): Promise<T> {
     try {
       // Check authentication first
       const isAuth = await this.isAuthenticated()
       if (!isAuth) {
-        return null
+        throw new Error(`Authentication required for ${operationName}. Please sign in again.`)
       }
       
       return await operation()
@@ -83,10 +84,10 @@ class DatabaseService {
       if (error.message?.includes('refresh_token_not_found') ||
           error.message?.includes('Invalid Refresh Token') ||
           error.message?.includes('JWT expired')) {
-        return null
+        throw new Error(`Session expired during ${operationName}. Please sign in again.`)
       }
       
-      // Re-throw other errors
+      // Re-throw other errors (including our own authentication error above)
       throw error
     }
   }
@@ -116,7 +117,7 @@ class DatabaseService {
     const result = await this.withAuth(async () => {
       const user = await this.getCurrentUser()
       if (!user) {
-        return []
+        throw new Error('No authenticated user found')
       }
 
       console.log('📥 Loading conversations for user:', user.id.substring(0, 8))
@@ -193,7 +194,7 @@ class DatabaseService {
 
     }, 'loadConversations')
     
-    return result || []
+    return result
   }
 
   /**
@@ -275,7 +276,8 @@ class DatabaseService {
   }
 
   /**
-   * Delete all conversations for the current user from database
+   * FIXED: Delete all conversations for the current user from database
+   * Now properly throws errors when authentication fails
    */
   async deleteAllConversations(): Promise<void> {
     return await this.withAuth(async () => {
@@ -287,37 +289,53 @@ class DatabaseService {
       console.log('🗑️ Deleting conversations for user:', user.id.substring(0, 8))
       
       // First check how many conversations exist
-      const { count: beforeCount } = await supabase
+      const { count: beforeCount, error: countError } = await supabase
         .from('conversations')
         .select('*', { count: 'exact' })
         .eq('user_id', user.id)
       
+      if (countError) {
+        throw new Error(`Failed to count conversations: ${countError.message}`)
+      }
+      
       console.log('📋 Conversations to delete:', beforeCount)
       
+      // If no conversations exist, we're done
+      if (beforeCount === 0) {
+        console.log('✅ No conversations to delete')
+        return
+      }
+      
       // Delete all conversations
-      const { data, error, count } = await supabase
+      const { error: deleteError, count: deletedCount } = await supabase
         .from('conversations')
         .delete({ count: 'exact' })
         .eq('user_id', user.id)
       
-      if (error) {
-        console.error('❌ Delete error:', error)
-        throw new Error(`Failed to delete conversations: ${error.message}`)
+      if (deleteError) {
+        console.error('❌ Delete error:', deleteError)
+        throw new Error(`Failed to delete conversations: ${deleteError.message}`)
       }
       
-      console.log('✅ Deleted conversations:', count)
+      console.log('✅ Deleted conversations:', deletedCount)
       
       // Verify deletion worked
-      const { count: afterCount } = await supabase
+      const { count: afterCount, error: verifyError } = await supabase
         .from('conversations')
         .select('*', { count: 'exact' })
         .eq('user_id', user.id)
+      
+      if (verifyError) {
+        throw new Error(`Failed to verify deletion: ${verifyError.message}`)
+      }
       
       console.log('📋 Conversations remaining:', afterCount)
       
       if (afterCount > 0) {
         throw new Error(`Delete verification failed: ${afterCount} conversations still exist`)
       }
+      
+      console.log('✅ All conversations successfully deleted from database')
       
     }, 'deleteAllConversations')
   }
@@ -394,7 +412,7 @@ class DatabaseService {
     const result = await this.withAuth(async () => {
       const user = await this.getCurrentUser()
       if (!user) {
-        return { tokensUsedToday: 0, tokensUsedMonth: 0, messagesUsedToday: 0 }
+        throw new Error('No authenticated user found')
       }
 
       // Get user's conversations first
@@ -403,15 +421,15 @@ class DatabaseService {
         .select('id')
         .eq('user_id', user.id)
 
-      if (convError || !conversations) {
+      if (convError) {
+        throw new Error(`Failed to get conversations: ${convError.message}`)
+      }
+
+      if (!conversations || conversations.length === 0) {
         return { tokensUsedToday: 0, tokensUsedMonth: 0, messagesUsedToday: 0 }
       }
 
       const conversationIds = conversations.map(c => c.id)
-      
-      if (conversationIds.length === 0) {
-        return { tokensUsedToday: 0, tokensUsedMonth: 0, messagesUsedToday: 0 }
-      }
 
       // Get today's date range
       const today = new Date()
@@ -464,7 +482,7 @@ class DatabaseService {
 
     }, 'getUserUsageStats')
 
-    return result || { tokensUsedToday: 0, tokensUsedMonth: 0, messagesUsedToday: 0 }
+    return result
   }
 
   /**
@@ -474,7 +492,7 @@ class DatabaseService {
     const result = await this.withAuth(async () => {
       const user = await this.getCurrentUser()
       if (!user) {
-        return null
+        throw new Error('No authenticated user found')
       }
 
       console.log('📊 Getting current usage for user:', user.id)

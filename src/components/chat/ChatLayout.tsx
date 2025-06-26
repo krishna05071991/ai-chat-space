@@ -484,19 +484,24 @@ export function ChatLayout() {
     }
   }
   
+  /**
+   * FIXED: Clear all conversations with proper error handling
+   * Now only clears local state if database deletion succeeds
+   */
   const handleClearAllConversations = async () => {
     try {
-      console.log('🗑️ Clearing conversations from database...')
+      console.log('🗑️ Starting clear conversations process...')
       
-      // Delete from database first
+      // CRITICAL: Delete from database FIRST
+      // This will now throw an error if authentication fails or deletion fails
       await databaseService.deleteAllConversations()
-      console.log('✅ Database deletion completed')
+      console.log('✅ Database deletion completed successfully')
       
-      // Clear React state
+      // ONLY clear React state if database deletion succeeded
       setConversations([])
       setActiveConversationId(null)
       
-      // Create new conversation
+      // Create new conversation after successful deletion
       if (user) {
         const newConversation = createNewConversation('New Chat')
         setActiveConversationId(newConversation.id)
@@ -505,7 +510,22 @@ export function ChatLayout() {
       console.log('✅ Clear conversations completed successfully')
     } catch (error) {
       console.error('❌ Failed to clear conversations:', error)
-      setError('Failed to clear conversations. Please try again.')
+      
+      // Show specific error message to user
+      if (error instanceof Error) {
+        if (error.message.includes('Authentication required') || error.message.includes('Session expired')) {
+          setError('Session expired. Please sign in again to clear conversations.')
+          // Optionally trigger re-authentication
+          clearInvalidSession()
+        } else {
+          setError(`Failed to clear conversations: ${error.message}`)
+        }
+      } else {
+        setError('Failed to clear conversations. Please try again.')
+      }
+      
+      // DO NOT clear local state if database deletion failed
+      // This ensures the UI remains consistent with the database
     }
   }
 

@@ -1,4 +1,4 @@
-// Enhanced chat area component with usage limit enforcement and model upgrade prompts
+// Enhanced chat area component with mobile-first responsive design
 import React, { useEffect, useRef } from 'react'
 import { MessageBubble } from './MessageBubble'
 import { MessageInput } from './MessageInput'
@@ -66,81 +66,88 @@ export function ChatArea({
   const isLatest2025Model = selectedModel.id.includes('4.1') || selectedModel.id.includes('o3') || selectedModel.id.includes('o4')
 
   const renderEmptyState = () => (
-    <div className="flex-1 flex items-center justify-center p-8 min-h-0">
-      <div className="text-center max-w-2xl">
-        <h1 className="text-4xl font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-4">
+    <div className="flex-1 flex items-center justify-center p-4 min-h-0">
+      <div className="text-center max-w-full w-full">
+        {/* Mobile-optimized heading */}
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-3 sm:mb-4 px-2">
           What can I help with?
         </h1>
-        <div className="mb-6">
-          <div className="flex items-center justify-center space-x-3 mb-3">
-            <span className="text-2xl">{getProviderIcon(selectedModel.provider)}</span>
-            <span className="text-xl font-medium text-gray-700">{selectedModel.displayName}</span>
+        
+        {/* Mobile-optimized model display */}
+        <div className="mb-4 sm:mb-6">
+          <div className="flex items-center justify-center space-x-2 sm:space-x-3 mb-2 sm:mb-3 px-2">
+            <span className="text-lg sm:text-xl md:text-2xl">{getProviderIcon(selectedModel.provider)}</span>
+            <span className="text-base sm:text-lg md:text-xl font-medium text-gray-700 truncate max-w-[200px] sm:max-w-none">
+              {selectedModel.displayName}
+            </span>
             {isLatest2025Model && (
-              <div className="flex items-center space-x-1 bg-purple-100 px-3 py-1 rounded-full">
-                <Sparkles className="w-4 h-4 text-purple-600" />
-                <span className="text-sm font-medium text-purple-600">2025</span>
+              <div className="flex items-center space-x-1 bg-purple-100 px-2 py-1 rounded-full flex-shrink-0">
+                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />
+                <span className="text-xs sm:text-sm font-medium text-purple-600">2025</span>
               </div>
             )}
           </div>
-          <p className="text-gray-600 text-lg leading-relaxed">
+          <p className="text-gray-600 text-sm sm:text-base md:text-lg leading-relaxed px-4 sm:px-2">
             I'm powered by {selectedModel.provider === 'anthropic' ? 'Anthropic Claude' : 'OpenAI'}, ready to assist you with any questions or tasks. 
             You'll see responses appear in real-time as I generate them.
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 text-sm text-gray-600">
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
+        {/* Mobile-optimized feature grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8 text-sm px-2">
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
             <h3 className="font-medium mb-2">💡 Creative Tasks</h3>
-            <p>Writing, brainstorming, storytelling, and creative problem-solving</p>
+            <p className="text-xs sm:text-sm">Writing, brainstorming, storytelling, and creative problem-solving</p>
           </div>
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
             <h3 className="font-medium mb-2">📊 Analysis & Research</h3>
-            <p>Data analysis, research assistance, and detailed explanations</p>
+            <p className="text-xs sm:text-sm">Data analysis, research assistance, and detailed explanations</p>
           </div>
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
             <h3 className="font-medium mb-2">💻 Coding & Tech</h3>
-            <p>Programming help, debugging, code reviews, and technical guidance</p>
+            <p className="text-xs sm:text-sm">Programming help, debugging, code reviews, and technical guidance</p>
           </div>
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
             <h3 className="font-medium mb-2">🎯 Reasoning</h3>
-            <p>Complex problem-solving, logical analysis, and step-by-step thinking</p>
+            <p className="text-xs sm:text-sm">Complex problem-solving, logical analysis, and step-by-step thinking</p>
           </div>
         </div>
         
-        {/* Current Plan and Usage Display */}
+        {/* Mobile-optimized current plan display */}
         {usageStats && (
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 border border-gray-200/60 shadow-sm mb-6 space-y-3">
-            <div className="flex items-center justify-between text-sm">
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-200/60 shadow-sm mb-4 sm:mb-6 space-y-2 sm:space-y-3 mx-2">
+            <div className="flex items-center justify-between text-xs sm:text-sm">
               <div className="flex items-center space-x-2">
                 <span className="text-gray-600">Current Plan:</span>
                 <span className="font-medium text-purple-600 capitalize">
                   {usageStats.tier.tier.replace('_', ' ').toUpperCase()}
                 </span>
               </div>
-              <div className="text-gray-500">
-                {Math.round((usageStats.tokens_used_month / usageStats.tier.monthly_tokens) * 100)}% used this month
+              <div className="text-gray-500 text-xs sm:text-sm">
+                {Math.round((usageStats.tokens_used_month / usageStats.tier.monthly_tokens) * 100)}% used
               </div>
             </div>
             
-            {/* Reset Time Information */}
+            {/* Mobile-optimized reset time information */}
             <div className="text-xs text-gray-500 border-t border-gray-200 pt-2 space-y-1">
               <div className="flex items-center space-x-1">
-                <Clock className="w-3 h-3" />
-                <span>Monthly limit resets {formatResetTime(usageStats.monthly_reset_time)}</span>
+                <Clock className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate">Monthly limit resets {formatResetTime(usageStats.monthly_reset_time)}</span>
               </div>
               {usageStats.tier.daily_messages > 0 && (
                 <div className="flex items-center space-x-1">
-                  <Clock className="w-3 h-3" />
-                  <span>Daily limit resets {formatResetTime(usageStats.daily_reset_time)}</span>
+                  <Clock className="w-3 h-3 flex-shrink-0" />
+                  <span className="truncate">Daily limit resets {formatResetTime(usageStats.daily_reset_time)}</span>
                 </div>
               )}
             </div>
           </div>
         )}
         
-        <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
-          <Sparkles className="w-4 h-4 text-purple-500" />
-          <span>Real-time streaming • Multi-provider AI • Production ready</span>
+        {/* Mobile-optimized footer */}
+        <div className="flex items-center justify-center space-x-2 text-xs sm:text-sm text-gray-500 px-4">
+          <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-purple-500 flex-shrink-0" />
+          <span className="text-center">Real-time streaming • Multi-provider AI • Production ready</span>
         </div>
       </div>
     </div>
@@ -150,29 +157,28 @@ export function ChatArea({
   const hasStreamingMessage = streamingState.isStreaming && streamingState.currentMessage.length > 0
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-white via-purple-50/15 to-white">
-      {/* Enhanced Header with Usage Integration - Fixed z-index */}
-      <div className="relative z-20 bg-white/90 backdrop-blur-md shadow-sm">
-        <div className="flex items-center justify-between py-4 px-4 md:py-4 md:px-6 min-h-[60px] md:min-h-[auto]">
-          {/* Brand Section */}
-          <div className="flex items-center space-x-3 md:space-x-4 min-w-0 flex-1">
-            {/* Mobile: Hamburger + Icon only, Desktop: Icon + Text */}
-            <div className="flex items-center space-x-3 md:space-x-3 min-w-0">
-              {/* Icon only on mobile, with text on desktop */}
-              <div className="w-8 h-8 md:w-8 md:h-8 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                <MessageSquare className="w-3 h-3 md:w-5 md:h-5 text-white" />
+    <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-white via-purple-50/15 to-white overflow-hidden">
+      {/* Mobile-optimized header with proper spacing */}
+      <div className="relative z-20 bg-white/90 backdrop-blur-md shadow-sm flex-shrink-0">
+        <div className="flex items-center justify-between py-3 px-3 sm:py-4 sm:px-4 md:px-6 min-h-[56px] sm:min-h-[60px]">
+          {/* Mobile-optimized brand section */}
+          <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 min-w-0 flex-1">
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+              {/* Responsive icon */}
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white" />
               </div>
-              {/* Hide text on mobile, show on desktop */}
-              <h1 className="hidden md:block text-xl font-bold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent truncate">
+              {/* Hide text on small mobile, show on larger screens */}
+              <h1 className="hidden sm:block text-lg md:text-xl font-bold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent truncate">
                 chat.space
               </h1>
             </div>
             
-            <div className="w-px h-6 bg-gray-300 flex-shrink-0"></div>
+            <div className="w-px h-4 sm:h-6 bg-gray-300 flex-shrink-0"></div>
             
-            {/* Enhanced Model Selector with Upgrade Prompts */}
-            <div className="flex items-center space-x-2 min-w-0 flex-1">
-              <span className="text-xs md:text-sm text-gray-600 font-medium hidden sm:inline">Using:</span>
+            {/* Mobile-optimized model selector */}
+            <div className="flex items-center space-x-1 sm:space-x-2 min-w-0 flex-1">
+              <span className="text-xs sm:text-sm text-gray-600 font-medium hidden sm:inline">Using:</span>
               <ModelSelector 
                 selectedModel={selectedModel}
                 onModelChange={onModelChange}
@@ -182,13 +188,13 @@ export function ChatArea({
             </div>
           </div>
 
-          {/* Enhanced Stats Section */}
-          <div className="hidden lg:flex items-center space-x-4 text-xs text-gray-500 font-medium">
+          {/* Mobile-optimized stats section */}
+          <div className="hidden md:flex items-center space-x-4 text-xs text-gray-500 font-medium">
             {conversation && (
               <span>{conversation.messages?.length || 0} message{(conversation.messages?.length || 0) !== 1 ? 's' : ''}</span>
             )}
             {usageStats && (
-              <div className="hidden lg:flex items-center space-x-1">
+              <div className="flex items-center space-x-1">
                 <span>•</span>
                 <span className="capitalize">{usageStats.tier.tier.replace('_', ' ')} Plan</span>
               </div>
@@ -197,11 +203,11 @@ export function ChatArea({
         </div>
       </div>
       
-      {/* CRITICAL: High-priority notifications above all content */}
-      <div className="relative z-30">
+      {/* Mobile-optimized notifications */}
+      <div className="relative z-30 flex-shrink-0">
         {/* Error Banner */}
         {error && (
-          <div className="px-4 pt-2">
+          <div className="px-3 sm:px-4 pt-2">
             <div className="rounded-xl overflow-hidden shadow-lg">
               <ErrorBanner
                 message={error}
@@ -211,9 +217,9 @@ export function ChatArea({
           </div>
         )}
 
-        {/* Enhanced Usage Warning Banner - Now with higher priority */}
+        {/* Usage Warning Banner */}
         {usageStats && (
-          <div className="px-4 pt-2">
+          <div className="px-3 sm:px-4 pt-2">
             <div className="rounded-xl overflow-hidden shadow-lg">
               <UsageWarningBanner
                 usageStats={usageStats}
@@ -223,20 +229,20 @@ export function ChatArea({
           </div>
         )}
 
-        {/* Model Restriction Banner - New prominent banner */}
+        {/* Model Restriction Banner */}
         {selectedModel && usageStats && !usageStats.tier.allowed_models.includes(selectedModel.id) && (
-          <div className="px-4 pt-2">
+          <div className="px-3 sm:px-4 pt-2">
             <div className="rounded-xl overflow-hidden shadow-lg">
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-400 p-4">
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-400 p-3 sm:p-4">
                 <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                    <Crown className="w-4 h-4 text-amber-600" />
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <Crown className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-amber-800 mb-1">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-amber-800 mb-1 text-sm sm:text-base">
                       Premium Model Access Required
                     </h3>
-                    <p className="text-sm text-amber-700 mb-3">
+                    <p className="text-xs sm:text-sm text-amber-700 mb-2 sm:mb-3">
                       <strong>{selectedModel.displayName}</strong> requires a higher plan. 
                       {selectedModel.tier === 'premium' ? ' Upgrade to Super Pro' : 
                        selectedModel.tier === 'flagship' ? ' Upgrade to Pro' : 
@@ -247,9 +253,9 @@ export function ChatArea({
                         selectedModel.tier === 'premium' ? 'super_pro' : 
                         selectedModel.tier === 'flagship' ? 'pro' : 'basic'
                       )}
-                      className="inline-flex items-center bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200 group shadow-lg"
+                      className="inline-flex items-center bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-lg transition-all duration-200 group shadow-lg"
                     >
-                      <Crown className="w-4 h-4 mr-2" />
+                      <Crown className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       View Upgrade Options
                       <ArrowRight className="ml-2 h-3 w-3 group-hover:translate-x-1 transition-transform" />
                     </button>
@@ -261,11 +267,11 @@ export function ChatArea({
         )}
       </div>
 
-      {/* Messages Area - Optimized for real-time streaming */}
-      <div className="flex-1 flex flex-col min-h-0 relative z-10">
+      {/* Mobile-optimized messages area */}
+      <div className="flex-1 flex flex-col min-h-0 relative z-10 overflow-hidden">
         {!hasMessages && !hasStreamingMessage ? renderEmptyState() : (
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            <div className="max-w-4xl mx-auto space-y-6">
+          <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3 sm:py-4">
+            <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
               {/* Render all existing messages */}
               {conversation?.messages?.map((message, index) => (
                 <MessageBubble 
@@ -290,8 +296,8 @@ export function ChatArea({
           </div>
         )}
 
-        {/* Enhanced Message Input with Usage Context */}
-        <div className="flex-shrink-0 max-w-4xl mx-auto w-full px-4">
+        {/* Mobile-optimized message input */}
+        <div className="flex-shrink-0 max-w-4xl mx-auto w-full px-3 sm:px-4 pb-3 sm:pb-4">
           <MessageInput 
             onSendMessage={onSendMessage}
             selectedModel={selectedModel}

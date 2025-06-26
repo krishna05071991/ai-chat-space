@@ -1,4 +1,4 @@
-// Comprehensive modal component for all usage limit violations with tier-specific upgrade prompts
+// Mobile-first limit exceeded modal component
 import React from 'react'
 import { X, Zap, MessageSquare, Crown, ArrowRight, Clock, Calendar, Users } from 'lucide-react'
 
@@ -52,7 +52,7 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
     switch (errorType) {
       case 'DAILY_MESSAGE_LIMIT_EXCEEDED':
         return {
-          icon: <MessageSquare className="w-8 h-8 text-blue-500" />,
+          icon: <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />,
           title: 'Daily Message Limit Reached',
           description: `You've sent ${usage?.current || 0} messages today (limit: ${usage?.limit || 10}). Upgrade to Basic for unlimited daily messages!`,
           currentPlan: userTier,
@@ -76,7 +76,7 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
         const tokenMultiplier = userTier === 'free' ? '28x' : '1.5x'
         
         return {
-          icon: <Zap className="w-8 h-8 text-amber-500" />,
+          icon: <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-amber-500" />,
           title: 'Monthly Token Limit Exceeded',
           description: `You've used ${usage?.current?.toLocaleString() || 0} of ${usage?.limit?.toLocaleString() || 0} tokens this month (${percentage}%). Upgrade for ${tokenMultiplier} more tokens!`,
           currentPlan: userTier,
@@ -101,7 +101,7 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
       case 'MODEL_NOT_ALLOWED':
         const requiredTier = 'Pro' // Since we only have 3 tiers, premium models require Pro
         return {
-          icon: <Crown className="w-8 h-8 text-purple-500" />,
+          icon: <Crown className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />,
           title: 'Premium Model Access Required',
           description: `This model requires Pro tier. Upgrade to access all AI models!`,
           currentPlan: userTier,
@@ -120,7 +120,7 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
 
       default:
         return {
-          icon: <X className="w-8 h-8 text-red-500" />,
+          icon: <X className="w-6 h-6 sm:w-8 sm:h-8 text-red-500" />,
           title: 'Access Restricted',
           description: error.message || 'Please upgrade your plan to continue.',
           currentPlan: userTier,
@@ -132,17 +132,6 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
           urgency: 'medium'
         }
     }
-  }
-
-  const getRequiredTierForModel = (allowedModels?: string[]): string => {
-    if (!allowedModels || allowedModels.length === 0) return 'Pro'
-    
-    // Check if all models are included (Pro tier)
-    const hasAdvancedModels = allowedModels.some(model => 
-      model.includes('gpt-4o') || model.includes('claude-3-opus') || model.includes('o3') || model.includes('o4')
-    )
-    
-    return hasAdvancedModels ? 'Pro' : 'Basic'
   }
 
   const config = getModalConfig()
@@ -157,41 +146,41 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md">
-        <div className="p-6">
-          {/* Header */}
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center space-x-3">
+      <div className="bg-white/95 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md mx-4">
+        <div className="p-4 sm:p-6">
+          {/* Mobile-optimized header */}
+          <div className="flex items-start justify-between mb-4 sm:mb-6">
+            <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
               {config.icon}
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800 leading-tight">
                   {config.title}
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
                   Current plan: <span className="font-medium capitalize">{config.currentPlan}</span>
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
             </button>
           </div>
 
-          {/* Description */}
-          <div className="mb-6">
-            <p className="text-gray-700 leading-relaxed mb-4">
+          {/* Mobile-optimized description */}
+          <div className="mb-4 sm:mb-6">
+            <p className="text-gray-700 leading-relaxed mb-3 sm:mb-4 text-sm sm:text-base">
               {config.description}
             </p>
 
-            {/* Usage Statistics */}
+            {/* Mobile-optimized usage statistics */}
             {error.usage && (
-              <div className="bg-gray-50 rounded-xl p-4 mb-4">
+              <div className="bg-gray-50 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-600">Current Usage</span>
-                  <span className="font-semibold text-gray-800">
+                  <span className="font-semibold text-gray-800 text-sm">
                     {error.usage.current?.toLocaleString()} / {error.usage.limit?.toLocaleString()}
                   </span>
                 </div>
@@ -206,8 +195,8 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
                     {error.usage.percentage || 100}% used
                   </span>
                   <div className="flex items-center space-x-1 text-xs text-gray-500">
-                    <Clock className="w-3 h-3" />
-                    <span>
+                    <Clock className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">
                       {error.usage?.resetTime 
                         ? formatResetTime(error.usage.resetTime)
                         : config.resetInfo
@@ -219,43 +208,43 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
             )}
           </div>
 
-          {/* Upgrade Benefits */}
-          <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4 mb-6">
-            <h3 className="font-semibold text-purple-800 mb-3 flex items-center">
-              <Crown className="w-4 h-4 mr-2" />
+          {/* Mobile-optimized upgrade benefits */}
+          <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
+            <h3 className="font-semibold text-purple-800 mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
+              <Crown className="w-4 h-4 mr-2 flex-shrink-0" />
               Upgrade to {config.recommendedPlan.charAt(0).toUpperCase() + config.recommendedPlan.slice(1).replace('_', ' ')}
             </h3>
-            <ul className="space-y-2 text-sm text-purple-700">
+            <ul className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-purple-700">
               {config.benefits.map((benefit, index) => (
                 <li key={index} className="flex items-center">
-                  <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-3" />
+                  <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2 sm:mr-3 flex-shrink-0" />
                   {benefit}
                 </li>
               ))}
             </ul>
-            <div className="mt-3 pt-3 border-t border-purple-200">
+            <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-purple-200">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-purple-600">Price:</span>
-                <span className="font-semibold text-purple-800">{config.price}</span>
+                <span className="text-xs sm:text-sm text-purple-600">Price:</span>
+                <span className="font-semibold text-purple-800 text-sm sm:text-base">{config.price}</span>
               </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Mobile-optimized action buttons */}
           <div className="space-y-3">
             <button
               onClick={() => onUpgrade(config.recommendedPlan)}
-              className={`w-full bg-gradient-to-r ${getUrgencyColor()} hover:shadow-lg text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center group`}
+              className={`w-full bg-gradient-to-r ${getUrgencyColor()} hover:shadow-lg text-white font-medium py-2.5 sm:py-3 px-4 rounded-lg sm:rounded-xl transition-all duration-200 flex items-center justify-center group text-sm sm:text-base`}
             >
-              <Crown className="w-4 h-4 mr-2" />
-              Upgrade to {config.recommendedPlan.charAt(0).toUpperCase() + config.recommendedPlan.slice(1).replace('_', ' ')} - {config.price}
-              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <Crown className="w-4 h-4 mr-2 flex-shrink-0" />
+              <span className="truncate">Upgrade to {config.recommendedPlan.charAt(0).toUpperCase() + config.recommendedPlan.slice(1).replace('_', ' ')} - {config.price}</span>
+              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform flex-shrink-0" />
             </button>
 
             <div className="flex space-x-3">
               <button
                 onClick={onClose}
-                className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+                className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm"
               >
                 Maybe Later
               </button>
@@ -263,16 +252,16 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
               {config.showTryTomorrow && onTryTomorrow && (
                 <button
                   onClick={onTryTomorrow}
-                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium flex items-center justify-center"
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-200 transition-colors font-medium flex items-center justify-center text-sm"
                 >
-                  <Calendar className="w-4 h-4 mr-2" />
+                  <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
                   Try Tomorrow
                 </button>
               )}
             </div>
           </div>
 
-          {/* Additional Info */}
+          {/* Mobile-optimized additional info */}
           <div className="mt-4 text-center">
             <p className="text-xs text-gray-500">
               All plans include secure data handling and can be cancelled anytime

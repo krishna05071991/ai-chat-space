@@ -1,4 +1,4 @@
-/* Global styles for chat.space - AI chat platform */
+/* Global styles for chat.space - Mobile-first AI chat platform */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
@@ -13,10 +13,30 @@
     @apply bg-white text-gray-900 font-inter;
     font-feature-settings: 'cv11', 'ss01';
     font-variation-settings: 'opsz' 32;
+    /* Mobile-first: Prevent horizontal scroll */
+    overflow-x: hidden;
   }
   
   html {
     scroll-behavior: smooth;
+    /* Mobile-first: Prevent zoom on input focus */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Mobile-first: Prevent zoom on input focus for iOS */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea {
+    font-size: 16px;
+  }
+
+  /* Mobile-first: Ensure proper viewport handling */
+  @media screen and (max-width: 640px) {
+    body {
+      font-size: 14px;
+      line-height: 1.5;
+    }
   }
 }
 
@@ -25,14 +45,20 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
   
-  /* Custom scrollbar */
+  /* Mobile-optimized custom scrollbar */
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: rgb(203 213 225) rgb(248 250 252);
   }
   
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
+    width: 4px; /* Thinner on mobile */
+  }
+  
+  @media (min-width: 640px) {
+    .scrollbar-thin::-webkit-scrollbar {
+      width: 6px; /* Normal width on desktop */
+    }
   }
   
   .scrollbar-thin::-webkit-scrollbar-track {
@@ -48,16 +74,39 @@
     background: rgb(148 163 184);
   }
   
-  /* Glassmorphism effect */
+  /* Mobile-optimized glassmorphism effect */
   .glass {
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
   }
   
-  /* Smooth transitions */
+  /* Mobile-first smooth transitions */
   .transition-smooth {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Mobile-first touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Mobile-first safe area handling */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right);
   }
 }
 
@@ -66,37 +115,82 @@
     text-wrap: balance;
   }
   
+  /* Mobile-first viewport utilities */
   .min-h-screen-mobile {
     min-height: 100vh;
     min-height: 100dvh;
   }
+
+  .h-screen-mobile {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* Mobile-first text sizing */
+  .text-mobile-xs { font-size: 0.75rem; }
+  .text-mobile-sm { font-size: 0.875rem; }
+  .text-mobile-base { font-size: 1rem; }
+  .text-mobile-lg { font-size: 1.125rem; }
+  .text-mobile-xl { font-size: 1.25rem; }
+
+  /* Mobile-first spacing utilities */
+  .p-mobile { padding: 0.75rem; }
+  .px-mobile { padding-left: 0.75rem; padding-right: 0.75rem; }
+  .py-mobile { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+  .m-mobile { margin: 0.75rem; }
+  .mx-mobile { margin-left: 0.75rem; margin-right: 0.75rem; }
+  .my-mobile { margin-top: 0.75rem; margin-bottom: 0.75rem; }
 }
 
 @layer components {
-  /* Markdown content styling for AI responses */
+  /* Mobile-first markdown content styling for AI responses */
   .text-gray-800 h1,
   .text-gray-800 h2,
   .text-gray-800 h3,
   .text-gray-800 h4,
   .text-gray-800 h5,
   .text-gray-800 h6 {
-    @apply font-semibold text-gray-900 mt-6 mb-3 first:mt-0;
+    @apply font-semibold text-gray-900 mt-4 mb-2 first:mt-0;
   }
   
-  .text-gray-800 h1 { @apply text-xl; }
-  .text-gray-800 h2 { @apply text-lg; }
-  .text-gray-800 h3 { @apply text-base; }
+  @media (min-width: 640px) {
+    .text-gray-800 h1,
+    .text-gray-800 h2,
+    .text-gray-800 h3,
+    .text-gray-800 h4,
+    .text-gray-800 h5,
+    .text-gray-800 h6 {
+      @apply mt-6 mb-3;
+    }
+  }
+  
+  .text-gray-800 h1 { @apply text-lg sm:text-xl; }
+  .text-gray-800 h2 { @apply text-base sm:text-lg; }
+  .text-gray-800 h3 { @apply text-sm sm:text-base; }
   .text-gray-800 h4,
   .text-gray-800 h5,
   .text-gray-800 h6 { @apply text-sm; }
   
   .text-gray-800 p {
-    @apply mb-4 last:mb-0;
+    @apply mb-3 last:mb-0;
+  }
+  
+  @media (min-width: 640px) {
+    .text-gray-800 p {
+      @apply mb-4;
+    }
   }
   
   .text-gray-800 ul,
   .text-gray-800 ol {
-    @apply mb-4 pl-6 space-y-1;
+    @apply mb-3 pl-4 space-y-1;
+  }
+  
+  @media (min-width: 640px) {
+    .text-gray-800 ul,
+    .text-gray-800 ol {
+      @apply mb-4 pl-6;
+    }
   }
   
   .text-gray-800 ul {
@@ -124,11 +218,23 @@
   }
   
   .text-gray-800 code {
-    @apply bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono;
+    @apply bg-gray-100 px-1 py-0.5 rounded text-xs sm:text-sm font-mono;
+  }
+  
+  @media (min-width: 640px) {
+    .text-gray-800 code {
+      @apply px-1.5;
+    }
   }
   
   .text-gray-800 pre {
-    @apply bg-gray-100 p-4 rounded-lg overflow-x-auto mb-4 text-sm font-mono;
+    @apply bg-gray-100 p-3 rounded-lg overflow-x-auto mb-3 text-xs font-mono;
+  }
+  
+  @media (min-width: 640px) {
+    .text-gray-800 pre {
+      @apply p-4 mb-4 text-sm;
+    }
   }
   
   .text-gray-800 pre code {
@@ -136,23 +242,88 @@
   }
   
   .text-gray-800 blockquote {
-    @apply border-l-4 border-gray-300 pl-4 italic text-gray-600 mb-4;
+    @apply border-l-4 border-gray-300 pl-3 italic text-gray-600 mb-3;
+  }
+  
+  @media (min-width: 640px) {
+    .text-gray-800 blockquote {
+      @apply pl-4 mb-4;
+    }
   }
   
   .text-gray-800 hr {
-    @apply border-gray-300 my-6;
+    @apply border-gray-300 my-4;
+  }
+  
+  @media (min-width: 640px) {
+    .text-gray-800 hr {
+      @apply my-6;
+    }
   }
   
   .text-gray-800 table {
-    @apply w-full border-collapse mb-4;
+    @apply w-full border-collapse mb-3 text-sm;
+  }
+  
+  @media (min-width: 640px) {
+    .text-gray-800 table {
+      @apply mb-4 text-base;
+    }
   }
   
   .text-gray-800 th,
   .text-gray-800 td {
-    @apply border border-gray-300 px-3 py-2 text-left;
+    @apply border border-gray-300 px-2 py-1 text-left;
+  }
+  
+  @media (min-width: 640px) {
+    .text-gray-800 th,
+    .text-gray-800 td {
+      @apply px-3 py-2;
+    }
   }
   
   .text-gray-800 th {
     @apply bg-gray-100 font-semibold;
+  }
+}
+
+/* Mobile-first responsive breakpoint utilities */
+@media (max-width: 639px) {
+  .mobile-only {
+    display: block !important;
+  }
+  .mobile-hidden {
+    display: none !important;
+  }
+}
+
+@media (min-width: 640px) {
+  .mobile-only {
+    display: none !important;
+  }
+  .mobile-hidden {
+    display: block !important;
+  }
+}
+
+/* Mobile-first focus styles */
+@media (max-width: 639px) {
+  input:focus,
+  textarea:focus,
+  button:focus {
+    outline: 2px solid #8B5CF6;
+    outline-offset: 2px;
+  }
+}
+
+/* Mobile-first animation performance */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

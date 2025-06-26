@@ -1,4 +1,4 @@
-// Enhanced model selector with smart grouped layout and mobile optimization
+// Mobile-first model selector with responsive design
 import React, { useState } from 'react'
 import { ChevronDown, Check, Lock, Crown, Sparkles } from 'lucide-react'
 import { AIModel, getModelsByCategory, MODEL_CATEGORIES, PRICING_TIERS } from '../../types/chat'
@@ -94,19 +94,19 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
     const providerBg = provider === 'openai' ? 'bg-blue-50' : 'bg-orange-50'
 
     return (
-      <div key={`${provider}-${categoryKey}`} className="mb-3 last:mb-0">
-        {/* Category Header */}
+      <div key={`${provider}-${categoryKey}`} className="mb-2 sm:mb-3 last:mb-0">
+        {/* Mobile-optimized category header */}
         <div className={`px-3 py-2 ${providerBg} border-b border-gray-100`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span className="text-sm">{categoryInfo.icon}</span>
               <span className="text-xs font-semibold text-gray-800">{categoryInfo.name}</span>
             </div>
-            <span className="text-xs text-gray-500 hidden sm:inline">{categoryInfo.description}</span>
+            <span className="text-xs text-gray-500 hidden sm:inline truncate max-w-[100px]">{categoryInfo.description}</span>
           </div>
         </div>
 
-        {/* Models in Category */}
+        {/* Mobile-optimized models in category */}
         <div className="space-y-0">
           {models.map((model) => {
             const isSelected = selectedModel.id === model.id
@@ -116,7 +116,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
               <button
                 key={model.id}
                 onClick={() => handleModelSelect(model)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 md:py-3 transition-colors text-left relative ${
+                className={`w-full flex items-center justify-between px-3 py-2.5 transition-colors text-left relative ${
                   isSelected 
                     ? provider === 'openai' ? 'bg-blue-50' : 'bg-orange-50'
                     : isAllowed ? 'hover:bg-gray-50' : 'hover:bg-gray-25'
@@ -124,20 +124,20 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
                 disabled={!isAllowed}
                 title={!isAllowed ? `Requires ${getTierBadge(model)} tier or higher` : undefined}
               >
-                {/* Subtle Lock Indicator for Restricted Models */}
+                {/* Mobile-optimized lock indicator */}
                 {!isAllowed && (
                   <div className="absolute top-2 right-2 pointer-events-none">
                     <Lock className="w-3 h-3 text-amber-500" />
                   </div>
                 )}
 
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 pr-2">
                   <div className="flex items-center space-x-2 mb-1">
                     <span className={`font-medium text-sm ${isAllowed ? 'text-gray-800' : 'text-gray-700'} truncate`}>
                       {model.displayName}
                     </span>
                     
-                    {/* 2025 Badge */}
+                    {/* Mobile-optimized 2025 badge */}
                     {is2025Model(model) && (
                       <div className="flex items-center space-x-1 flex-shrink-0">
                         <Sparkles className="w-3 h-3 text-purple-500" />
@@ -151,7 +151,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
                       {model.description}
                     </span>
                     
-                    {/* Enhanced Tier Badge for Locked Models */}
+                    {/* Mobile-optimized tier badge */}
                     {!isAllowed ? (
                       <div className="flex items-center space-x-1 flex-shrink-0">
                         <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700 border border-amber-200">
@@ -169,7 +169,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
                   </div>
                 </div>
                 
-                {isSelected && <Check className={`w-4 h-4 ${providerColor}`} />}
+                {isSelected && <Check className={`w-4 h-4 ${providerColor} flex-shrink-0`} />}
               </button>
             )
           })}
@@ -183,14 +183,14 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
       <div className="relative">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center space-x-2 bg-white/80 backdrop-blur-sm border rounded-xl px-3 py-2 hover:bg-white transition-all duration-200 text-sm font-medium min-w-0 max-w-[140px] md:max-w-none md:min-w-[140px] ${
+          className={`flex items-center space-x-1 sm:space-x-2 bg-white/80 backdrop-blur-sm border rounded-lg sm:rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 hover:bg-white transition-all duration-200 text-xs sm:text-sm font-medium min-w-0 max-w-[120px] sm:max-w-[140px] md:max-w-none md:min-w-[140px] ${
             !isModelAllowed(selectedModel) 
               ? 'border-amber-300 hover:border-amber-400 text-amber-700 bg-amber-50/50' 
               : 'border-gray-200 hover:border-gray-300 text-gray-700'
           }`}
         >
           <span className="truncate">{selectedModel.displayName}</span>
-          {!isModelAllowed(selectedModel) && <Lock className="w-3 h-3 text-amber-600 animate-pulse" />}
+          {!isModelAllowed(selectedModel) && <Lock className="w-3 h-3 text-amber-600 animate-pulse flex-shrink-0" />}
           <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
         </button>
 
@@ -200,9 +200,9 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
               className="fixed inset-0 z-[99998]" 
               onClick={() => setIsOpen(false)}
             />
-            <div className="absolute top-full mt-2 left-0 right-0 mx-4 md:left-0 md:right-auto md:mx-0 bg-white border border-gray-200 rounded-2xl shadow-2xl z-[99999] overflow-hidden min-w-[280px] md:min-w-[320px] max-w-[calc(100vw-2rem)] md:max-w-none max-h-[60vh] md:max-h-[500px] overflow-y-auto">
+            <div className="absolute top-full mt-2 left-0 right-0 mx-2 sm:left-0 sm:right-auto sm:mx-0 bg-white border border-gray-200 rounded-xl sm:rounded-2xl shadow-2xl z-[99999] overflow-hidden min-w-[280px] sm:min-w-[320px] max-w-[calc(100vw-1rem)] sm:max-w-none max-h-[60vh] sm:max-h-[500px] overflow-y-auto">
               
-              {/* OpenAI Models Section */}
+              {/* Mobile-optimized OpenAI models section */}
               <div className="border-b border-gray-200">
                 <div className="px-3 py-2 bg-blue-50 border-b border-gray-200">
                   <span className="text-xs font-semibold text-blue-800">OpenAI Models</span>
@@ -212,7 +212,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
                 )}
               </div>
 
-              {/* Anthropic Models Section */}
+              {/* Mobile-optimized Anthropic models section */}
               <div>
                 <div className="px-3 py-2 bg-orange-50 border-b border-gray-200">
                   <span className="text-xs font-semibold text-orange-800">Anthropic Claude</span>
@@ -222,11 +222,11 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
                 )}
               </div>
 
-              {/* Upgrade Prompt */}
+              {/* Mobile-optimized upgrade prompt */}
               {currentTier === 'free' && (
                 <div className="border-t border-gray-200 p-3 bg-gradient-to-r from-purple-50 to-purple-100">
                   <div className="text-center">
-                    <Crown className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+                    <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 mx-auto mb-2" />
                     <p className="text-sm font-medium text-purple-800 mb-1">
                       Unlock Premium Models
                     </p>
@@ -255,29 +255,29 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl px-4 py-3 hover:bg-white hover:border-gray-300 transition-all duration-200 group min-w-[280px]"
+        className="flex items-center space-x-2 sm:space-x-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-3 hover:bg-white hover:border-gray-300 transition-all duration-200 group min-w-[240px] sm:min-w-[280px]"
       >
-        <div className="text-left flex-1">
+        <div className="text-left flex-1 min-w-0">
           <div className="flex items-center space-x-2">
-            <span className="font-medium text-gray-800 text-sm">
+            <span className="font-medium text-gray-800 text-sm truncate">
               {selectedModel.displayName}
             </span>
-            {!isModelAllowed(selectedModel) && <Lock className="w-4 h-4 text-amber-500" />}
+            {!isModelAllowed(selectedModel) && <Lock className="w-4 h-4 text-amber-500 flex-shrink-0" />}
             {is2025Model(selectedModel) && (
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-1 flex-shrink-0">
                 <Sparkles className="w-3 h-3 text-purple-500" />
-                <span className="text-xs text-purple-600 font-medium">2025</span>
+                <span className="text-xs text-purple-600 font-medium hidden sm:inline">2025</span>
               </div>
             )}
           </div>
           <div className="flex items-center space-x-2 mt-1">
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 truncate">
               {selectedModel.provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} • {MODEL_CATEGORIES[selectedModel.category]?.name || selectedModel.category}
             </span>
             {getTierBadge(selectedModel) && getTierBadge(selectedModel)}
           </div>
         </div>
-        <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {/* Full dropdown implementation would be similar to compact version */}

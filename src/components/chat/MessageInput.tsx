@@ -1,4 +1,4 @@
-// Enhanced message input component with usage validation and tier restrictions
+// Mobile-first message input component with responsive design
 import React, { useState, useRef, useEffect } from 'react'
 import { Send, Square, AlertTriangle, Crown } from 'lucide-react'
 import { AIModel, UsageStats } from '../../types/chat'
@@ -22,12 +22,14 @@ export function MessageInput({
   const [warningShown, setWarningShown] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auto-resize textarea
+  // Auto-resize textarea with mobile-optimized max height
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
       const scrollHeight = textareaRef.current.scrollHeight
-      textareaRef.current.style.height = Math.min(scrollHeight, 160) + 'px'
+      // Mobile: max 120px, Desktop: max 160px
+      const maxHeight = window.innerWidth < 640 ? 120 : 160
+      textareaRef.current.style.height = Math.min(scrollHeight, maxHeight) + 'px'
     }
   }, [message])
 
@@ -167,13 +169,13 @@ export function MessageInput({
   }
 
   return (
-    <div className="py-4">
-      {/* Usage Warning Banner */}
+    <div className="py-3 sm:py-4">
+      {/* Mobile-optimized usage warning banner */}
       {((warning && warning.type === 'warning' && !warningShown) || !modelAllowed) && (
-        <div className="mb-3 p-3 rounded-xl bg-amber-50 border border-amber-200 shadow-lg relative z-30">
+        <div className="mb-2 sm:mb-3 p-3 rounded-xl bg-amber-50 border border-amber-200 shadow-lg relative z-30">
           <div className="flex items-start space-x-2">
             <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-sm text-amber-800 font-medium">
                 {!modelAllowed && selectedModel
                   ? `${selectedModel.displayName} requires a higher plan`
@@ -191,12 +193,12 @@ export function MessageInput({
         </div>
       )}
 
-      {/* Critical Usage Warning */}
+      {/* Mobile-optimized critical usage warning */}
       {warning && !warning.canSend && (
-        <div className="mb-3 p-3 rounded-xl bg-red-50 border border-red-200 shadow-lg relative z-30">
+        <div className="mb-2 sm:mb-3 p-3 rounded-xl bg-red-50 border border-red-200 shadow-lg relative z-30">
           <div className="flex items-start space-x-2">
             <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-sm text-red-800 font-medium mb-2">
                 {warning.message}
               </p>
@@ -209,10 +211,10 @@ export function MessageInput({
         </div>
       )}
 
-      {/* Message Input Container */}
-      <div className={`relative bg-white/95 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-xl transition-shadow focus-within:shadow-xl focus-within:ring-2 focus-within:ring-purple-500/20 border-2 ${getInputStateClasses()}`}>
+      {/* Mobile-optimized message input container */}
+      <div className={`relative bg-white/95 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg hover:shadow-xl transition-shadow focus-within:shadow-xl focus-within:ring-2 focus-within:ring-purple-500/20 border-2 ${getInputStateClasses()}`}>
         <form onSubmit={handleSubmit} className="flex items-end">
-          <div className="flex-1 p-4">
+          <div className="flex-1 p-3 sm:p-4">
             <textarea
               ref={textareaRef}
               value={message}
@@ -220,19 +222,19 @@ export function MessageInput({
               onKeyDown={handleKeyDown}
               placeholder={getPlaceholder()}
               disabled={disabled || (warning && !warning.canSend) || !modelAllowed}
-              className="w-full resize-none border-none outline-none text-gray-900 placeholder-gray-500 bg-transparent min-h-[24px] max-h-[160px] leading-relaxed text-sm disabled:opacity-75"
+              className="w-full resize-none border-none outline-none text-gray-900 placeholder-gray-500 bg-transparent min-h-[24px] max-h-[120px] sm:max-h-[160px] leading-relaxed text-sm sm:text-base disabled:opacity-75"
               rows={1}
               maxLength={4000}
             />
           </div>
 
-          {/* Send Button */}
-          <div className="p-3">
+          {/* Mobile-optimized send button */}
+          <div className="p-2 sm:p-3">
             <button
               type="submit"
               disabled={!canSend && !isStreaming}
               className={`
-                w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl
+                w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl
                 ${isStreaming 
                   ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white' 
                   : canSend
@@ -242,28 +244,32 @@ export function MessageInput({
               `}
             >
               {isStreaming ? (
-                <Square className="w-4 h-4" />
+                <Square className="w-3 h-3 sm:w-4 sm:h-4" />
               ) : (
-                <Send className="w-4 h-4" />
+                <Send className="w-3 h-3 sm:w-4 sm:h-4" />
               )}
             </button>
           </div>
         </form>
       </div>
 
-      {/* Footer Text with Usage Info */}
-      <div className="text-center mt-3 text-xs text-gray-500">
-        <span>chat.space can make mistakes</span>
-        {usageStats && usageStats.tier.daily_messages > 0 && (
-          <span className="ml-2">
-            • {usageStats.messages_sent_today}/{usageStats.tier.daily_messages} messages today
-          </span>
-        )}
-        {usageStats && (
-          <span className="ml-2">
-            • {Math.round((usageStats.tokens_used_month / usageStats.tier.monthly_tokens) * 100)}% monthly usage
-          </span>
-        )}
+      {/* Mobile-optimized footer text with usage info */}
+      <div className="text-center mt-2 sm:mt-3 text-xs text-gray-500 px-2">
+        <div className="flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2">
+          <span>chat.space can make mistakes</span>
+          {usageStats && usageStats.tier.daily_messages > 0 && (
+            <span className="flex items-center">
+              <span className="hidden sm:inline">•</span>
+              <span className="ml-1 sm:ml-2">{usageStats.messages_sent_today}/{usageStats.tier.daily_messages} messages today</span>
+            </span>
+          )}
+          {usageStats && (
+            <span className="flex items-center">
+              <span className="hidden sm:inline">•</span>
+              <span className="ml-1 sm:ml-2">{Math.round((usageStats.tokens_used_month / usageStats.tier.monthly_tokens) * 100)}% monthly usage</span>
+            </span>
+          )}
+        </div>
       </div>
     </div>
   )

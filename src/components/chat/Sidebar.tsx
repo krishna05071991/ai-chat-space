@@ -81,11 +81,11 @@ export function Sidebar({
             </button>
           </div>
           
-          {/* New Chat Button */}
-          <div className="p-3 sm:p-4">
+          {/* New Chat Button - Aligned with chat.space icon */}
+          <div className="p-4 lg:px-6">
             <button
               onClick={onNewChat}
-              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center group text-sm shadow-lg hover:shadow-xl"
+              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 flex items-center text-sm shadow-lg hover:shadow-xl"
             >
               <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" />
               New chat
@@ -94,13 +94,10 @@ export function Sidebar({
         </div>
 
         {/* Mobile-optimized conversations list */}
-        <div className="flex-1 overflow-y-auto px-2 sm:px-3">
+        <div className="flex-1 overflow-y-auto px-3 lg:px-6">
           <div className="space-y-1 sm:space-y-2">
             {conversations.length === 0 ? (
-              <div className="text-center py-6 sm:py-8 text-gray-500">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg mx-auto mb-3 sm:mb-4 opacity-60">
-                  <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                </div>
+              <div className="text-center py-8 text-gray-500">
                 <p className="text-sm">No conversations yet</p>
               </div>
             ) : (

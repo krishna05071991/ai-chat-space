@@ -93,8 +93,6 @@ export function ChatLayout() {
           }))
           
           setConversations(stateConversations)
-          
-          // Don't auto-select conversation, let user choose
         } else {
           console.log('📭 No conversations found (or all archived)')
           setConversations([])
@@ -236,6 +234,7 @@ export function ChatLayout() {
     setPricingModal({ isOpen: true, highlightTier: requiredTier })
   }, [])
 
+  // CRITICAL: Updated handleSendMessage to send FULL conversation history
   const handleSendMessage = useCallback(async (content: string) => {
     if (!user || streamingState.isStreaming) {
       return
@@ -291,8 +290,14 @@ export function ChatLayout() {
       updateConversation(targetConversation.id, { title })
     }
 
-    // Prepare conversation history for Edge Function
-    const conversationHistory = [...targetConversation.messages, userMessage]
+    // CRITICAL: Prepare FULL conversation history for Edge Function
+    const fullConversationHistory = [...targetConversation.messages, userMessage]
+
+    console.log('📤 Sending full conversation history to Edge Function:', {
+      conversationId: targetConversation.id,
+      messageCount: fullConversationHistory.length,
+      model: selectedModel.id
+    })
 
     // Start streaming
     setStreamingState({
@@ -304,9 +309,10 @@ export function ChatLayout() {
     abortControllerRef.current = new AbortController()
 
     try {
-      // ONLY call Edge Function - it handles ALL message saving
+      // CRITICAL: Send FULL conversation history to Edge Function
+      // The Edge Function now handles ALL message persistence and usage tracking
       await streamingService.sendStreamingMessage(
-        conversationHistory,
+        fullConversationHistory,
         selectedModel,
         {
           onToken: (token: string) => {
@@ -316,6 +322,8 @@ export function ChatLayout() {
             }))
           },
           onComplete: (fullContent: string, usage?: TokenUsage) => {
+            // The Edge Function has already saved both messages to database
+            // We just need to update the UI state
             const assistantMessage: Message = {
               id: crypto.randomUUID(),
               conversation_id: targetConversation.id,
@@ -346,6 +354,8 @@ export function ChatLayout() {
               currentMessage: '',
               messageId: null
             })
+
+            console.log('✅ Message completed with usage tracking by Edge Function')
 
             // Refresh usage stats after message completion
             setTimeout(() => {
@@ -551,7 +561,7 @@ export function ChatLayout() {
         messages: conversation.messages,
         created_at: conversation.created_at,
         updated_at: conversation.updated_at,
-        total_tokens: conversation.total_tokens
+        total_tokens: conversation.messages.reduce((sum, msg) => sum + (msg.total_tokens || 0), 0)
       }
       
       const blob = new Blob([JSON.stringify(exportData, null, 2)], {
@@ -572,51 +582,6 @@ export function ChatLayout() {
       setError('Failed to export conversation')
     }
   }
-
-  const handleClearAllConversationsOld = async () => {
-    try {
-      console.log('🗑️ Clearing all conversations...')
-      
-      // Delete from database FIRST
-      await databaseService.deleteAllConversations()
-      
-      // Clear local state AFTER successful database deletion
-      setConversations([])
-      setActiveConversationId(null)
-      setError(null)
-      setStreamingState({
-        isStreaming: false,
-        currentMessage: '',
-        messageId: null
-      })
-      
-      console.log('✅ All conversations cleared successfully')
-      
-    } catch (error) {
-      console.error('❌ Failed to clear conversations:', error)
-      setError(`Failed to clear conversations: ${error.message}`)
-    }
-  }
-
-  // LEGACY IMPLEMENTATION - REMOVE AFTER TESTING
-  const handleDeleteConversationOld = async (id: string) => {
-    setConversations(prev => prev.filter(c => c.id !== id))
-    if (id === activeConversationId) {
-      const remaining = conversations.filter(c => c.id !== id)
-      if (remaining.length > 0) {
-        setActiveConversationId(remaining[0].id)
-      } else {
-        setActiveConversationId(null)
-      }
-    }
-    
-    try {
-      await databaseService.deleteConversation(id)
-    } catch (error) {
-      console.error('Failed to delete conversation from database:', error)
-    }
-  }
-  
 
   if (isLoadingConversations) {
     return (

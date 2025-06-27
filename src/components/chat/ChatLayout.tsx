@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react'
+import { Menu, Settings } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { ChatArea } from './ChatArea'
 import { LimitExceededModal, UsageLimitError } from '../usage/LimitExceededModal'

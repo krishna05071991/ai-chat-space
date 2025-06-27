@@ -162,7 +162,7 @@ export function ChatArea({
       <div className="relative z-20 flex-shrink-0">
         <div className="flex items-center justify-between py-3 px-3 sm:py-4 sm:px-4 md:px-6 min-h-[56px] sm:min-h-[60px]">
           {/* Mobile-optimized brand section */}
-          <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 min-w-0 flex-1">
+          <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 min-w-0 flex-1 lg:justify-start justify-center">
             <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
               {/* Responsive icon */}
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
@@ -177,7 +177,7 @@ export function ChatArea({
             <div className="w-px h-4 sm:h-6 bg-gray-300 flex-shrink-0"></div>
             
             {/* Mobile-optimized model selector */}
-            <div className="flex items-center space-x-1 sm:space-x-2 min-w-0 flex-1">
+            <div className="hidden lg:flex items-center space-x-1 sm:space-x-2 min-w-0 flex-1">
               <span className="text-xs sm:text-sm text-gray-600 font-medium hidden sm:inline">Using:</span>
               <ModelSelector 
                 selectedModel={selectedModel}
@@ -186,6 +186,16 @@ export function ChatArea({
                 compact={true}
               />
             </div>
+          </div>
+          
+          {/* Mobile model selector - properly centered */}
+          <div className="lg:hidden flex items-center justify-center">
+            <ModelSelector 
+              selectedModel={selectedModel}
+              onModelChange={onModelChange}
+              onUpgradePrompt={onUpgradePrompt}
+              compact={true}
+            />
           </div>
 
           {/* Mobile-optimized stats section */}

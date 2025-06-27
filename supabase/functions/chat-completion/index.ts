@@ -379,16 +379,32 @@ async function updateModelHistory(supabase, conversationId, modelUsed) {
   }
 }
 
-// CRITICAL: Update user usage statistics
+// FIXED: Update user usage statistics with fetch-modify-update pattern
 async function updateUserUsage(supabase, userId, tokensUsed, messagesAdded = 1) {
   try {
     console.log('📈 Updating user usage:', { userId, tokensUsed, messagesAdded });
 
+    // First, fetch current user data
+    const { data: currentUser, error: fetchError } = await supabase
+      .from('users')
+      .select('monthly_tokens_used, daily_messages_sent')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch current user usage: ${fetchError.message}`);
+    }
+
+    // Calculate new values
+    const newMonthlyTokens = (currentUser.monthly_tokens_used || 0) + tokensUsed;
+    const newDailyMessages = (currentUser.daily_messages_sent || 0) + messagesAdded;
+
+    // Update with calculated values
     const { error } = await supabase
       .from('users')
       .update({
-        monthly_tokens_used: supabase.sql`monthly_tokens_used + ${tokensUsed}`,
-        daily_messages_sent: supabase.sql`daily_messages_sent + ${messagesAdded}`
+        monthly_tokens_used: newMonthlyTokens,
+        daily_messages_sent: newDailyMessages
       })
       .eq('id', userId);
 
@@ -396,7 +412,10 @@ async function updateUserUsage(supabase, userId, tokensUsed, messagesAdded = 1) 
       throw new Error(`Failed to update user usage: ${error.message}`);
     }
 
-    console.log('✅ User usage updated successfully');
+    console.log('✅ User usage updated successfully:', {
+      newMonthlyTokens,
+      newDailyMessages
+    });
 
   } catch (error) {
     console.error('❌ Error updating user usage:', error);
@@ -404,24 +423,57 @@ async function updateUserUsage(supabase, userId, tokensUsed, messagesAdded = 1) 
   }
 }
 
-// CRITICAL: Update daily usage tracking table
+// FIXED: Update daily usage tracking table with fetch-modify-update pattern
 async function updateUsageTracking(supabase, userId, tokensUsed, messagesAdded, modelUsed) {
   try {
     console.log('📊 Updating usage tracking:', { userId, tokensUsed, messagesAdded, modelUsed });
 
     const today = new Date().toISOString().split('T')[0];
 
-    // Upsert daily usage record
-    const { error } = await supabase
+    // First, try to fetch existing record for today
+    const { data: existingRecord, error: fetchError } = await supabase
       .from('usage_tracking')
-      .upsert({
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date', today)
+      .single();
+
+    let updateData;
+
+    if (fetchError && fetchError.code === 'PGRST116') {
+      // No existing record, create new one
+      updateData = {
         user_id: userId,
         date: today,
-        tokens_used: supabase.sql`COALESCE(tokens_used, 0) + ${tokensUsed}`,
-        messages_sent: supabase.sql`COALESCE(messages_sent, 0) + ${messagesAdded}`,
-        models_used: supabase.sql`COALESCE(models_used, '{}') || jsonb_build_object('${modelUsed}', COALESCE((models_used->>'${modelUsed}')::int, 0) + 1)`,
-        cost_incurred: supabase.sql`COALESCE(cost_incurred, 0) + ${tokensUsed * 0.001}` // Rough cost calculation
-      }, {
+        tokens_used: tokensUsed,
+        messages_sent: messagesAdded,
+        models_used: { [modelUsed]: 1 },
+        cost_incurred: tokensUsed * 0.001 // Rough cost calculation
+      };
+    } else if (fetchError) {
+      throw new Error(`Failed to fetch existing usage tracking: ${fetchError.message}`);
+    } else {
+      // Existing record found, calculate new values
+      const currentModelsUsed = existingRecord.models_used || {};
+      const newModelsUsed = {
+        ...currentModelsUsed,
+        [modelUsed]: (currentModelsUsed[modelUsed] || 0) + 1
+      };
+
+      updateData = {
+        user_id: userId,
+        date: today,
+        tokens_used: (existingRecord.tokens_used || 0) + tokensUsed,
+        messages_sent: (existingRecord.messages_sent || 0) + messagesAdded,
+        models_used: newModelsUsed,
+        cost_incurred: (existingRecord.cost_incurred || 0) + (tokensUsed * 0.001)
+      };
+    }
+
+    // Upsert the record
+    const { error } = await supabase
+      .from('usage_tracking')
+      .upsert(updateData, {
         onConflict: 'user_id,date'
       });
 
@@ -429,7 +481,7 @@ async function updateUsageTracking(supabase, userId, tokensUsed, messagesAdded, 
       throw new Error(`Failed to update usage tracking: ${error.message}`);
     }
 
-    console.log('✅ Usage tracking updated successfully');
+    console.log('✅ Usage tracking updated successfully:', updateData);
 
   } catch (error) {
     console.error('❌ Error updating usage tracking:', error);

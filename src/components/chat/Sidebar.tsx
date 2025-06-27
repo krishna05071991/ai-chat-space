@@ -130,7 +130,7 @@ export function Sidebar({
                     </div>
 
                     {/* Mobile-optimized conversation menu */}
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 lg:group-hover:opacity-100 transition-opacity z-10">
                       <ConversationMenu
                         conversation={conversation}
                         onRename={onRenameConversation}
@@ -179,7 +179,7 @@ export function Sidebar({
 
             {/* Mobile-optimized profile menu */}
             {profileMenuOpen && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden z-[9998]">
                 
                 {/* Mobile-optimized usage statistics in profile menu */}
                 {usageStats && (

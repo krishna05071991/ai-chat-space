@@ -70,7 +70,7 @@ export function UsageDisplay({ usageStats, className = '' }: UsageDisplayProps) 
     (usageStats.messages_sent_today / usageStats.tier.daily_messages) * 100 : 0
 
   return (
-    <div className={`bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow ${className}`}>
+    <div className={`bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow relative z-0 ${className}`}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-gray-800 flex items-center">
           <TrendingUp className="w-4 h-4 mr-2" />

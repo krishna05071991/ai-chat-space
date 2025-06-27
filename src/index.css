@@ -88,8 +88,14 @@
 
   /* Mobile-first touch targets */
   .touch-target {
-    min-height: 44px;
-    min-width: 44px;
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  /* Ensure conversation menu appears above everything */
+  .conversation-menu-container {
+    position: relative;
+    z-index: 1;
   }
 
   /* Mobile-first safe area handling */

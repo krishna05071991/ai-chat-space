@@ -8,31 +8,9 @@ import { useUserProfile } from './hooks/useUserProfile'
 import { useDatabaseSync } from './hooks/useDatabaseSync'
 
 function App() {
-  const { user, loading, isSessionValid } = useAuth()
-  const { profile, loading: profileLoading, refetchProfile } = useUserProfile()
-  const { conversations } = useDatabaseSync()
-
-  // CRITICAL: Additional session validation check for extra safety
-  // This async check happens after the basic user object validation
-  React.useEffect(() => {
-    const validateSession = async () => {
-      if (user && isSessionValid) {
-        try {
-          const sessionValid = await isSessionValid()
-          if (!sessionValid) {
-            console.log('🚫 Session validation failed, user will be redirected to auth')
-            // The useAuth hook will handle clearing the invalid session
-          }
-        } catch (error) {
-          console.error('Session validation error:', error)
-        }
-      }
-    }
-    
-    validateSession()
-  }, [user, isSessionValid])
-
-  // CRITICAL: Always show loading if auth is not fully resolved OR if checking session
+  const { user, loading } = useAuth()
+  
+  // CRITICAL: Always show loading if auth is not fully resolved
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center">
@@ -44,28 +22,29 @@ function App() {
     )
   }
 
-  // CRITICAL: ULTRA STRICT AUTHENTICATION CHECK - Show auth if ANY of these conditions are true:
-  // 1. No user object
-  // 2. No user ID  
-  // 3. No email
-  // 4. Session validation failed
-  const isProperlyAuthenticated = user && 
-                                  user.id && 
-                                  user.email && 
-                                  user.aud === 'authenticated'
-
-  if (!isProperlyAuthenticated) {
-    console.log('🚫 User not properly authenticated, showing auth screen:', {
+  // CRITICAL: FIRST AND ABSOLUTE PRIORITY - Authentication check
+  // If user is not authenticated, IMMEDIATELY show auth screen - NO EXCEPTIONS
+  if (!user || !user.id || !user.email || user.aud !== 'authenticated') {
+    console.log('🚫 User not authenticated, showing auth screen:', {
       hasUser: !!user,
       hasUserId: !!user?.id,
       hasEmail: !!user?.email,
-      userAud: user?.aud,
-      isProperlyAuthenticated
+      userAud: user?.aud
     })
     return <AuthLayout />
   }
 
-  // CRITICAL: Wait for profile data to load before proceeding (only for authenticated users)
+  // CRITICAL: Only call these hooks AFTER confirming authentication
+  // This prevents any data fetching for non-authenticated users
+  return <AuthenticatedApp user={user} />
+}
+
+// Separate component for authenticated users only
+function AuthenticatedApp({ user }: { user: any }) {
+  const { profile, loading: profileLoading, refetchProfile } = useUserProfile()
+  const { conversations } = useDatabaseSync()
+
+  // Wait for profile data to load
   if (profileLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center">
@@ -77,33 +56,35 @@ function App() {
     )
   }
 
-  // CRITICAL: ULTRA STRICT onboarding checks - only for DEFINITELY authenticated users
-  // Multiple layers of validation to prevent showing onboarding to unauthenticated users
-  const isNewUser = isProperlyAuthenticated &&           // Must pass strict auth check
-                    profile !== null &&                  // Profile must be loaded (not loading error)
-                    !profile?.full_name &&               // No name set
-                    conversations.length === 0 &&        // No conversations
-                    !profileLoading &&                   // Profile loading complete
-                    user.email_confirmed_at              // Email must be confirmed
+  // CRITICAL: Onboarding check - with additional safety measures
+  // Only show onboarding if ALL conditions are met AND user is definitely authenticated
+  const isNewUser = user && 
+                    user.id && 
+                    user.email && 
+                    user.aud === 'authenticated' &&     // Double-check authentication
+                    profile !== null &&                 // Profile loaded successfully
+                    !profile?.full_name &&              // No name set
+                    conversations.length === 0 &&       // No conversations exist
+                    !profileLoading                     // Profile loading complete
   
-  // Additional safety log for debugging
-  console.log('🔍 Onboarding check:', {
-    isProperlyAuthenticated,
+  console.log('🔍 Onboarding decision for authenticated user:', {
+    userId: user.id,
+    userEmail: user.email,
+    userAud: user.aud,
     hasProfile: !!profile,
     hasFullName: !!profile?.full_name,
     conversationCount: conversations.length,
     profileLoading,
-    emailConfirmed: !!user.email_confirmed_at,
     isNewUser
   })
   
-  // CRITICAL: Show simple name setup ONLY for authenticated users who pass ALL checks
+  // Show onboarding for new authenticated users
   if (isNewUser) {
     console.log('✅ Showing onboarding for authenticated new user')
     return <SimpleNameSetupScreen onComplete={refetchProfile} />
   }
 
-  // CRITICAL: Only authenticated and onboarded users reach here
+  // Show main app for existing authenticated users
   console.log('✅ Showing main app for authenticated user')
   return <ChatLayout />
 }

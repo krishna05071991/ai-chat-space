@@ -562,7 +562,7 @@ class DatabaseService {
           )
         `)
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       if (userError) {
         console.error('❌ Error loading user data:', userError)

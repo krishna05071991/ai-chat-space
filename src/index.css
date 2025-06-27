@@ -1,5 +1,5 @@
 /* Global styles for chat.space - Mobile-first AI chat platform */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,7 +10,7 @@
   }
   
   body {
-    @apply bg-white text-gray-900 font-inter;
+    @apply bg-[#FCFCFC] text-[#222427] font-poppins;
     font-feature-settings: 'cv11', 'ss01';
     font-variation-settings: 'opsz' 32;
     /* Mobile-first: Prevent horizontal scroll */
@@ -34,21 +34,70 @@
   /* Mobile-first: Ensure proper viewport handling */
   @media screen and (max-width: 640px) {
     body {
-      font-size: 14px;
+      font-size: 13px;
       line-height: 1.5;
     }
+  }
+
+  /* Premium typography hierarchy */
+  h1, .h1 {
+    @apply text-xl font-semibold text-[#222427] mb-4;
+  }
+  
+  h2, .h2 {
+    @apply text-base font-medium text-[#222427] mb-3;
+  }
+  
+  .body-text {
+    @apply text-sm text-[#222427];
+  }
+  
+  .muted-text {
+    @apply text-sm text-[#8A8377];
+  }
+  
+  .tiny-text {
+    @apply text-xs text-[#8A8377];
   }
 }
 
 @layer components {
-  .font-inter {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  .font-poppins {
+    font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+    font-weight: 300;
+  }
+  
+  /* Premium infinite canvas layout */
+  .infinite-canvas {
+    @apply min-h-screen bg-[#FCFCFC] overflow-hidden;
+  }
+  
+  .canvas-section {
+    @apply w-full px-4 py-2 space-y-6;
+  }
+  
+  .canvas-card {
+    @apply bg-white/60 backdrop-blur-sm border-none rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300;
+  }
+  
+  /* Sticky top bar for mobile */
+  .mobile-top-bar {
+    @apply sticky top-0 z-50 h-14 bg-[#FCFCFC]/95 backdrop-blur-md border-none shadow-sm px-4 flex items-center justify-between;
+  }
+  
+  /* Collapsible sidebar for desktop */
+  .desktop-sidebar {
+    @apply hidden lg:flex lg:flex-col lg:w-60 lg:border-r lg:border-gray-200/50 lg:bg-white/40 lg:backdrop-blur-md;
+  }
+  
+  .desktop-sidebar.collapsed {
+    @apply lg:w-20;
   }
   
   /* Mobile-optimized custom scrollbar */
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: rgb(203 213 225) rgb(248 250 252);
+    scrollbar-color: rgba(138, 131, 119, 0.3) transparent;
   }
   
   .scrollbar-thin::-webkit-scrollbar {
@@ -62,23 +111,23 @@
   }
   
   .scrollbar-thin::-webkit-scrollbar-track {
-    background: rgb(248 250 252);
+    background: transparent;
   }
   
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: rgb(203 213 225);
-    border-radius: 3px;
+    background: rgba(138, 131, 119, 0.2);
+    border-radius: 10px;
   }
   
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: rgb(148 163 184);
+    background: rgba(138, 131, 119, 0.4);
   }
   
   /* Mobile-optimized glassmorphism effect */
   .glass {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(16px);
+    border: none;
   }
   
   /* Mobile-first smooth transitions */
@@ -126,165 +175,160 @@
     height: 100dvh;
   }
 
-  /* Mobile-first text sizing */
-  .text-mobile-xs { font-size: 0.75rem; }
-  .text-mobile-sm { font-size: 0.875rem; }
-  .text-mobile-base { font-size: 1rem; }
-  .text-mobile-lg { font-size: 1.125rem; }
-  .text-mobile-xl { font-size: 1.25rem; }
+  /* Premium spacing system */
+  .space-canvas { @apply space-y-6; }
+  .space-section { @apply space-y-4; }
+  .space-items { @apply space-y-2; }
 
-  /* Mobile-first spacing utilities */
-  .p-mobile { padding: 0.75rem; }
-  .px-mobile { padding-left: 0.75rem; padding-right: 0.75rem; }
-  .py-mobile { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-  .m-mobile { margin: 0.75rem; }
-  .mx-mobile { margin-left: 0.75rem; margin-right: 0.75rem; }
-  .my-mobile { margin-top: 0.75rem; margin-bottom: 0.75rem; }
+  /* Canvas padding system */
+  .px-canvas { @apply px-4 lg:px-6; }
+  .py-canvas { @apply py-2 lg:py-4; }
+  .p-canvas { @apply px-4 py-2 lg:px-6 lg:py-4; }
 }
 
 @layer components {
   /* Mobile-first markdown content styling for AI responses */
-  .text-gray-800 h1,
-  .text-gray-800 h2,
-  .text-gray-800 h3,
-  .text-gray-800 h4,
-  .text-gray-800 h5,
-  .text-gray-800 h6 {
-    @apply font-semibold text-gray-900 mt-4 mb-2 first:mt-0;
+  .message-content h1,
+  .message-content h2,
+  .message-content h3,
+  .message-content h4,
+  .message-content h5,
+  .message-content h6 {
+    @apply font-semibold text-[#222427] mt-4 mb-2 first:mt-0;
   }
   
   @media (min-width: 640px) {
-    .text-gray-800 h1,
-    .text-gray-800 h2,
-    .text-gray-800 h3,
-    .text-gray-800 h4,
-    .text-gray-800 h5,
-    .text-gray-800 h6 {
+    .message-content h1,
+    .message-content h2,
+    .message-content h3,
+    .message-content h4,
+    .message-content h5,
+    .message-content h6 {
       @apply mt-6 mb-3;
     }
   }
   
-  .text-gray-800 h1 { @apply text-lg sm:text-xl; }
-  .text-gray-800 h2 { @apply text-base sm:text-lg; }
-  .text-gray-800 h3 { @apply text-sm sm:text-base; }
-  .text-gray-800 h4,
-  .text-gray-800 h5,
-  .text-gray-800 h6 { @apply text-sm; }
+  .message-content h1 { @apply text-lg sm:text-xl; }
+  .message-content h2 { @apply text-base sm:text-lg; }
+  .message-content h3 { @apply text-sm sm:text-base; }
+  .message-content h4,
+  .message-content h5,
+  .message-content h6 { @apply text-sm; }
   
-  .text-gray-800 p {
+  .message-content p {
     @apply mb-3 last:mb-0;
   }
   
   @media (min-width: 640px) {
-    .text-gray-800 p {
+    .message-content p {
       @apply mb-4;
     }
   }
   
-  .text-gray-800 ul,
-  .text-gray-800 ol {
+  .message-content ul,
+  .message-content ol {
     @apply mb-3 pl-4 space-y-1;
   }
   
   @media (min-width: 640px) {
-    .text-gray-800 ul,
-    .text-gray-800 ol {
+    .message-content ul,
+    .message-content ol {
       @apply mb-4 pl-6;
     }
   }
   
-  .text-gray-800 ul {
+  .message-content ul {
     @apply list-disc;
   }
   
-  .text-gray-800 ol {
+  .message-content ol {
     @apply list-decimal;
   }
   
-  .text-gray-800 li {
+  .message-content li {
     @apply mb-1;
   }
   
-  .text-gray-800 a {
+  .message-content a {
     @apply text-purple-600 hover:text-purple-700 underline;
   }
   
-  .text-gray-800 strong {
-    @apply font-semibold text-gray-900;
+  .message-content strong {
+    @apply font-semibold text-[#222427];
   }
   
-  .text-gray-800 em {
+  .message-content em {
     @apply italic;
   }
   
-  .text-gray-800 code {
-    @apply bg-gray-100 px-1 py-0.5 rounded text-xs sm:text-sm font-mono;
+  .message-content code {
+    @apply bg-gray-100/60 px-1 py-0.5 rounded-lg text-xs sm:text-sm font-mono;
   }
   
   @media (min-width: 640px) {
-    .text-gray-800 code {
+    .message-content code {
       @apply px-1.5;
     }
   }
   
-  .text-gray-800 pre {
-    @apply bg-gray-100 p-3 rounded-lg overflow-x-auto mb-3 text-xs font-mono;
+  .message-content pre {
+    @apply bg-gray-100/60 p-3 rounded-2xl overflow-x-auto mb-3 text-xs font-mono border-none shadow-sm;
   }
   
   @media (min-width: 640px) {
-    .text-gray-800 pre {
+    .message-content pre {
       @apply p-4 mb-4 text-sm;
     }
   }
   
-  .text-gray-800 pre code {
+  .message-content pre code {
     @apply bg-transparent p-0 text-inherit;
   }
   
-  .text-gray-800 blockquote {
-    @apply border-l-4 border-gray-300 pl-3 italic text-gray-600 mb-3;
+  .message-content blockquote {
+    @apply border-l-4 border-gray-300/50 pl-3 italic text-[#8A8377] mb-3;
   }
   
   @media (min-width: 640px) {
-    .text-gray-800 blockquote {
+    .message-content blockquote {
       @apply pl-4 mb-4;
     }
   }
   
-  .text-gray-800 hr {
+  .message-content hr {
     @apply border-gray-300 my-4;
   }
   
   @media (min-width: 640px) {
-    .text-gray-800 hr {
+    .message-content hr {
       @apply my-6;
     }
   }
   
-  .text-gray-800 table {
+  .message-content table {
     @apply w-full border-collapse mb-3 text-sm;
   }
   
   @media (min-width: 640px) {
-    .text-gray-800 table {
+    .message-content table {
       @apply mb-4 text-base;
     }
   }
   
-  .text-gray-800 th,
-  .text-gray-800 td {
-    @apply border border-gray-300 px-2 py-1 text-left;
+  .message-content th,
+  .message-content td {
+    @apply border border-gray-300/50 px-2 py-1 text-left;
   }
   
   @media (min-width: 640px) {
-    .text-gray-800 th,
-    .text-gray-800 td {
+    .message-content th,
+    .message-content td {
       @apply px-3 py-2;
     }
   }
   
-  .text-gray-800 th {
-    @apply bg-gray-100 font-semibold;
+  .message-content th {
+    @apply bg-gray-100/40 font-semibold;
   }
 }
 

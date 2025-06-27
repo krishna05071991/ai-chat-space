@@ -70,13 +70,13 @@ export function UsageDisplay({ usageStats, className = '' }: UsageDisplayProps) 
     (usageStats.messages_sent_today / usageStats.tier.daily_messages) * 100 : 0
 
   return (
-    <div className={`bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow ${className}`}>
+    <div className={`canvas-card ${className}`}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-gray-800 flex items-center">
+        <h3 className="h2 flex items-center">
           <TrendingUp className="w-4 h-4 mr-2" />
           Usage Statistics
         </h3>
-        <span className={`text-sm font-medium ${getUsageColorLegacy()}`}>
+        <span className={`body-text font-medium ${getUsageColorLegacy()}`}>
           {usageStats.tier.tier.replace('_', ' ').toUpperCase()} Plan
         </span>
       </div>
@@ -86,9 +86,9 @@ export function UsageDisplay({ usageStats, className = '' }: UsageDisplayProps) 
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-2">
             <Zap className="w-3 h-3 text-gray-500" />
-            <span className="text-sm text-gray-600">Monthly Tokens</span>
+            <span className="body-text text-[#8A8377]">Monthly Tokens</span>
           </div>
-          <span className="text-sm font-medium text-gray-800">
+          <span className="body-text font-medium text-[#222427]">
             {formatTokens(usageStats.tokens_used_month)} / {formatTokens(usageStats.tier.monthly_tokens)}
           </span>
         </div>
@@ -99,10 +99,10 @@ export function UsageDisplay({ usageStats, className = '' }: UsageDisplayProps) 
           />
         </div>
         <div className="flex justify-between items-center mt-1">
-          <span className="text-xs text-gray-500">
+          <span className="tiny-text">
             {Math.round(monthlyTokenPercentage)}% used
           </span>
-          <span className="text-xs text-gray-500">
+          <span className="tiny-text">
             Today: {formatTokens(usageStats.tokens_used_today)}
           </span>
         </div>
@@ -114,9 +114,9 @@ export function UsageDisplay({ usageStats, className = '' }: UsageDisplayProps) 
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
               <MessageSquare className="w-3 h-3 text-gray-500" />
-              <span className="text-sm text-gray-600">Daily Messages</span>
+              <span className="body-text text-[#8A8377]">Daily Messages</span>
             </div>
-            <span className="text-sm font-medium text-gray-800">
+            <span className="body-text font-medium text-[#222427]">
               {usageStats.messages_sent_today} / {usageStats.tier.daily_messages}
             </span>
           </div>
@@ -127,7 +127,7 @@ export function UsageDisplay({ usageStats, className = '' }: UsageDisplayProps) 
             />
           </div>
           <div className="mt-1">
-            <span className={`text-xs font-medium ${getUsageColor(dailyMessagePercentage)}`}>
+            <span className={`tiny-text font-medium ${getUsageColor(dailyMessagePercentage)}`}>
               {Math.round(dailyMessagePercentage)}% of daily limit used
             </span>
           </div>
@@ -135,16 +135,16 @@ export function UsageDisplay({ usageStats, className = '' }: UsageDisplayProps) 
       )}
 
       {/* Reset Information */}
-      <div className="text-xs text-gray-500 space-y-1">
+      <div className="tiny-text space-y-2">
         {/* Monthly Reset Info */}
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-2">
           <Calendar className="w-3 h-3" />
           <span>Monthly limit resets {formatResetTime(usageStats.monthly_reset_time)}</span>
         </div>
         
         {/* Daily Reset Info (for free tier) */}
         {usageStats.tier.daily_messages > 0 && (
-          <div className="flex items-center space-x-1 ml-4">
+          <div className="flex items-center space-x-2">
             <Calendar className="w-3 h-3" />
             <span>Daily limit resets {formatResetTime(usageStats.daily_reset_time)}</span>
           </div>
@@ -152,7 +152,7 @@ export function UsageDisplay({ usageStats, className = '' }: UsageDisplayProps) 
         
         {/* Usage Warnings */}
         {usageStats.warnings.length > 0 && (
-          <div className="pt-1 border-t border-gray-200">
+          <div className="pt-2 border-t border-gray-200/50">
             <span className={`font-medium ${getUsageColorLegacy()}`}>
               ⚠️ {usageStats.warnings[usageStats.warnings.length - 1]}% usage warning
             </span>

@@ -266,30 +266,24 @@ class DatabaseService {
   }
 
   /**
-   * Archive conversation instead of deleting it
+   * Delete conversation from database
    */
   async deleteConversation(conversationId: string): Promise<void> {
     await this.withAuth(async () => {
-      console.log('📁 Archiving conversation:', conversationId)
-      
-      // Simple archive operation - let RLS handle user validation
       const { error } = await supabase
         .from('conversations')
-        .update({ is_archived: true })
+        .delete()
         .eq('id', conversationId)
 
       if (error) {
-        console.error('❌ Archive error details:', error)
-        throw new Error(`Failed to archive conversation: ${error.message}`)
+        throw new Error(`Failed to delete conversation: ${error.message}`)
       }
-      
-      console.log('✅ Conversation archived successfully')
 
     }, 'deleteConversation')
   }
 
   /**
-   * Archive all conversations for the current user instead of deleting them
+   * Delete all conversations for the current user from database
    */
   async deleteAllConversations(): Promise<void> {
     await this.withAuth(async () => {
@@ -298,21 +292,20 @@ class DatabaseService {
         throw new Error('No authenticated user found')
       }
       
-      console.log('📁 Archiving all conversations for user:', user.id.substring(0, 8))
+      console.log('🗑️ Deleting conversations for user:', user.id.substring(0, 8))
       
-      // Archive all conversations for this user - RLS will handle filtering
-      const { error: archiveError, count } = await supabase
+      // Delete all conversations for this user
+      const { error: deleteError, count: deletedCount } = await supabase
         .from('conversations')
-        .update({ is_archived: true })
+        .delete({ count: 'exact' })
         .eq('user_id', user.id)
       
-      if (archiveError) {
-        console.error('❌ Archive all error details:', archiveError)
-        console.error('❌ Archive error:', archiveError)
-        throw new Error(`Failed to archive conversations: ${archiveError.message}`)
+      if (deleteError) {
+        console.error('❌ Delete error:', deleteError)
+        throw new Error(`Failed to delete conversations: ${deleteError.message}`)
       }
       
-      console.log('✅ All conversations archived:', count || 'unknown count')
+      console.log('✅ Deleted conversations:', deletedCount)
       
     }, 'deleteAllConversations')
   }

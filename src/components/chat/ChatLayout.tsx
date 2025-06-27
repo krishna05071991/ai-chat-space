@@ -480,16 +480,16 @@ export function ChatLayout() {
   }
   
   /**
-   * Archive conversation (soft delete)
+   * Delete conversation from database and local state
    */
   const handleDeleteConversation = async (id: string) => {
     try {
-      console.log('📁 Archiving conversation:', id)
+      console.log('🗑️ Deleting conversation:', id)
       
-      // Archive in database first
+      // Delete from database first
       await databaseService.deleteConversation(id)
       
-      // Remove from local state after successful archiving
+      // Remove from local state after successful deletion
       setConversations(prev => prev.filter(c => c.id !== id))
       
       // Handle active conversation
@@ -502,25 +502,25 @@ export function ChatLayout() {
         }
       }
       
-      console.log('✅ Conversation archived successfully')
+      console.log('✅ Conversation deleted successfully')
       
     } catch (error) {
-      console.error('❌ Failed to archive conversation:', error)
-      setError(`Failed to archive conversation: ${error.message}`)
+      console.error('❌ Failed to delete conversation:', error)
+      setError(`Failed to delete conversation: ${error.message}`)
     }
   }
   
   /**
-   * Archive all conversations (soft delete)
+   * Delete all conversations from database and local state
    */
   const handleClearAllConversations = async () => {
     try {
-      console.log('📁 Archiving all conversations...')
+      console.log('🗑️ Clearing all conversations...')
       
-      // Archive in database first
+      // Delete from database first
       await databaseService.deleteAllConversations()
       
-      // Clear local state after successful archiving
+      // Clear local state after successful deletion
       setConversations([])
       setActiveConversationId(null)
       setError(null)
@@ -530,11 +530,11 @@ export function ChatLayout() {
         messageId: null
       })
       
-      console.log('✅ All conversations archived successfully')
+      console.log('✅ All conversations cleared successfully')
       
     } catch (error) {
-      console.error('❌ Failed to archive conversations:', error)
-      setError(`Failed to archive conversations: ${error.message}`)
+      console.error('❌ Failed to clear conversations:', error)
+      setError(`Failed to clear conversations: ${error.message}`)
     }
   }
   

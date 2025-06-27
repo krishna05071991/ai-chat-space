@@ -19,12 +19,10 @@ export function useUserProfile() {
   const { user } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(false)
-  const [needsOnboarding, setNeedsOnboarding] = useState(false)
 
   const fetchProfile = async () => {
     if (!user) {
       setProfile(null)
-      setNeedsOnboarding(false)
       return
     }
 
@@ -33,14 +31,9 @@ export function useUserProfile() {
       const profileData = await databaseService.getUserProfile()
       setProfile(profileData)
       
-      // Check if user needs onboarding
-      const needsSetup = !profileData?.onboarding_completed || !profileData?.full_name
-      setNeedsOnboarding(needsSetup)
-      
     } catch (error) {
       console.error('Failed to fetch user profile:', error)
       setProfile(null)
-      setNeedsOnboarding(true) // Assume needs onboarding on error
     } finally {
       setLoading(false)
     }
@@ -87,7 +80,6 @@ export function useUserProfile() {
   return {
     profile,
     loading,
-    needsOnboarding,
     updateProfile,
     completeOnboarding,
     refetchProfile: fetchProfile,

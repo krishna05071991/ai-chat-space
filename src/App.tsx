@@ -2,13 +2,15 @@
 import React from 'react'
 import { AuthLayout } from './components/auth/AuthLayout'
 import { ChatLayout } from './components/chat/ChatLayout'
-import { ProfileSetupScreen } from './components/onboarding/ProfileSetupScreen'
+import { SimpleNameSetupScreen } from './components/onboarding/SimpleNameSetupScreen'
 import { useAuth } from './hooks/useAuth'
 import { useUserProfile } from './hooks/useUserProfile'
+import { useDatabaseSync } from './hooks/useDatabaseSync'
 
 function App() {
   const { user, loading } = useAuth()
-  const { profile, needsOnboarding, loading: profileLoading, refetchProfile } = useUserProfile()
+  const { profile, loading: profileLoading, refetchProfile } = useUserProfile()
+  const { conversations } = useDatabaseSync()
 
   if (loading) {
     return (
@@ -38,9 +40,12 @@ function App() {
     )
   }
 
-  // Authenticated but needs onboarding
-  if (needsOnboarding) {
-    return <ProfileSetupScreen onComplete={refetchProfile} />
+  // Check if this is a truly new user (no conversations AND no name)
+  const isNewUser = user && !profile?.full_name && conversations.length === 0
+  
+  // Show simple name setup ONLY for brand new users without any activity
+  if (isNewUser) {
+    return <SimpleNameSetupScreen onComplete={refetchProfile} />
   }
 
   // Authenticated and onboarded - show main app

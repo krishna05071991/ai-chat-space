@@ -675,21 +675,12 @@ export function ChatLayout() {
       {/* Pricing Modal */}
       {pricingModal.isOpen && (
         <PricingModal
-          isOpen={true}
+          isOpen={pricingModal.isOpen}
           onClose={() => setPricingModal({ isOpen: false })}
-          highlightTier={pricingModal.highlightTier}
+          currentTier="free"
           onSelectPlan={handleSelectPlan}
         />
       )}
-
-      {/* Agency Footer - Desktop only */}
-      <div className="hidden lg:block fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
-        <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-full px-3 py-1.5 shadow-lg">
-          <p className="text-xs text-gray-500 font-medium">
-            chat by <span className="text-purple-600 font-semibold">thelaunch.space</span>
-          </p>
-        </div>
-      </div>
     </div>
   )
 }

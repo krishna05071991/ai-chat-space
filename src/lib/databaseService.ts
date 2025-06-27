@@ -112,7 +112,6 @@ class DatabaseService {
 
   /**
    * Load all conversations for the current user from database with proper user filtering
-   * Only loads non-archived conversations
    */
   async loadConversations(): Promise<Conversation[]> {
     const result = await this.withAuth(async () => {
@@ -123,7 +122,7 @@ class DatabaseService {
 
       console.log('📥 Loading conversations for user:', user.id.substring(0, 8))
 
-      // First, get conversations with explicit user_id filter
+      // Get conversations - RLS policy will filter out archived ones automatically
       const { data: conversations, error: convError } = await supabase
         .from('conversations')
         .select('*')
@@ -161,7 +160,6 @@ class DatabaseService {
 
       // Combine conversations with their messages
       const result: Conversation[] = (conversations || []).map(conv => ({
-        id: conv.id,
         title: conv.title,
         messages: allMessages
           .filter(msg => msg.conversation_id === conv.id)
@@ -267,12 +265,14 @@ class DatabaseService {
     await this.withAuth(async () => {
       console.log('📁 Archiving conversation:', conversationId)
       
+      // Simple archive operation - let RLS handle user validation
       const { error } = await supabase
         .from('conversations')
         .update({ is_archived: true })
         .eq('id', conversationId)
 
       if (error) {
+        console.error('❌ Archive error details:', error)
         throw new Error(`Failed to archive conversation: ${error.message}`)
       }
       
@@ -293,14 +293,14 @@ class DatabaseService {
       
       console.log('📁 Archiving all conversations for user:', user.id.substring(0, 8))
       
-      // Archive all non-archived conversations for this user
+      // Archive all conversations for this user - RLS will handle filtering
       const { error: archiveError, count } = await supabase
         .from('conversations')
         .update({ is_archived: true })
         .eq('user_id', user.id)
-        .or('is_archived.is.null,is_archived.eq.false') // Only update non-archived ones
       
       if (archiveError) {
+        console.error('❌ Archive all error details:', archiveError)
         console.error('❌ Archive error:', archiveError)
         throw new Error(`Failed to archive conversations: ${archiveError.message}`)
       }

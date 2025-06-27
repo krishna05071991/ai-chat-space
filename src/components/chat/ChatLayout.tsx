@@ -493,7 +493,7 @@ export function ChatLayout() {
       
     } catch (error) {
       console.error('❌ Failed to archive conversation:', error)
-      setError(`Failed to delete conversation: ${error.message}`)
+      setError(`Failed to archive conversation: ${error.message}`)
     }
   }
   
@@ -521,7 +521,7 @@ export function ChatLayout() {
       
     } catch (error) {
       console.error('❌ Failed to archive conversations:', error)
-      setError(`Failed to clear conversations: ${error.message}`)
+      setError(`Failed to archive conversations: ${error.message}`)
     }
   }
   

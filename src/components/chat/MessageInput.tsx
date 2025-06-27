@@ -212,7 +212,7 @@ export function MessageInput({
       )}
 
       {/* Mobile-optimized message input container */}
-      <div className={`relative bg-white/95 backdrop-blur-sm rounded-3xl sm:rounded-[2rem] shadow-lg hover:shadow-xl transition-shadow focus-within:shadow-xl focus-within:ring-2 focus-within:ring-purple-500/20 border-2 ${getInputStateClasses()}`}>
+      <div className={`relative bg-white/95 backdrop-blur-sm rounded-xl shadow-lg hover:shadow-xl transition-shadow focus-within:shadow-xl focus-within:ring-2 focus-within:ring-purple-500/20 border-2 ${getInputStateClasses()}`}>
         <form onSubmit={handleSubmit} className="flex items-end">
           <div className="flex-1 p-3 sm:p-4">
             <textarea
@@ -234,7 +234,7 @@ export function MessageInput({
               type="submit"
               disabled={!canSend && !isStreaming}
               className={`
-                w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl
+                w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl
                 ${isStreaming 
                   ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white' 
                   : canSend

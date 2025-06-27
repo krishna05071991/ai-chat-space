@@ -183,7 +183,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
       <div className="relative">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center space-x-1 sm:space-x-2 bg-white/80 backdrop-blur-sm border rounded-xl sm:rounded-2xl px-2 sm:px-3 py-1.5 sm:py-2 hover:bg-white transition-all duration-200 text-xs sm:text-sm font-medium min-w-0 max-w-[120px] sm:max-w-[140px] md:max-w-none md:min-w-[140px] ${
+          className={`flex items-center space-x-1 sm:space-x-2 bg-white/80 backdrop-blur-sm border rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 hover:bg-white transition-all duration-200 text-xs sm:text-sm font-medium min-w-0 max-w-[120px] sm:max-w-[140px] md:max-w-none md:min-w-[140px] ${
             !isModelAllowed(selectedModel) 
               ? 'border-amber-300 hover:border-amber-400 text-amber-700 bg-amber-50/50' 
               : 'border-gray-200 hover:border-gray-300 text-gray-700'
@@ -200,7 +200,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
               className="fixed inset-0 z-[99998]" 
               onClick={() => setIsOpen(false)}
             />
-            <div className="absolute top-full mt-2 left-0 right-0 mx-2 sm:left-0 sm:right-auto sm:mx-0 bg-white border border-gray-200 rounded-xl sm:rounded-2xl shadow-2xl z-[99999] overflow-hidden min-w-[280px] sm:min-w-[320px] max-w-[calc(100vw-1rem)] sm:max-w-none max-h-[60vh] sm:max-h-[500px] overflow-y-auto">
+            <div className="absolute top-full mt-2 left-0 right-0 mx-2 sm:left-0 sm:right-auto sm:mx-0 bg-white border border-gray-200 rounded-xl shadow-2xl z-[99999] overflow-hidden min-w-[280px] sm:min-w-[320px] max-w-[calc(100vw-1rem)] sm:max-w-none max-h-[60vh] sm:max-h-[500px] overflow-y-auto">
               
               {/* Mobile-optimized OpenAI models section */}
               <div className="border-b border-gray-200">
@@ -235,7 +235,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
                     </p>
                     <button
                       onClick={() => onUpgradePrompt?.('basic')}
-                      className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs font-medium py-2 px-3 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all"
+                      className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs font-medium py-2 px-3 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all"
                     >
                       View Plans
                     </button>
@@ -255,7 +255,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 sm:space-x-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl sm:rounded-3xl px-3 sm:px-4 py-2 sm:py-3 hover:bg-white hover:border-gray-300 transition-all duration-200 group min-w-[240px] sm:min-w-[280px]"
+        className="flex items-center space-x-2 sm:space-x-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-3 sm:px-4 py-2 sm:py-3 hover:bg-white hover:border-gray-300 transition-all duration-200 group min-w-[240px] sm:min-w-[280px]"
       >
         <div className="text-left flex-1 min-w-0">
           <div className="flex items-center space-x-2">

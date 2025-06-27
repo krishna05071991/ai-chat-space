@@ -156,7 +156,7 @@ export function ChatArea({
           </div>
           
           {/* Mobile model selector - floating */}
-          <div className="lg:hidden fixed top-4 right-4 z-30 pt-safe">
+          <div className="lg:hidden fixed top-4 right-4 z-30 pt-safe" style={{ paddingRight: 'max(env(safe-area-inset-right), 0.5rem)' }}>
             <ModelSelector 
               selectedModel={selectedModel}
               onModelChange={onModelChange}

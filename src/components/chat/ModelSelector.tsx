@@ -200,7 +200,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
               className="fixed inset-0 z-[99998]" 
               onClick={() => setIsOpen(false)}
             />
-            <div className="absolute top-full mt-2 left-0 right-0 mx-2 sm:left-0 sm:right-auto sm:mx-0 bg-white border border-gray-200 rounded-xl shadow-2xl z-[99999] overflow-hidden min-w-[280px] sm:min-w-[320px] max-w-[calc(100vw-1rem)] sm:max-w-none max-h-[60vh] sm:max-h-[500px] overflow-y-auto">
+            <div className="absolute top-full mt-2 right-0 sm:left-0 sm:right-auto bg-white border border-gray-200 rounded-xl shadow-2xl z-[99999] overflow-hidden min-w-[280px] sm:min-w-[320px] max-w-[calc(100vw-2rem)] sm:max-w-[400px] max-h-[60vh] sm:max-h-[500px] overflow-y-auto" style={{ marginRight: 'max(env(safe-area-inset-right), 0.5rem)' }}>
               
               {/* Mobile-optimized OpenAI models section */}
               <div className="border-b border-gray-200">
@@ -224,7 +224,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
 
               {/* Mobile-optimized upgrade prompt */}
               {currentTier === 'free' && (
-                <div className="border-t border-gray-200 p-3 bg-gradient-to-r from-purple-50 to-purple-100">
+                <div className="border-t border-gray-200 p-4 bg-gradient-to-r from-purple-50 to-purple-100">
                   <div className="text-center">
                     <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 mx-auto mb-2" />
                     <p className="text-sm font-medium text-purple-800 mb-1">
@@ -235,7 +235,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
                     </p>
                     <button
                       onClick={() => onUpgradePrompt?.('basic')}
-                      className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs font-medium py-2 px-3 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all"
+                      className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm font-medium py-2.5 px-4 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
                     >
                       View Plans
                     </button>

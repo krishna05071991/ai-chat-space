@@ -10,30 +10,7 @@ import { useDatabaseSync } from './hooks/useDatabaseSync'
 function App() {
   const { user, loading, isSessionValid, clearInvalidSession } = useAuth()
   
-  // CRITICAL: Validate session on every render and clear if invalid
-  useEffect(() => {
-    const validateSession = async () => {
-      if (user && user.id) {
-        console.log('🔍 Validating session for user:', user.id.substring(0, 8))
-        
-        const valid = await isSessionValid()
-        if (!valid) {
-          console.log('🚫 Session is invalid, clearing session...')
-          await clearInvalidSession()
-          return
-        }
-        
-        console.log('✅ Session is valid')
-      }
-    }
-    
-    // Only validate if we think we have a user
-    if (user && !loading) {
-      validateSession()
-    }
-  }, [user, loading, isSessionValid, clearInvalidSession])
-  
-  // CRITICAL: Always show loading if auth is not fully resolved
+  // Show loading spinner while authentication is being resolved
   if (loading) {
     console.log('⏳ Authentication loading...')
     return (
@@ -46,41 +23,24 @@ function App() {
     )
   }
 
-  // CRITICAL: STRICTEST POSSIBLE AUTHENTICATION CHECK
-  // Multiple layers of validation to ensure user is DEFINITELY authenticated
-  const isDefinitelyAuthenticated = (
-    user && 
-    user.id && 
-    user.email && 
-    user.aud === 'authenticated' &&
-    user.role === 'authenticated' &&
-    user.email_confirmed_at &&  // Email must be confirmed
-    !user.banned_until &&       // User not banned
-    user.created_at &&          // User has creation date
-    user.updated_at             // User has update date
-  )
+  // Simple authentication check
+  const isAuthenticated = user && user.id && user.email
 
-  console.log('🔐 Authentication validation:', {
+  console.log('🔐 Authentication status:', {
     hasUser: !!user,
     hasUserId: !!user?.id,
     hasEmail: !!user?.email,
-    userAud: user?.aud,
-    userRole: user?.role,
-    emailConfirmed: !!user?.email_confirmed_at,
-    notBanned: !user?.banned_until,
-    hasCreatedAt: !!user?.created_at,
-    hasUpdatedAt: !!user?.updated_at,
-    isDefinitelyAuthenticated
+    isAuthenticated
   })
 
-  // CRITICAL: If ANY authentication check fails, show auth screen
-  if (!isDefinitelyAuthenticated) {
+  // If no authenticated user, show auth screen
+  if (!isAuthenticated) {
     console.log('🚫 User not properly authenticated, showing auth screen')
     return <AuthLayout />
   }
 
-  // CRITICAL: Only proceed if user is DEFINITELY authenticated
-  console.log('✅ User is definitively authenticated, proceeding...')
+  // User is authenticated, proceed to main app
+  console.log('✅ User is authenticated, proceeding...')
   return <AuthenticatedApp user={user} />
 }
 

@@ -12,6 +12,7 @@ function App() {
   const { profile, loading: profileLoading, refetchProfile } = useUserProfile()
   const { conversations } = useDatabaseSync()
 
+  // CRITICAL: Always show loading if auth is not fully resolved
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center">
@@ -23,12 +24,12 @@ function App() {
     )
   }
 
-  // Not authenticated - show auth
+  // CRITICAL: Not authenticated - ALWAYS show auth first
   if (!user) {
     return <AuthLayout />
   }
 
-  // Loading profile data
+  // CRITICAL: Wait for profile data to load before proceeding
   if (profileLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center">
@@ -40,10 +41,19 @@ function App() {
     )
   }
 
-  // Check if this is a truly new user (no conversations AND no name)
-  const isNewUser = user && !profile?.full_name && conversations.length === 0
+  // CRITICAL: Additional safety checks for onboarding
+  // Only show onboarding if:
+  // 1. User is definitely authenticated
+  // 2. User has no profile name
+  // 3. User has no conversations (truly new)
+  // 4. Profile loading is complete (not null due to error)
+  const isNewUser = user && 
+                    user.id && 
+                    !profile?.full_name && 
+                    conversations.length === 0 &&
+                    !profileLoading
   
-  // Show simple name setup ONLY for brand new users without any activity
+  // CRITICAL: Show simple name setup ONLY for brand new users without any activity
   if (isNewUser) {
     return <SimpleNameSetupScreen onComplete={refetchProfile} />
   }

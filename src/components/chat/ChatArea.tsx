@@ -159,7 +159,7 @@ export function ChatArea({
   return (
     <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-white via-purple-50/15 to-white overflow-hidden">
       {/* Mobile-optimized header with proper spacing */}
-      <div className="relative z-20 bg-white/90 backdrop-blur-md shadow-sm flex-shrink-0">
+      <div className="relative z-20 flex-shrink-0">
         <div className="flex items-center justify-between py-3 px-3 sm:py-4 sm:px-4 md:px-6 min-h-[56px] sm:min-h-[60px]">
           {/* Mobile-optimized brand section */}
           <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 min-w-0 flex-1">

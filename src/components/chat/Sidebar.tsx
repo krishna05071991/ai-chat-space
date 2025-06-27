@@ -245,7 +245,7 @@ export function Sidebar({
                     <p className="tiny-text">No conversations yet</p>
                   </div>
                 ) : (
-                  {conversations.map((conversation) => (
+                  conversations.map((conversation) => (
                     <div
                       key={conversation.id}
                       className={`group relative rounded-2xl transition-all duration-200 cursor-pointer p-3 ${
@@ -279,7 +279,7 @@ export function Sidebar({
                         />
                       </div>
                     </div>
-                  ))}
+                  ))
                 )}
               </div>
             </div>

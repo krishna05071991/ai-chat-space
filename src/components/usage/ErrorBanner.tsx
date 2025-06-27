@@ -1,6 +1,8 @@
 @@ .. @@
  export function ErrorBanner({ message, onDismiss }: ErrorBannerProps) {
    return (
+   )
+ }
 -    <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-xl shadow-lg backdrop-blur-sm relative z-40">
 +    <div className="bg-red-50/50 border-l-4 border-red-400 p-4 rounded-r-2xl shadow-lg backdrop-blur-sm relative z-40">
        <div className="flex items-center justify-between">

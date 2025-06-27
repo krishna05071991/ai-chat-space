@@ -183,13 +183,13 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
       <div className="relative">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center space-x-1 sm:space-x-2 bg-white/80 backdrop-blur-sm border rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 hover:bg-white transition-all duration-200 text-xs sm:text-sm font-medium min-w-0 max-w-[120px] sm:max-w-[140px] md:max-w-none md:min-w-[140px] ${
+          className={`flex items-center space-x-1 sm:space-x-2 bg-white/90 backdrop-blur-sm border rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 hover:bg-white transition-all duration-200 text-xs sm:text-sm font-medium min-w-0 max-w-[130px] sm:max-w-[150px] md:max-w-none md:min-w-[160px] ${
             !isModelAllowed(selectedModel) 
               ? 'border-amber-300 hover:border-amber-400 text-amber-700 bg-amber-50/50' 
               : 'border-gray-200 hover:border-gray-300 text-gray-700'
           }`}
         >
-          <span className="truncate">{selectedModel.displayName}</span>
+          <span className="truncate font-medium">{selectedModel.displayName}</span>
           {!isModelAllowed(selectedModel) && <Lock className="w-3 h-3 text-amber-600 animate-pulse flex-shrink-0" />}
           <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
         </button>

@@ -63,67 +63,98 @@ export function ChatArea({
   const isLatest2025Model = selectedModel.id.includes('4.1') || selectedModel.id.includes('o3') || selectedModel.id.includes('o4')
 
   const renderEmptyState = () => (
-    <div className="flex-1 flex items-center justify-center p-4 lg:p-8">
-      <div className="text-center max-w-4xl w-full space-y-8">
+    <div className="flex-1 flex items-center justify-center canvas-section lg:px-8">
+      <div className="text-center max-w-4xl w-full space-canvas">
         {/* Premium page title */}
-        <h1 className="text-2xl lg:text-4xl font-light text-[#222427] mb-8">
+        <h1 className="h1 text-center text-3xl lg:text-4xl mb-6">
           What can I help with?
         </h1>
         
         {/* Model info section */}
-        <div className="bg-white/40 backdrop-blur-sm rounded-3xl p-6 lg:p-8 shadow-sm border border-gray-200/30">
-          <div className="flex items-center justify-center space-x-4 mb-6">
+        <div className="canvas-card mb-6">
+          <div className="flex items-center justify-center space-x-3 mb-4">
             <span className="text-2xl">{getProviderIcon(selectedModel.provider)}</span>
-            <span className="text-xl font-medium text-[#222427] truncate">
+            <span className="h2 truncate">
               {selectedModel.displayName}
             </span>
             {isLatest2025Model && (
-              <div className="flex items-center space-x-1 bg-purple-100/60 px-3 py-1.5 rounded-full flex-shrink-0">
+              <div className="flex items-center space-x-1 bg-purple-100/50 px-3 py-1 rounded-2xl flex-shrink-0">
                 <Sparkles className="w-4 h-4 text-purple-600" />
-                <span className="text-xs font-medium text-purple-600">2025</span>
+                <span className="tiny-text font-medium text-purple-600">2025</span>
               </div>
             )}
           </div>
-          <p className="text-sm text-[#8A8377] leading-relaxed text-center max-w-2xl mx-auto">
+          <p className="body-text leading-relaxed text-center max-w-2xl mx-auto">
             I'm powered by {selectedModel.provider === 'anthropic' ? 'Anthropic Claude' : 'OpenAI'}, ready to assist you with any questions or tasks. 
             You'll see responses appear in real-time as I generate them.
           </p>
         </div>
         
         {/* Capability cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          <div className="bg-white/30 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/20 hover:bg-white/50 hover:shadow-md transition-all duration-300 cursor-pointer group">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+          <div className="canvas-card hover:shadow-lg transition-all duration-300 cursor-pointer group">
             <div className="text-center">
               <div className="text-2xl mb-3 group-hover:animate-float">💡</div>
-              <h3 className="text-base font-medium text-[#222427] mb-2">Creative Tasks</h3>
-              <p className="text-xs text-[#8A8377]">Writing, brainstorming, storytelling, and creative problem-solving</p>
+              <h3 className="h2 mb-2">Creative Tasks</h3>
+              <p className="tiny-text">Writing, brainstorming, storytelling, and creative problem-solving</p>
             </div>
           </div>
-          <div className="bg-white/30 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/20 hover:bg-white/50 hover:shadow-md transition-all duration-300 cursor-pointer group">
+          <div className="canvas-card hover:shadow-lg transition-all duration-300 cursor-pointer group">
             <div className="text-center">
               <div className="text-2xl mb-3 group-hover:animate-float">📊</div>
-              <h3 className="text-base font-medium text-[#222427] mb-2">Analysis & Research</h3>
-              <p className="text-xs text-[#8A8377]">Data analysis, research assistance, and detailed explanations</p>
+              <h3 className="h2 mb-2">Analysis & Research</h3>
+              <p className="tiny-text">Data analysis, research assistance, and detailed explanations</p>
             </div>
           </div>
-          <div className="bg-white/30 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/20 hover:bg-white/50 hover:shadow-md transition-all duration-300 cursor-pointer group">
+          <div className="canvas-card hover:shadow-lg transition-all duration-300 cursor-pointer group">
             <div className="text-center">
               <div className="text-2xl mb-3 group-hover:animate-float">💻</div>
-              <h3 className="text-base font-medium text-[#222427] mb-2">Coding & Tech</h3>
-              <p className="text-xs text-[#8A8377]">Programming help, debugging, code reviews, and technical guidance</p>
+              <h3 className="h2 mb-2">Coding & Tech</h3>
+              <p className="tiny-text">Programming help, debugging, code reviews, and technical guidance</p>
             </div>
           </div>
-          <div className="bg-white/30 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/20 hover:bg-white/50 hover:shadow-md transition-all duration-300 cursor-pointer group">
+          <div className="canvas-card hover:shadow-lg transition-all duration-300 cursor-pointer group">
             <div className="text-center">
               <div className="text-2xl mb-3 group-hover:animate-float">🎯</div>
-              <h3 className="text-base font-medium text-[#222427] mb-2">Reasoning</h3>
-              <p className="text-xs text-[#8A8377]">Complex problem-solving, logical analysis, and step-by-step thinking</p>
+              <h3 className="h2 mb-2">Reasoning</h3>
+              <p className="tiny-text">Complex problem-solving, logical analysis, and step-by-step thinking</p>
             </div>
           </div>
         </div>
         
+        {/* Current plan display */}
+        {usageStats && (
+          <div className="canvas-card max-w-md mx-auto mb-6 space-section">
+            <div className="flex items-center justify-between body-text">
+              <div className="flex items-center space-x-3">
+                <Zap className="w-4 h-4 text-purple-600" />
+                <span className="muted-text">Current Plan:</span>
+                <span className="font-semibold text-purple-600 capitalize">
+                  {usageStats.tier.tier.replace('_', ' ').toUpperCase()}
+                </span>
+              </div>
+              <div className="tiny-text">
+                {Math.round((usageStats.tokens_used_month / usageStats.tier.monthly_tokens) * 100)}% used
+              </div>
+            </div>
+            
+            <div className="tiny-text border-t border-gray-200/50 pt-3 space-y-2">
+              <div className="flex items-center space-x-2">
+                <Clock className="w-3 h-3 flex-shrink-0" />
+                <span>Monthly limit resets {formatResetTime(usageStats.monthly_reset_time)}</span>
+              </div>
+              {usageStats.tier.daily_messages > 0 && (
+                <div className="flex items-center space-x-2">
+                  <Clock className="w-3 h-3 flex-shrink-0" />
+                  <span>Daily limit resets {formatResetTime(usageStats.daily_reset_time)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
         {/* Footer tagline */}
-        <div className="flex items-center justify-center space-x-2 text-sm text-[#8A8377] mt-8">
+        <div className="flex items-center justify-center space-x-2 muted-text">
           <Sparkles className="w-4 h-4 text-purple-500 flex-shrink-0" />
           <span>Real-time streaming • Multi-provider AI • Production ready</span>
         </div>
@@ -135,17 +166,17 @@ export function ChatArea({
   const hasStreamingMessage = streamingState.isStreaming && streamingState.currentMessage.length > 0
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-surface-50">
       {/* Desktop header */}
-      <div className="hidden lg:block border-b border-gray-200/30 bg-white/50 backdrop-blur-md">
-        <div className="px-6 py-4">
+      <div className="hidden lg:block border-b border-gray-200/30 bg-white/40 backdrop-blur-md">
+        <div className="px-canvas py-canvas">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-semibold text-[#222427]">
+              <h1 className="h1">
                 {hasMessages ? (conversation?.title || 'Conversation') : 'New conversation'}
               </h1>
               <div className="flex items-center space-x-2">
-                <span className="text-xs text-[#8A8377]">Using:</span>
+                <span className="tiny-text">Using:</span>
                 <ModelSelector 
                   selectedModel={selectedModel}
                   onModelChange={onModelChange}
@@ -155,7 +186,7 @@ export function ChatArea({
               </div>
             </div>
             
-            <div className="flex items-center space-x-4 text-xs text-[#8A8377]">
+            <div className="flex items-center space-x-4 tiny-text">
               {conversation && (
                 <span>{conversation.messages?.length || 0} message{(conversation.messages?.length || 0) !== 1 ? 's' : ''}</span>
               )}
@@ -171,7 +202,7 @@ export function ChatArea({
       <div className="relative z-30 flex-shrink-0">
         {/* Error Banner */}
         {error && (
-          <div className="px-4 lg:px-6 pt-2">
+          <div className="px-canvas pt-2">
             <ErrorBanner
               message={error}
               onDismiss={onClearError || (() => {})}
@@ -181,7 +212,7 @@ export function ChatArea({
 
         {/* Usage Warning Banner */}
         {usageStats && (
-          <div className="px-4 lg:px-6 pt-2">
+          <div className="px-canvas pt-2">
             <UsageWarningBanner
               usageStats={usageStats}
               onUpgrade={() => onUpgradePrompt?.('basic')}
@@ -191,17 +222,17 @@ export function ChatArea({
 
         {/* Model Restriction Banner */}
         {selectedModel && usageStats && !usageStats.tier.allowed_models.includes(selectedModel.id) && (
-          <div className="px-4 lg:px-6 pt-2">
+          <div className="px-canvas pt-2">
             <div className="bg-gradient-to-r from-amber-50/50 to-orange-50/50 border-l-4 border-amber-400 p-4 rounded-r-2xl backdrop-blur-sm">
               <div className="flex items-start space-x-4">
-                <div className="w-8 h-8 rounded-2xl bg-amber-100/60 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-2xl bg-amber-100/50 flex items-center justify-center flex-shrink-0">
                   <Crown className="w-4 h-4 text-amber-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-medium text-amber-800 mb-2">
+                  <h3 className="h2 text-amber-800 mb-2">
                     Premium Model Access Required
                   </h3>
-                  <p className="text-sm text-amber-700 mb-4">
+                  <p className="body-text text-amber-700 mb-4">
                     <strong>{selectedModel.displayName}</strong> requires a higher plan. 
                     {selectedModel.tier === 'premium' ? ' Upgrade to Super Pro' : 
                      selectedModel.tier === 'flagship' ? ' Upgrade to Pro' : 
@@ -212,7 +243,7 @@ export function ChatArea({
                       selectedModel.tier === 'premium' ? 'super_pro' : 
                       selectedModel.tier === 'flagship' ? 'pro' : 'basic'
                     )}
-                    className="inline-flex items-center bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-medium px-4 py-2 rounded-2xl transition-all duration-200 group shadow-lg hover:shadow-xl"
+                    className="inline-flex items-center bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white body-text font-medium px-4 py-2 rounded-2xl transition-all duration-200 group shadow-lg hover:shadow-xl"
                   >
                     <Crown className="w-4 h-4 mr-2" />
                     View Upgrade Options
@@ -228,8 +259,8 @@ export function ChatArea({
       {/* Messages area */}
       <div className="flex-1 flex flex-col min-h-0 relative z-10 overflow-hidden">
         {!hasMessages && !hasStreamingMessage ? renderEmptyState() : (
-          <div className="flex-1 overflow-y-auto scrollbar-thin px-4 lg:px-6 py-4 lg:py-6">
-            <div className="max-w-4xl mx-auto space-y-6">
+          <div className="flex-1 overflow-y-auto scrollbar-thin px-canvas py-canvas">
+            <div className="max-w-4xl mx-auto space-section">
               {/* Render all existing messages */}
               {conversation?.messages?.map((message, index) => (
                 <MessageBubble 
@@ -254,9 +285,8 @@ export function ChatArea({
           </div>
         )}
 
-        {/* Message input - Sticky at bottom */}
-        <div className="flex-shrink-0 sticky bottom-0 bg-surface-50/95 backdrop-blur-md border-t border-gray-200/30 px-4 lg:px-6 py-4 lg:py-6">
-          <div className="max-w-4xl mx-auto">
+        {/* Message input */}
+        <div className="flex-shrink-0 max-w-4xl mx-auto w-full px-canvas pb-canvas">
           <MessageInput 
             onSendMessage={onSendMessage}
             selectedModel={selectedModel}
@@ -264,7 +294,6 @@ export function ChatArea({
             isStreaming={streamingState.isStreaming}
             usageStats={usageStats}
           />
-          </div>
         </div>
       </div>
     </div>

@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react'
-import { Menu, Settings } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { ChatArea } from './ChatArea'
 import { LimitExceededModal, UsageLimitError } from '../usage/LimitExceededModal'
@@ -618,9 +617,9 @@ export function ChatLayout() {
   }
 
   return (
-    <div className="h-screen flex bg-surface-50 overflow-hidden">
-      {/* Desktop Sidebar - Hidden on mobile */}
-      <div className="hidden lg:flex lg:flex-col lg:w-72 lg:bg-white/60 lg:backdrop-blur-md lg:border-r lg:border-gray-200/30">
+    <div className="infinite-canvas h-screen flex overflow-hidden">
+      {/* Desktop Sidebar */}
+      <div className="desktop-sidebar">
         <Sidebar
           conversations={conversations}
           activeConversationId={activeConversationId}
@@ -636,28 +635,28 @@ export function ChatLayout() {
         />
       </div>
       
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full relative">
+      {/* Main Canvas Area */}
+      <div className="flex-1 flex flex-col min-w-0 h-full bg-surface-50">
         {/* Mobile Top Bar */}
-        <div className="lg:hidden sticky top-0 z-50 h-14 bg-surface-50/95 backdrop-blur-md border-b border-gray-200/30 px-4 flex items-center justify-between">
+        <div className="mobile-top-bar lg:hidden">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-white/60 rounded-2xl transition-colors shadow-sm"
+            className="p-2 hover:bg-gray-100/50 rounded-2xl transition-colors"
           >
             <Menu className="w-5 h-5 text-[#222427]" />
           </button>
           
-          <h1 className="text-lg font-semibold text-[#222427] truncate max-w-[200px]">
+          <h1 className="text-lg font-semibold text-[#222427]">
             {activeConversation?.title || 'chat.space'}
           </h1>
           
-          <button className="p-2 hover:bg-white/60 rounded-2xl transition-colors shadow-sm">
+          <button className="p-2 hover:bg-gray-100/50 rounded-2xl transition-colors">
             <Settings className="w-5 h-5 text-[#8A8377]" />
           </button>
         </div>
 
-        {/* Chat Content - Full height with proper mobile spacing */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Chat Canvas */}
+        <div className="flex-1 overflow-hidden">
           <ChatArea
             conversation={activeConversation}
             selectedModel={selectedModel}
@@ -675,20 +674,24 @@ export function ChatLayout() {
         </div>
       </div>
 
-      {/* Mobile Sidebar - Renders overlay when open */}
-      <Sidebar
-        conversations={conversations}
-        activeConversationId={activeConversationId}
-        onNewChat={handleNewChat}
-        onSelectConversation={handleSelectConversation}
-        isOpen={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-        usageStats={null}
-        onUpgrade={() => handleUpgrade()}
-        onRenameConversation={handleRenameConversation}
-        onDeleteConversation={handleDeleteConversation}
-        onClearAllConversations={handleClearAllConversations}
-      />
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div className="lg:hidden">
+          <Sidebar
+            conversations={conversations}
+            activeConversationId={activeConversationId}
+            onNewChat={handleNewChat}
+            onSelectConversation={handleSelectConversation}
+            isOpen={sidebarOpen}
+            onToggle={() => setSidebarOpen(!sidebarOpen)}
+            usageStats={null}
+            onUpgrade={() => handleUpgrade()}
+            onRenameConversation={handleRenameConversation}
+            onDeleteConversation={handleDeleteConversation}
+            onClearAllConversations={handleClearAllConversations}
+          />
+        </div>
+      )}
 
       {/* Usage Limit Exceeded Modal */}
       {limitExceededModal.isOpen && limitExceededModal.error && (

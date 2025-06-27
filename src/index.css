@@ -41,11 +41,11 @@
 
   /* Premium typography hierarchy */
   h1, .h1 {
-    @apply text-2xl font-light text-[#222427] mb-6;
+    @apply text-xl font-semibold text-[#222427] mb-4;
   }
   
   h2, .h2 {
-    @apply text-lg font-medium text-[#222427] mb-4;
+    @apply text-base font-medium text-[#222427] mb-3;
   }
   
   .body-text {
@@ -53,45 +53,45 @@
   }
   
   .muted-text {
-    @apply text-sm text-[#8A8377] font-light;
+    @apply text-sm text-[#8A8377];
   }
   
   .tiny-text {
-    @apply text-xs text-[#8A8377] font-light;
+    @apply text-xs text-[#8A8377];
   }
 }
 
 @layer components {
   .font-poppins {
     font-family: 'Poppins', system-ui, -apple-system, sans-serif;
-    font-weight: 400;
+    font-weight: 300;
   }
   
   /* Premium infinite canvas layout */
   .infinite-canvas {
-    @apply min-h-screen bg-surface-50 overflow-hidden;
+    @apply min-h-screen bg-[#FCFCFC] overflow-hidden;
   }
   
   .canvas-section {
-    @apply w-full px-4 lg:px-6 py-3 lg:py-4 space-y-8;
+    @apply w-full px-4 py-2 space-y-6;
   }
   
   .canvas-card {
-    @apply bg-white/50 backdrop-blur-sm border border-gray-200/30 rounded-3xl p-6 lg:p-8 shadow-sm hover:shadow-lg transition-all duration-300;
+    @apply bg-white/60 backdrop-blur-sm border-none rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300;
   }
   
   /* Sticky top bar for mobile */
   .mobile-top-bar {
-    @apply sticky top-0 z-50 h-14 bg-surface-50/95 backdrop-blur-md border-b border-gray-200/30 px-4 flex items-center justify-between;
+    @apply sticky top-0 z-50 h-14 bg-[#FCFCFC]/95 backdrop-blur-md border-none shadow-sm px-4 flex items-center justify-between;
   }
   
   /* Collapsible sidebar for desktop */
   .desktop-sidebar {
-    @apply hidden lg:flex lg:flex-col lg:w-72 lg:border-r lg:border-gray-200/30 lg:bg-white/60 lg:backdrop-blur-md;
+    @apply hidden lg:flex lg:flex-col lg:w-60 lg:border-r lg:border-gray-200/50 lg:bg-white/40 lg:backdrop-blur-md;
   }
   
   .desktop-sidebar.collapsed {
-    @apply lg:w-16;
+    @apply lg:w-20;
   }
   
   /* Mobile-optimized custom scrollbar */
@@ -125,9 +125,9 @@
   
   /* Mobile-optimized glassmorphism effect */
   .glass {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(16px);
+    border: none;
   }
   
   /* Mobile-first smooth transitions */

@@ -212,14 +212,6 @@ export function ChatArea({
         )}
       </div>
 
-      {/* Footer - Desktop only */}
-      <div className="hidden lg:block fixed bottom-4 left-1/2 transform -translate-x-1/2 z-10">
-        <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-full px-4 py-2 shadow-sm">
-          <p className="text-xs text-gray-500 font-medium">
-            chat by <span className="text-purple-600">thelaunch.space</span>
-          </p>
-        </div>
-      </div>
       {/* Messages area with proper bottom spacing for sticky input */}
       <div className="flex-1 flex flex-col min-h-0 relative z-10 overflow-hidden">
         {!hasMessages && !hasStreamingMessage ? renderEmptyState() : (

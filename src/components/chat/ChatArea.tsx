@@ -10,6 +10,7 @@ import { Sparkles, MessageSquare, Crown, ArrowRight, Clock } from 'lucide-react'
 import { Logo } from '../common/Logo'
 
 import { useUsageStats } from '../../hooks/useUsageStats'
+import { useUserProfile } from '../../hooks/useUserProfile'
 import { UsageWarningBanner } from '../usage/UsageWarningBanner'
 
 interface SimpleConversation {
@@ -53,6 +54,7 @@ export function ChatArea({
   onClearError,
 }: ChatAreaProps) {
   const { usageStats } = useUsageStats()
+  const { profile, displayName } = useUserProfile()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
@@ -70,7 +72,10 @@ export function ChatArea({
       <div className="text-center max-w-2xl w-full">
         {/* Mobile-optimized heading */}
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-6 sm:mb-8">
-          What can I help with?
+          {profile?.full_name 
+            ? `Hi ${displayName.split(' ')[0]}! ` 
+            : 'What can I help with?'
+          }
         </h1>
         
         {/* Simplified model display */}

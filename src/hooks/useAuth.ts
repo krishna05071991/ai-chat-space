@@ -32,68 +32,88 @@ export function useAuth() {
       setUser(null)
       setLoading(false)
       
-      // Force page reload to completely re-initialize Supabase client
-      window.location.reload()
+      // DON'T reload the page - just let the auth flow handle it
       
     } catch (error) {
       console.log('Session cleanup completed with minor errors:', error)
       setUser(null)
       setLoading(false)
-      
-      // Force page reload even if cleanup had errors
-      window.location.reload()
     }
   }
 
   // Check if current session is valid
   const isSessionValid = async (): Promise<boolean> => {
     try {
+      console.log('🔍 Validating session...')
       const { data: { session }, error } = await supabase.auth.getSession()
       
       if (error) {
-        console.log('Session validation error:', error.message)
+        console.log('❌ Session validation error:', error.message)
         return false
       }
       
       if (!session || !session.access_token) {
-        console.log('No valid session found')
+        console.log('❌ No valid session found')
         return false
       }
       
       // Check if token is expired
       const now = Math.floor(Date.now() / 1000)
       if (session.expires_at && session.expires_at < now) {
-        console.log('Session token expired')
+        console.log('❌ Session token expired')
         return false
       }
       
+      // Additional validation checks
+      if (!session.user || !session.user.id || !session.user.email) {
+        console.log('❌ Session missing user data')
+        return false
+      }
+      
+      if (session.user.aud !== 'authenticated') {
+        console.log('❌ User not authenticated')
+        return false
+      }
+      
+      console.log('✅ Session is valid for user:', session.user.id.substring(0, 8))
       return true
     } catch (error) {
-      console.log('Session validation failed:', error)
+      console.log('❌ Session validation failed:', error)
       return false
     }
   }
+
   useEffect(() => {
-    // Get initial session with error handling
+    // Get initial session with simplified error handling
     const initializeAuth = async () => {
       try {
+        console.log('🔐 Initializing authentication...')
         const { data: { session }, error } = await supabase.auth.getSession()
         
-        if (error) {
-          console.error('Auth initialization error:', error)
-          if (error.message?.includes('refresh_token_not_found') || 
-              error.message?.includes('Invalid Refresh Token')) {
-            console.log('Detected corrupted auth state, clearing session...')
-            await clearInvalidSession()
-            return
-          }
+        // If there's an error or no session, just set no user and finish loading
+        if (error || !session) {
+          console.log('No session found or session error:', error?.message || 'No session')
+          setUser(null)
+          setLoading(false)
+          return
         }
         
-        setUser(session?.user ?? null)
+        // Basic validation - if it fails, just clear and continue
+        if (!session.user || !session.user.id || !session.user.email) {
+          console.log('Invalid session data, clearing')
+          await clearInvalidSession()
+          return
+        }
+        
+        console.log('✅ Auth initialized with user:', session.user.id.substring(0, 8))
+        setUser(session.user)
         setLoading(false)
+        
       } catch (error) {
-        console.error('Failed to initialize auth:', error)
-        await clearInvalidSession()
+        console.error('❌ Failed to initialize auth:', error)
+        // Don't get stuck in loops - just set no user and finish loading
+        setUser(null)
+        setLoading(false)
       }
     }
     
@@ -102,16 +122,13 @@ export function useAuth() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔐 Auth state changed:', event)
+        console.log('🔐 Auth state changed:', event, {
+          hasSession: !!session,
+          hasUser: !!session?.user,
+          userId: session?.user?.id?.substring(0, 8) || 'none'
+        })
         
-        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-          if (event === 'TOKEN_REFRESHED' && !session) {
-            console.log('Token refresh failed, clearing session')
-            await clearInvalidSession()
-            return
-          }
-        }
-        
+        // Simple state management - no complex validation
         setUser(session?.user ?? null)
         setLoading(false)
       }
@@ -123,11 +140,11 @@ export function useAuth() {
   const signUp = async (email: string, password: string) => {
     try {
       setLoading(true)
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    })
-    return { data, error }
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      })
+      return { data, error }
     } catch (error) {
       console.error('Sign up error:', error)
       return { data: null, error }
@@ -139,11 +156,11 @@ export function useAuth() {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true)
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    return { data, error }
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      return { data, error }
     } catch (error) {
       console.error('Sign in error:', error)
       return { data: null, error }
@@ -157,14 +174,18 @@ export function useAuth() {
       setLoading(true)
       const { error } = await supabase.auth.signOut()
       
-      // Clear any remaining session data
-      await clearInvalidSession()
+      // Clear session data but don't reload page
+      localStorage.clear()
+      sessionStorage.clear()
+      setUser(null)
       
       return { error }
     } catch (error) {
       console.error('Sign out error:', error)
-      await clearInvalidSession()
+      setUser(null)
       return { error }
+    } finally {
+      setLoading(false)
     }
   }
 

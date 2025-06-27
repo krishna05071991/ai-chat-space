@@ -1,616 +1,665 @@
-# chat.space - Functional Requirements Document
+# chat.space - Comprehensive Functional Requirements Document
 
 ## Project Overview
-chat.space is a production-ready AI chat platform with multi-model switching capabilities, subscription tiers, usage tracking, and real-time streaming responses. Built with React, TypeScript, Tailwind CSS, and Supabase with comprehensive cross-device synchronization and premium UI/UX.
+chat.space is a production-ready AI chat platform with multi-provider AI integration, intelligent usage tracking, and subscription-based access control. Built with React 18, TypeScript, Tailwind CSS, and Supabase, featuring cross-device synchronization, anniversary-based billing cycles, and premium UI/UX design.
+
+**Version**: 2.0  
+**Last Updated**: January 2025  
+**Platform Type**: Progressive Web Application (PWA)  
+**Target Deployment**: Supabase + Netlify
 
 ---
 
-## 🏗️ Architecture Overview
+## 🏗️ Technical Architecture
 
 ### Frontend Stack
-- **React 18** with TypeScript for type safety
-- **Tailwind CSS** for responsive styling and design system
-- **Lucide React** for consistent iconography
-- **Vite** for fast development and optimized builds
-- **ESLint** for code quality and consistency
+- **React 18.3.1** with TypeScript for type safety and component architecture
+- **Tailwind CSS 3.4.1** with custom design system and mobile-first responsive design
+- **Lucide React 0.344.0** for consistent iconography and visual elements
+- **Vite 5.4.2** for fast development server and optimized production builds
+- **Marked 12.0.0** for markdown rendering in AI responses
+- **ESLint 9.9.1** with TypeScript integration for code quality
 
-### Backend Stack
-- **Supabase** for authentication, database, and edge functions
-- **PostgreSQL** with Row Level Security (RLS) for data protection
-- **Edge Functions** for secure AI API integration and usage enforcement
-- **OpenAI API** for GPT models (GPT-3.5, GPT-4o, GPT-4.1, o3/o4 series)
-- **Anthropic API** for Claude models (Claude 3.5 Sonnet, Claude 3.5 Haiku, Claude 3 Opus)
+### Backend Infrastructure
+- **Supabase 2.39.0** for authentication, database, and serverless functions
+- **PostgreSQL** with advanced Row Level Security (RLS) and database triggers
+- **Supabase Edge Functions** for secure AI API integration and usage enforcement
+- **Real-time subscriptions** for cross-device synchronization
+- **Automatic database migrations** with comprehensive schema management
+
+### AI Provider Integration
+- **OpenAI API** - GPT models including GPT-4o, GPT-4.1, and reasoning models (o3/o4 series)
+- **Anthropic API** - Claude models including Claude 3.5, Claude 4, and specialized variants
+- **Edge Function Proxy** - Secure API key management and normalized response handling
+- **Multi-provider streaming** - Real-time token-by-token response delivery
 
 ---
 
-## 🎯 Core Functionalities Implemented
+## 🎯 Core Functional Implementations
 
-### 1. Authentication System (AuthLayout.tsx)
-**Screen: Login/Registration Page**
+### 1. Authentication & User Management
+**File**: `components/auth/AuthLayout.tsx`, `hooks/useAuth.ts`
 
 **✅ Implemented Features:**
-- Email and password authentication via Supabase Auth
-- User registration and login forms with real-time validation
-- Purple gradient theme with glassmorphism effects
-- Custom logo integration with fallback to Lucide icons
-- Loading states and comprehensive error handling
-- Automatic session management and persistence
-- Form validation with immediate feedback
-- Responsive design for all screen sizes
-- Smooth transitions and micro-animations
-- Invalid session cleanup and re-authentication handling
+- **Email/Password Authentication** via Supabase Auth with JWT token management
+- **Session Persistence** with automatic token refresh and expiration handling
+- **Invalid Session Cleanup** with graceful re-authentication flow
+- **Email Confirmation System** with custom verification screens
+- **Security Validation** including session integrity checks and token validation
+- **Mobile-First Design** with optimized touch targets and responsive forms
 
-**Security Features:**
-- Secure JWT token-based authentication
-- Session validation and auto-refresh
-- Invalid session detection and cleanup
-- Comprehensive error handling for expired sessions
-- Automatic token refresh on expiration
+**Security Implementation:**
+```typescript
+// Session validation with comprehensive error handling
+const isSessionValid = async (): Promise<boolean> => {
+  const { data: { session }, error } = await supabase.auth.getSession()
+  if (!session?.access_token || session.expires_at < Date.now() / 1000) {
+    return false
+  }
+  return session.user?.aud === 'authenticated'
+}
+```
 
----
+### 2. Multi-Provider AI Chat System
+**Files**: `components/chat/ChatLayout.tsx`, `lib/streamingService.ts`, `supabase/functions/chat-completion/`
 
-### 2. Main Chat Interface (ChatLayout.tsx)
-**Screen: Primary Application Dashboard**
+**✅ Core Implementation:**
+- **Real-Time Streaming Responses** with token-by-token display and blinking cursor animation
+- **Multi-Provider Support** - Seamless switching between OpenAI and Anthropic models
+- **Conversation Management** - Create, save, rename, delete, and export conversations
+- **Message Persistence** - Automatic saving to database with sequence numbering
+- **Cross-Device Sync** - Real-time conversation synchronization across devices
+- **Error Recovery** - Comprehensive error handling with user-friendly messages
 
-**✅ Implemented Features:**
-- Real-time streaming AI chat responses with token-by-token display
-- Multi-conversation management in memory and database
-- Model switching between multiple providers (OpenAI & Anthropic)
-- Advanced model support including GPT-4o, GPT-4.1, Claude 3.5 Sonnet, Claude 4, o3/o4 models
-- Comprehensive token usage tracking with detailed statistics
-- Cross-device conversation synchronization
-- Automatic conversation saving to Supabase every 30 seconds
-- Error handling with user-friendly messages and recovery options
-- Loading states for all operations with visual feedback
-- Responsive layout with collapsible sidebar
-- Enhanced z-index management for proper UI layering
+**Streaming Implementation:**
+```typescript
+// Server-Sent Events streaming with normalized response format
+async function processStreamingResponse(response: Response, callbacks: StreamingCallbacks) {
+  const reader = response.body?.getReader()
+  const decoder = new TextDecoder()
+  let fullContent = ''
+  
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    
+    // Process streaming tokens and update UI
+    const content = extractContentFromChunk(value)
+    if (content) {
+      fullContent += content
+      callbacks.onToken(content)
+    }
+  }
+  
+  callbacks.onComplete(fullContent, usage)
+}
+```
 
-**Technical Implementation:**
-- React state management for real-time updates
-- AbortController for cancelling streaming requests
-- Automatic database sync with conflict resolution
-- Immediate database saving for critical operations
-- Session validation before all operations
-- Proper stacking context management for UI components
-- Memory-efficient message handling
+### 3. Advanced AI Model Support
+**File**: `types/chat.ts`
 
----
+**✅ Supported Models:**
 
-### 3. Enhanced Sidebar Navigation (Sidebar.tsx)
-**Screen: Left Navigation Panel**
+#### OpenAI Models
+- **GPT-4o** (Flagship) - Most advanced multimodal model
+- **GPT-4o Mini** (Efficient) - Fast and cost-effective variant
+- **GPT-4.1** (Latest 2025) - Enhanced coding and reasoning capabilities
+- **GPT-4.1 Mini** (Efficient) - Optimized version of GPT-4.1
+- **GPT-4.1 Nano** (Ultra-fast) - Micro model for simple tasks
+- **OpenAI o3** (Reasoning) - Advanced reasoning for complex problems
+- **OpenAI o3-mini** (Reasoning) - Cost-efficient reasoning model
+- **OpenAI o4-mini** (Latest Reasoning) - Latest mini reasoning model
 
-**✅ Implemented Features:**
-- Conversation list with message counts and timestamps
-- "New Chat" button with instant conversation creation
-- Active conversation highlighting with purple accent
-- Mobile-responsive with overlay and backdrop blur
-- User profile section with current tier display
-- Context menu for conversation management (rename, delete, export)
-- Real-time usage statistics display with progress bars
-- Settings and upgrade access
-- Conversation export functionality (JSON format)
-- Bulk conversation clearing with confirmation dialogs
-- Real-time usage tracking integration
+#### Anthropic Claude Models
+- **Claude 3.5 Sonnet** - Excellent reasoning and analysis
+- **Claude 3.5 Haiku** - Fast and efficient processing
+- **Claude 3 Opus** - Most capable for complex tasks
+- **Claude 3.7 Sonnet** (2025) - Enhanced reasoning capabilities
+- **Claude Sonnet 4** (2025) - Latest generation Claude model
+- **Claude Opus 4** (2025) - Most advanced reasoning model
 
-**Mobile Optimizations:**
-- Hamburger menu toggle with smooth animations
-- Swipe gestures and touch-friendly interface
-- Automatic closing after selection on mobile
-- Optimized spacing for touch targets
-- Responsive breakpoints for tablet and desktop
+**Model Configuration:**
+```typescript
+export const ALL_MODELS: AIModel[] = [
+  {
+    id: 'gpt-4.1',
+    displayName: 'GPT-4.1',
+    provider: 'openai',
+    category: 'smart-daily',
+    tier: 'latest',
+    maxTokens: 128000,
+    description: 'Latest model with improved coding and reasoning',
+    pricing: { input: 3, output: 12 }
+  }
+  // ... additional models
+]
+```
 
----
+### 4. Intelligent Subscription & Usage System
+**Files**: `hooks/useUsageStats.ts`, `components/usage/`, Edge Function logic
 
-### 4. Enhanced Chat Area (ChatArea.tsx)
-**Screen: Main Conversation View**
+**✅ Subscription Tiers:**
 
-**✅ Implemented Features:**
-- Welcome state with comprehensive model information and branding
-- Message history display with proper threading and timestamps
-- Real-time streaming message rendering with blinking cursor
-- Model indicator in persistent header with proper z-index layering
-- Message count display and conversation metadata
-- Error banner with dismissible alerts and retry options
-- Usage warning system with tier-specific messaging
-- Auto-scrolling to latest messages with smooth behavior
-- Mobile-optimized message layout with responsive design
-- Enhanced header with seamless branding integration
-- Provider-specific model categorization (OpenAI, Anthropic)
-- 2025 model badge indicators for latest models
-- Real-time reset time display for usage limits
+#### Free Tier
+- **Monthly Tokens**: 35,000 tokens
+- **Daily Messages**: 25 messages
+- **Available Models**: GPT-4o Mini, Claude 3.5 Haiku
+- **Features**: Basic chat, conversation history
+- **Price**: $0 forever
 
-**Message Display:**
-- User messages with purple gradient avatars
-- AI responses with model identification and provider icons
-- Timestamp display on hover with relative formatting
-- Error message handling with distinct styling and recovery options
-- Message content with proper text wrapping and formatting
-- Provider-specific color coding and badges
-- Token usage display for each message
+#### Basic Tier ($6/month)
+- **Monthly Tokens**: 1,000,000 tokens (28x more than free)
+- **Daily Messages**: Unlimited
+- **Available Models**: GPT-4o, GPT-4.1, GPT-4.1 Mini, Claude 3.5 Sonnet, Claude 4 Sonnet
+- **Features**: Priority support, advanced models
+- **Upgrade Benefits**: No daily limits, significantly more tokens
 
-**UI/UX Improvements:**
-- Fixed z-index stacking for model selector dropdown
-- Proper layering of header components above main content
-- Enhanced dropdown visibility and interaction
-- Smooth animations and transitions throughout
+#### Pro Tier ($9/month)
+- **Monthly Tokens**: 1,500,000 tokens (1.5x more than Basic)
+- **Daily Messages**: Unlimited
+- **Available Models**: All models including premium (GPT-4.1, Claude 4 Opus, o3/o4 reasoning models)
+- **Features**: Latest AI models, premium support, priority access
+- **Advanced Access**: Cutting-edge reasoning models and latest releases
 
----
+### 5. Anniversary-Based Usage Tracking System
+**Files**: `supabase/functions/chat-completion/index.ts`, `hooks/useUsageStats.ts`
 
-### 5. Advanced Message Input System (MessageInput.tsx)
-**Screen: Chat Input Interface**
+**✅ Revolutionary Billing Logic:**
 
-**✅ Implemented Features:**
-- Auto-resizing textarea with character limits (4000 chars)
-- Enhanced model selector dropdown with tier-based availability
-- Send button with streaming state indication and visual feedback
-- Stop generation button during AI responses
-- Keyboard shortcuts (Enter to send, Shift+Enter for new line)
-- Purple gradient theming with glassmorphism effects
-- Disabled states during streaming and errors
-- Model descriptions and tier requirements
-- Responsive design for all screen sizes
-- Usage validation with pre-send warnings
-- Real-time character count and token estimation
+#### Anniversary-Based Reset Timing
+Unlike traditional calendar-month billing, chat.space uses **personalized anniversary billing**:
 
-**Model Selection:**
-- Visual model indicators with color coding
-- Tier-based model access restrictions with lock icons
-- Model descriptions and capabilities
-- Upgrade prompts for premium models
-- Provider grouping (OpenAI vs Anthropic)
-- Real-time availability checking
+```typescript
+// Anniversary-based reset calculation
+const getUserTierAndUsage = async (supabase, userId) => {
+  const billingPeriodStart = new Date(userData.billing_period_start || userData.created_at)
+  const now = new Date()
+  
+  // Calculate next billing anniversary
+  const nextBillingDate = new Date(now.getFullYear(), now.getMonth(), billingPeriodStart.getDate())
+  if (nextBillingDate <= now) {
+    nextBillingDate.setMonth(nextBillingDate.getMonth() + 1)
+  }
+  
+  // Reset tokens on user's personal anniversary
+  const shouldResetMonthly = !lastMonthlyReset || (now >= nextBillingDate && lastMonthlyReset < nextBillingDate)
+}
+```
 
----
+**Key Features:**
+- **Personal Reset Dates** - Limits reset on user's signup anniversary (e.g., 15th of each month)
+- **Real-Time Countdown** - Users see exact hours/minutes until their personal reset
+- **Fair Usage Distribution** - Prevents all users from hitting limits on the same calendar date
+- **Transparent Tracking** - Clear display of personal billing cycle information
 
-### 6. Enhanced Model Selector (ModelSelector.tsx)
-**Screen: Model Selection Interface**
+#### Usage Enforcement Logic
+```typescript
+// Pre-request validation in Edge Function
+if (userTierData.tokensUsedThisMonth >= userTierData.tierLimits.monthly_tokens) {
+  return new Response(JSON.stringify({
+    error: 'MONTHLY_TOKEN_LIMIT_EXCEEDED',
+    usage: {
+      current: userTierData.tokensUsedThisMonth,
+      limit: userTierData.tierLimits.monthly_tokens,
+      percentage: Math.round((userTierData.tokensUsedThisMonth / userTierData.tierLimits.monthly_tokens) * 100),
+      resetTime: calculateNextResetTime(userTierData.billingPeriodStart)
+    }
+  }), { status: 429 })
+}
+```
 
-**✅ Implemented Features:**
-- Comprehensive model support across multiple providers
-- Grouped display by provider (OpenAI, Anthropic)
-- Model tier indicators (flagship, efficient, latest, premium, nano)
-- Compact and full view modes for different contexts
-- Provider-specific color coding and badges
-- Model descriptions and capabilities with detailed information
-- 2025 model indicators for latest releases
-- Fixed z-index stacking issues for proper dropdown layering
-- Full opacity backgrounds for better visibility
-- Enhanced shadow and border styling
-- Tier-based access control with visual restrictions
+### 6. Progressive Usage Warning System
+**File**: `components/usage/UsageWarningBanner.tsx`
 
-**Supported Models:**
-- **OpenAI**: GPT-4o, GPT-4o Mini, GPT-4.1, GPT-4.1 Mini, GPT-4.1 Nano, o3, o3-mini, o4-mini, GPT-3.5 Turbo
-- **Anthropic**: Claude 3.5 Sonnet, Claude 3.5 Haiku, Claude 3 Opus
-- Future-ready architecture for new model releases
+**✅ Multi-Level Warning System:**
 
-**Technical Improvements:**
-- Proper z-index values (99998/99999) for dropdown layering
-- Solid white backgrounds instead of semi-transparent
-- Enhanced shadow effects for better visual separation
-- Responsive design with mobile-optimized interactions
+#### Warning Thresholds
+- **70% Usage** - Info banner with usage tracking reminder
+- **90% Usage** - Warning banner with upgrade suggestions
+- **95% Usage** - Critical banner with immediate upgrade prompts
+- **100% Usage** - Blocking modal with detailed upgrade benefits
 
----
+#### Real-Time Reset Information
+```typescript
+function formatResetTime(resetTime?: string, billingPeriodStart?: string, isMonthly = false): string {
+  const resetDate = new Date(resetTime)
+  const now = new Date()
+  const diffMs = resetDate.getTime() - now.getTime()
+  
+  if (diffMs < 24 * 60 * 60 * 1000) {
+    const hours = Math.floor(diffMs / (60 * 60 * 1000))
+    const minutes = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000))
+    return `Resets in ${hours}h ${minutes}m`
+  } else if (isMonthly && billingPeriodStart) {
+    const day = new Date(billingPeriodStart).getDate()
+    return `Resets on the ${day}${getOrdinalSuffix(day)} (your billing anniversary)`
+  }
+}
+```
 
-### 7. Message Components
+### 7. Enhanced User Onboarding System
+**Files**: `components/onboarding/SimpleNameSetupScreen.tsx`, `hooks/useUserProfile.ts`
 
-#### MessageBubble.tsx
-**Function: Individual Message Display**
-- ChatGPT-style clean message layout with proper spacing
-- User/AI avatar differentiation with provider icons
-- Model used indicator for AI responses with provider badges
-- Timestamp display with relative formatting ("2 minutes ago")
-- Error message styling and handling with recovery options
-- Responsive text wrapping and spacing
-- Provider-specific color coding (OpenAI blue, Anthropic orange)
-- 2025 model indicators with sparkle icons
-- Token usage display for each message
-- Copy message functionality
+**✅ Multi-Step Onboarding:**
 
-#### StreamingMessage.tsx
-**Function: Real-time AI Response Display**
-- Live token streaming with animated blinking cursor
-- Stop generation functionality with confirmation
-- Model indicator during streaming with provider info
-- Error handling during streaming with retry options
-- Smooth content updates without flicker
-- Cancel button with user confirmation
-- Provider-specific styling and animations
-- Token count estimation during streaming
-- Progress indicators for long responses
+#### Step 1: Welcome & Name Collection
+- **Required Field**: Full name for personalization
+- **Validation**: Real-time form validation with error handling
+- **Branding**: Consistent design with chat.space visual identity
 
----
+#### Step 2: Optional Location Input
+- **Geographic Context**: Optional location for personalized experience
+- **Skip Option**: Users can skip with dedicated button
+- **Examples**: Helpful placeholder text (e.g., "San Francisco, London, Remote")
 
-### 8. Comprehensive Usage Tracking System
+#### Step 3: Optional Profession Input
+- **Professional Context**: Job title or profession for relevant assistance
+- **Skip Option**: Complete setup without profession data
+- **Final Setup**: Marks onboarding as complete in database
 
-#### UsageDisplay.tsx
-**Function: Usage Statistics Dashboard**
-- Real-time token usage tracking (daily/monthly) with live updates
-- Message count tracking with daily limits for free tier
-- Progress bars with color-coded warnings (green/yellow/red)
-- Tier-specific limit display with upgrade prompts
-- Usage percentage calculations with precise formatting
-- Auto-refresh every 5 minutes for accuracy
-- Visual indicators for usage levels
-- **Real-time reset time display** showing exact hours/minutes until limits reset
-- Anniversary-based billing cycle information
-- Historical usage trends
+**Onboarding Logic:**
+```typescript
+const handleComplete = async (skipProfession = false) => {
+  await databaseService.updateUserProfile({
+    full_name: formData.fullName.trim(),
+    location: formData.location.trim() || null,
+    profession: skipProfession ? null : formData.profession.trim(),
+    onboarding_completed: true
+  })
+  onComplete()
+}
+```
 
-#### UsageWarningBanner.tsx
-**Function: Usage Limit Warnings**
-- Progressive warning system (70%, 90%, 95%) with escalating urgency
-- Tier-specific warning messages with personalized content
-- Upgrade prompts with benefits comparison
-- Dismissible warnings for paid tiers
-- Color-coded alert levels (yellow, amber, red)
-- Dynamic messaging based on user tier and usage patterns
-- **Real-time countdown timers** for limit resets
-- Anniversary-based reset information display
+### 8. Advanced Database Architecture
+**File**: `lib/databaseService.ts`, Database schema
 
-#### LimitExceededModal.tsx
-**Function: Limit Violation Handling**
-- Modal dialogs for token/message limits with detailed information
-- Tier-specific upgrade recommendations with pricing
-- Usage statistics with **real-time reset times**
-- Benefits comparison for upgrades with feature lists
-- Direct upgrade actions with pricing information
-- **Anniversary-based reset timing** display
-- Personalized messaging based on user's billing cycle
+**✅ Database Tables:**
 
----
+#### Core Tables
+- **users** - User profiles, subscription info, usage tracking
+- **conversations** - Chat conversations with metadata
+- **messages** - Individual messages with token tracking
+- **subscription_tiers** - Tier definitions and limits
+- **usage_tracking** - Daily usage statistics
+- **billing_events** - Payment and billing history
 
-### 9. Enhanced Subscription System (PricingModal.tsx)
-**Screen: Subscription Management**
+#### Advanced Features
+- **Row Level Security (RLS)** - User data isolation and security
+- **Database Triggers** - Automatic token calculation and sequence numbering
+- **Foreign Key Constraints** - Data integrity and cascade deletes
+- **Optimized Indexes** - Fast query performance
+- **Automatic Timestamps** - Updated_at triggers for audit trails
 
-**✅ Implemented Features:**
-- Four-tier pricing structure (Free, Basic, Pro, Super Pro)
-- Feature comparison with detailed limitations and benefits
-- Current plan indication with usage statistics
-- Popular plan highlighting with visual emphasis
-- Responsive pricing cards with mobile optimization
-- Tier-specific benefits and token limits
-- Upgrade flow integration with seamless transitions
+**RLS Policy Example:**
+```sql
+CREATE POLICY "Users can view own conversations"
+  ON conversations
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+```
 
-**Pricing Tiers:**
-- **Free**: 10 messages/day, 30K tokens/month, Basic models (GPT-3.5, Claude Haiku)
-- **Basic ($5/month)**: Unlimited messages, 300K tokens, Enhanced models (GPT-4o Mini, Claude Sonnet)
-- **Pro ($9/month)**: 750K tokens, All models including premium (GPT-4o, Claude Opus)
-- **Super Pro ($19/month)**: 2M tokens, Priority access, Advanced features (o3/o4 models)
+### 9. Real-Time Cross-Device Synchronization
+**Files**: `hooks/useDatabaseSync.ts`, `lib/databaseService.ts`
 
----
+**✅ Sync Implementation:**
+- **Automatic Sync** - Every 30 seconds background synchronization
+- **Immediate Saves** - Critical operations saved instantly
+- **Conflict Resolution** - Intelligent merge strategy for concurrent edits
+- **Optimistic Updates** - UI updates immediately, syncs in background
+- **Session Validation** - Ensures valid authentication before all operations
 
-### 10. Multi-Provider Backend Infrastructure
-
-#### Enhanced Edge Functions (chat-completion/index.ts)
-**Function: AI Chat Processing**
-- Multi-provider AI integration (OpenAI + Anthropic) with normalized responses
-- User authentication and session validation
-- **Anniversary-based usage enforcement** with real billing cycles
-- Token counting and usage tracking with precise calculations
-- Model access restrictions by tier with real-time validation
-- Error handling with detailed responses and recovery suggestions
-- CORS configuration for web access
-- Normalized response format across providers
-- Streaming support for real-time responses
-- **Real-time reset time calculation** based on user's actual signup date
-
-#### Database Service (databaseService.ts)
-**Function: Data Persistence**
-- Conversation CRUD operations with optimistic updates
-- Message storage with comprehensive token tracking
-- **Real-time usage statistics calculation** with anniversary-based billing
-- Cross-device synchronization with conflict resolution
-- Row Level Security (RLS) enforcement
-- Automatic token calculation triggers
-- Database connection testing and validation
-- Proper sequence number handling for messages
-- **User billing anniversary tracking** for accurate reset times
-
-#### Enhanced Database Schema
-**Function: Data Structure**
-- Conversations table with user relationships and metadata
-- Messages table with comprehensive token tracking fields
-- Foreign key constraints and cascade deletes
-- Indexes for performance optimization
-- Automatic timestamp updates with triggers
-- Token calculation triggers and functions
-- Sequence number tracking for message ordering
-- **User billing cycle tracking** for anniversary-based limits
-
----
-
-### 11. Authentication & Session Management
-
-#### useAuth.ts Hook
-**Function: Authentication State Management**
-- User session persistence with automatic refresh
-- Automatic token refresh with error handling
-- Invalid session cleanup and recovery
-- Sign up/in/out functionality with validation
-- Session validation utilities
-- Error handling for auth failures with user-friendly messages
-- Corrupted session detection and cleanup
-
-#### Row Level Security (RLS)
-**Function: Data Security**
-- User-specific data access controls
-- Conversation ownership enforcement
-- Message access through conversation ownership
-- Secure API endpoints with user validation
-- Real-time policy enforcement
+```typescript
+const syncWithDatabase = async (localConversations: Conversation[]): Promise<Conversation[]> => {
+  const remoteConversations = await loadConversations()
+  const mergedConversations = new Map<string, Conversation>()
+  
+  // Add remote conversations
+  remoteConversations.forEach(conv => mergedConversations.set(conv.id, conv))
+  
+  // Override with local if newer
+  localConversations.forEach(localConv => {
+    const remoteConv = mergedConversations.get(localConv.id)
+    if (!remoteConv || new Date(localConv.updated_at) > new Date(remoteConv.updated_at)) {
+      mergedConversations.set(localConv.id, localConv)
+    }
+  })
+  
+  return Array.from(mergedConversations.values()).sort((a, b) => 
+    new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  )
+}
+```
 
 ---
 
-### 12. Cross-Device Data Synchronization
+## 🎨 Design System & UI Guidelines
 
-#### useDatabaseSync.ts Hook
-**Function: Cross-Device Sync**
-- Automatic periodic synchronization (every 30 seconds)
-- Immediate saving for critical operations
-- Merge strategy for conflicting changes with intelligent resolution
-- Initial data loading on authentication
-- Background sync with comprehensive error handling
-- Session validation before all operations
-- Intelligent sync conflict resolution
+### Color Palette
+**Primary Colors:**
+- **Purple Gradient**: `#8B5CF6` to `#7C3AED` (from-purple-500 to-purple-600)
+- **Purple Variants**: `#A855F7` (purple-400), `#6366F1` (indigo-500)
+- **Accent Colors**: `#EC4899` (pink-500), `#10B981` (emerald-500)
 
----
+**Provider-Specific Colors:**
+- **OpenAI**: `#3B82F6` (blue-500) for consistency with OpenAI branding
+- **Anthropic**: `#F97316` (orange-500) for Claude model distinction
 
-### 13. Multi-Provider AI Integration
+**System Colors:**
+- **Success**: `#10B981` (emerald-500)
+- **Warning**: `#F59E0B` (amber-500)
+- **Error**: `#EF4444` (red-500)
+- **Info**: `#3B82F6` (blue-500)
 
-#### Enhanced Streaming Service (streamingService.ts)
-**Function: Real-time AI Responses**
-- Multi-provider streaming chat completions
-- Token-by-token response rendering with smooth animations
-- **Anniversary-based usage statistics collection** with real-time validation
-- Error handling during streaming with recovery options
-- Request cancellation support with user confirmation
-- Token estimation for UI display
-- Normalized response handling across providers
-- **Real-time usage limit enforcement** with personalized reset times
+**Neutral Palette:**
+- **Gray Scale**: `#F9FAFB` (gray-50) to `#111827` (gray-900)
+- **Text Primary**: `#111827` (gray-900)
+- **Text Secondary**: `#6B7280` (gray-500)
+- **Background**: `#FFFFFF` (white) with purple gradient overlays
 
-#### Comprehensive Model Configuration
-**Function: AI Model Management**
-- Multiple provider support (OpenAI, Anthropic) with seamless switching
-- Latest 2025 models (GPT-4.1, Claude 4, o3/o4 series)
-- Tier-based model access restrictions with visual indicators
-- Model descriptions and capabilities with detailed information
-- Color-coded model indicators with provider branding
-- Token limit configurations per model
-- Provider-specific pricing information
+### Typography System
+**Font Family:** Inter (Google Fonts)
+- **Weights**: 400 (regular), 500 (medium), 600 (semibold), 700 (bold)
+- **Font Loading**: Preconnect optimization for performance
+- **Font Features**: `cv11`, `ss01` for enhanced readability
 
----
+**Type Scale:**
+- **Mobile Text Sizes**: 0.75rem (xs), 0.875rem (sm), 1rem (base), 1.125rem (lg)
+- **Desktop Text Sizes**: 0.875rem (sm), 1rem (base), 1.125rem (lg), 1.25rem (xl)
+- **Headings**: 1.125rem (lg) to 2.25rem (4xl) with responsive scaling
+- **Line Heights**: 150% for body text, 120% for headings
 
-### 14. Real-Time Usage Statistics
+### Spacing System
+**8px Grid System:**
+```css
+.p-mobile { padding: 0.75rem; }    /* 12px mobile padding */
+.px-mobile { padding-left: 0.75rem; padding-right: 0.75rem; }
+.py-mobile { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+```
 
-#### useUsageStats.ts Hook
-**Function: Real-time Usage Tracking**
-- **Anniversary-based daily and monthly token usage calculation**
-- Daily message count tracking with real-time updates
-- Tier limit enforcement with personalized messaging
-- Warning threshold management with progressive alerts
-- Automatic refresh every 5 minutes for accuracy
-- Database-driven statistics with RLS enforcement
-- Progressive warning system with escalating urgency
-- **Real-time reset time calculation** based on user's actual billing anniversary
+**Responsive Spacing:**
+- **Mobile**: 0.5rem (8px), 0.75rem (12px), 1rem (16px)
+- **Desktop**: 1rem (16px), 1.5rem (24px), 2rem (32px)
+- **Component Gaps**: 1rem mobile, 1.5rem desktop
 
----
+### Component Design Principles
 
-### 15. Enhanced User Interface Components
+#### Glassmorphism Effects
+```css
+.glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+```
 
-#### Logo Component (Logo.tsx)
-**Function: Brand Identity**
-- Custom logo support with fallback to Lucide icons
-- Multiple size variants (sm, md, lg, xl)
-- Light/dark/gradient variants for different contexts
-- Text integration option with brand name
-- Responsive scaling with proper aspect ratios
+#### Mobile-First Responsive Design
+- **Breakpoints**: sm (640px), md (768px), lg (1024px), xl (1280px)
+- **Touch Targets**: Minimum 48px height/width for mobile interactions
+- **Safe Area Support**: CSS env() for notch and dynamic island support
+- **Viewport Optimization**: Prevents zoom on input focus
 
-#### Error Handling (ErrorBanner.tsx)
-**Function: User Feedback**
-- Dismissible error messages with clear actions
-- Consistent error styling with brand colors
-- Icon integration for visual clarity
-- Auto-dismiss timers for non-critical errors
-- Retry functionality for recoverable errors
-
-#### Conversation Management (ConversationMenu.tsx)
-**Function: Conversation Operations**
-- Context menu for conversation actions
-- Rename functionality with inline editing
-- Delete confirmation with safety prompts
-- Export conversation functionality (JSON format)
-- Light theme integration for sidebar consistency
+#### Animation & Transitions
+- **Default Transition**: `transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1)`
+- **Hover States**: Scale transformations and color shifts
+- **Loading States**: Spinners and skeleton loading with smooth animations
+- **Micro-Interactions**: Button press effects and state changes
 
 ---
 
-## 🧭 Navigation Structure
+## 📱 Mobile-First Implementation
 
-### Primary Navigation
-1. **Sidebar (Left Panel)**
-   - New Chat button (always visible)
-   - Conversation list with search/filter
-   - User profile with tier display
-   - Settings access
-   - Upgrade prompts
+### Responsive Layout Strategy
+**Mobile-First CSS:**
+```css
+/* Base mobile styles */
+.sidebar {
+  position: fixed;
+  transform: translateX(-100%);
+  transition: transform 300ms ease-in-out;
+}
 
-2. **Header (Top Bar)**
-   - Brand logo and name
-   - Model selector with tier restrictions
-   - Usage statistics display
-   - Current conversation info
+/* Tablet and desktop */
+@media (min-width: 1024px) {
+  .sidebar {
+    position: relative;
+    transform: translateX(0);
+  }
+}
+```
 
-3. **Main Content Area**
-   - Chat messages with streaming
-   - Message input with model selection
-   - Usage warnings and upgrade prompts
-
-### Mobile Navigation
-- Hamburger menu for sidebar toggle
-- Responsive header with condensed information
-- Touch-optimized interactions
-- Swipe gestures for navigation
-
----
-
-## 🎨 Frontend Rules and Logic
-
-### Design System
-- **Color Palette**: Purple gradient primary (#8B5CF6 to #7C3AED)
-- **Typography**: Inter font family with 400/500/600/700 weights
-- **Spacing**: 8px grid system for consistent spacing
-- **Breakpoints**: Mobile-first responsive design (sm: 640px, md: 768px, lg: 1024px, xl: 1280px)
-
-### Component Architecture
-- **Modular Design**: Each component handles single responsibility
-- **Prop Drilling Prevention**: Context and hooks for state management
-- **Type Safety**: Comprehensive TypeScript interfaces
-- **Error Boundaries**: Graceful error handling throughout
-
-### State Management Rules
-1. **Local State**: Component-specific UI state (useState)
-2. **Shared State**: Cross-component state via custom hooks
-3. **Persistent State**: Database sync for conversations and settings
-4. **Cache Strategy**: Optimistic updates with database sync
+### Touch-Optimized Interactions
+- **Sidebar Navigation**: Swipe gestures and backdrop blur overlay
+- **Model Selector**: Large touch targets with improved dropdown positioning
+- **Message Input**: Auto-resizing textarea with character limits
+- **Conversation Menu**: Context menus with touch-friendly spacing
 
 ### Performance Optimizations
 - **Lazy Loading**: Components loaded on demand
-- **Memoization**: React.memo for expensive components
-- **Debouncing**: Database operations and API calls
+- **Virtual Scrolling**: For large conversation lists (future implementation)
+- **Debounced Operations**: Database saves and API calls
+- **Image Optimization**: WebP format with fallbacks
+
+---
+
+## 🔐 Security & Privacy Implementation
+
+### Authentication Security
+- **JWT Token Management**: Automatic refresh with secure storage
+- **Session Validation**: Real-time session integrity checks
+- **Invalid Session Cleanup**: Graceful handling of expired tokens
+- **CSRF Protection**: Built-in Supabase CSRF protection
+
+### Data Protection
+- **Row Level Security**: Database-level user data isolation
+- **API Key Security**: Server-side AI API key management via Edge Functions
+- **Input Sanitization**: Markdown parsing with XSS protection
+- **Content Security Policy**: Headers for XSS prevention
+
+### Privacy Features
+- **Local Data Cleanup**: Clear cached data on sign out
+- **Conversation Export**: User-controlled data export in JSON format
+- **Account Deletion**: Complete user data removal (future implementation)
+- **Usage Transparency**: Clear display of token usage and billing
+
+---
+
+## 🚀 Performance & Scalability
+
+### Frontend Performance
+- **Code Splitting**: Lazy-loaded components and routes
+- **Bundle Optimization**: Vite tree-shaking and minification
+- **Cache Strategy**: Browser caching for static assets
+- **Image Optimization**: Optimized images and icons
+
+### Backend Scalability
+- **Edge Functions**: Serverless scaling with global distribution
+- **Database Optimization**: Indexes and query optimization
+- **Connection Pooling**: Supabase automatic connection management
+- **CDN Integration**: Global content delivery network
+
+### Usage Monitoring
+- **Real-Time Analytics**: User usage patterns and system performance
+- **Error Tracking**: Comprehensive error logging and monitoring
+- **Performance Metrics**: Response times and system health
+- **Cost Optimization**: AI API usage optimization and caching
+
+---
+
+## 🔄 Data Flow & State Management
+
+### Application State Architecture
+```typescript
+// Primary React State (ChatLayout.tsx)
+const [conversations, setConversations] = useState<ConversationState[]>([])
+const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
+const [selectedModel, setSelectedModel] = useState<AIModel>(getDefaultModel())
+const [streamingState, setStreamingState] = useState<StreamingState>({
+  isStreaming: false,
+  currentMessage: '',
+  messageId: null
+})
+```
+
+### Data Persistence Strategy
+1. **Optimistic Updates**: UI updates immediately for responsive feel
+2. **Background Sync**: Database operations happen asynchronously
+3. **Conflict Resolution**: Merge strategy for concurrent edits
+4. **Error Recovery**: Rollback on failed operations
+
+### Real-Time Updates
+- **Conversation Sync**: Cross-device conversation synchronization
+- **Usage Stats**: Real-time token and message count updates
+- **Model Availability**: Dynamic model access based on subscription
+- **Billing Updates**: Immediate reflection of subscription changes
+
+---
+
+## 🎯 User Experience Flow
+
+### New User Journey
+1. **Landing** → Authentication screen with email/password
+2. **Email Verification** → Custom confirmation screen (if required)
+3. **Onboarding** → 3-step profile setup (name, location, profession)
+4. **First Chat** → Guided experience with model selection
+5. **Feature Discovery** → Progressive disclosure of advanced features
+
+### Returning User Journey
+1. **Authentication** → Automatic session restoration
+2. **Conversation List** → Recent conversations with search/filter
+3. **Chat Interface** → Seamless model switching and real-time responses
+4. **Usage Monitoring** → Transparent usage tracking with upgrade prompts
+
+### Error Recovery Flows
+- **Network Errors** → Automatic retry with user feedback
+- **Usage Limits** → Clear messaging with upgrade paths
+- **Session Expiry** → Graceful re-authentication
+- **API Failures** → Model fallback and error reporting
+
+---
+
+## 🔧 Development & Deployment
+
+### Development Environment
+- **Node.js 18+** with npm package management
+- **TypeScript 5.5.3** with strict type checking
+- **ESLint 9.9.1** with React and TypeScript rules
+- **Vite 5.4.2** for fast development and hot module replacement
+
+### Build Process
+- **Production Build**: Optimized bundle with tree-shaking
+- **Static Assets**: Optimized images and fonts
+- **Environment Variables**: Secure configuration management
+- **Source Maps**: Debug-friendly production builds
+
+### Deployment Pipeline
+1. **Development** → Local development with hot reload
+2. **Testing** → Automated testing and code quality checks
+3. **Staging** → Supabase staging environment
+4. **Production** → Netlify deployment with Supabase backend
+
+### Monitoring & Analytics
+- **Error Tracking**: Comprehensive error logging and alerts
+- **Performance Monitoring**: Real-time performance metrics
+- **Usage Analytics**: User behavior and feature adoption
+- **Cost Tracking**: AI API usage and billing optimization
+
+---
+
+## 📊 Business Logic & Metrics
+
+### Key Performance Indicators (KPIs)
+- **User Engagement**: Daily/Monthly Active Users, Session Duration
+- **Conversion Rates**: Free to Paid conversion, Upgrade rates
+- **Usage Metrics**: Messages per user, Token consumption patterns
+- **Model Popularity**: Most used AI models, Provider preferences
+- **Financial Metrics**: Revenue per user, Churn rates
+
+### Revenue Model
+- **Freemium Strategy**: Generous free tier with clear upgrade benefits
+- **Subscription Tiers**: Multiple price points for different user needs
+- **Usage-Based Limits**: Token-based pricing aligned with AI API costs
+- **Anniversary Billing**: Personalized billing cycles for user convenience
+
+### Competitive Advantages
+1. **Multi-Provider AI**: Choice between OpenAI and Anthropic models
+2. **Anniversary Billing**: Personalized reset times vs. calendar months
+3. **Real-Time Sync**: Cross-device conversation synchronization
+4. **Transparent Usage**: Clear token tracking with exact reset times
+5. **Premium UX**: Apple-level design aesthetics and micro-interactions
+6. **Latest Models**: Early access to 2025 AI models (GPT-4.1, Claude 4)
+
+---
+
+## 🔮 Future Roadmap & Extensibility
+
+### Planned Enhancements
+- **Team Collaboration**: Shared conversations and team billing
+- **Custom Model Training**: Fine-tuned models for specific use cases
+- **API Access**: Developer API for third-party integrations
+- **Enterprise Features**: SSO, custom domains, advanced analytics
+- **Mobile Apps**: Native iOS and Android applications
+
+### Technical Debt & Improvements
 - **Virtual Scrolling**: For large conversation lists
+- **Offline Support**: Progressive Web App capabilities
+- **Advanced Caching**: Intelligent response caching
+- **Performance Optimization**: Further bundle size reduction
+- **Accessibility**: WCAG 2.1 AA compliance improvements
 
-### Accessibility Standards
-- **WCAG 2.1 AA Compliance**: Color contrast, keyboard navigation
-- **Screen Reader Support**: Proper ARIA labels and roles
-- **Focus Management**: Logical tab order and focus indicators
-- **Responsive Text**: Scalable fonts and touch targets
-
----
-
-## 🔗 Backend Dependencies
-
-### Supabase Edge Function Dependencies
-
-#### 1. Authentication Requirements
-```typescript
-// Required for all API calls
-Authorization: Bearer <jwt_token>
-apikey: <supabase_anon_key>
-```
-
-#### 2. Environment Variables (Edge Function)
-```typescript
-SUPABASE_URL: string                    // Supabase project URL
-SUPABASE_SERVICE_ROLE_KEY: string      // Service role for database access
-OPENAI_API_KEY: string                 // OpenAI API access
-ANTHROPIC_API_KEY: string              // Anthropic Claude API access
-```
-
-#### 3. Database Schema Dependencies
-```sql
--- Required tables with RLS policies
-conversations (id, user_id, title, created_at, updated_at)
-messages (id, conversation_id, role, content, model_used, tokens, created_at)
-```
-
-#### 4. API Request Format
-```typescript
-// Expected request body for chat-completion
-{
-  model: string,                        // Model ID (e.g., "gpt-4o", "claude-3-5-sonnet")
-  messages: Array<{
-    role: 'user' | 'assistant',
-    content: string
-  }>,
-  stream?: boolean,                     // Enable streaming responses
-  max_tokens?: number,                  // Token limit per response
-  temperature?: number                  // Response creativity (0-1)
-}
-```
-
-#### 5. Response Format
-```typescript
-// Normalized response format from Edge Function
-{
-  choices: [{
-    message: {
-      content: string                   // AI response text
-    }
-  }],
-  usage: {
-    prompt_tokens: number,              // Input tokens used
-    completion_tokens: number,          // Output tokens generated
-    total_tokens: number                // Total tokens consumed
-  },
-  model: string                         // Model that processed the request
-}
-```
-
-#### 6. Error Response Format
-```typescript
-// Enhanced error responses with anniversary-based reset times
-{
-  error: string,                        // Error type identifier
-  type: 'DAILY_MESSAGE_LIMIT_EXCEEDED' | 'MONTHLY_LIMIT_EXCEEDED' | 'MODEL_NOT_ALLOWED',
-  message: string,                      // User-friendly error message
-  usage?: {
-    current: number,                    // Current usage count
-    limit: number,                      // Usage limit
-    resetTime: string,                  // ISO timestamp of exact reset time
-    percentage?: number                 // Usage percentage
-  },
-  userTier?: string,                    // Current subscription tier
-  allowedModels?: string[]              // Models available to user
-}
-```
-
-#### 7. Usage Tracking Dependencies
-- **Real-time token counting**: Accurate usage calculation per request
-- **Anniversary-based billing**: Reset times based on user signup date
-- **Tier enforcement**: Model access validation based on subscription
-- **Rate limiting**: Request throttling based on tier limits
-
-#### 8. Model Provider Integration
-- **OpenAI API**: GPT models with streaming support
-- **Anthropic API**: Claude models with message format conversion
-- **Response Normalization**: Consistent format across providers
-- **Error Handling**: Provider-specific error translation
+### Scalability Considerations
+- **Database Sharding**: User-based data partitioning
+- **CDN Optimization**: Global content delivery
+- **Edge Computing**: Region-specific AI processing
+- **Load Balancing**: Horizontal scaling strategies
+- **Microservices**: Service decomposition for specific features
 
 ---
 
-## 🚀 Current Status: Production Ready
+## 📝 Implementation Status: Production Ready
 
-### ✅ Completed Features
-- Multi-provider AI chat with streaming responses
-- **Real-time usage tracking with anniversary-based billing cycles**
-- Cross-device conversation synchronization
-- Comprehensive subscription management
-- Mobile-responsive design with premium UI/UX
-- Secure authentication and data protection
-- **Personalized reset time display** based on user's actual billing anniversary
-- Enhanced error handling with detailed user feedback
+### ✅ Completed Core Features
+- **Multi-Provider AI Integration** with OpenAI and Anthropic APIs
+- **Anniversary-Based Usage Tracking** with personalized reset times
+- **Real-Time Conversation Sync** across all devices
+- **Comprehensive Subscription Management** with three-tier system
+- **Mobile-Responsive Design** with premium UI/UX
+- **Secure Authentication** with session management
+- **Advanced Usage Analytics** with detailed tracking
+- **Progressive Warning System** with upgrade prompts
 
-### 🔧 Technical Achievements
-- **Anniversary-based usage limits**: Reset times calculated from user's actual signup date
-- **Real-time countdown timers**: Exact hours/minutes until limit resets
-- **Tier-based model access**: Visual restrictions and upgrade prompts
-- **Multi-provider streaming**: Seamless switching between OpenAI and Anthropic
-- **Cross-device sync**: Real-time conversation synchronization
-- **Production-grade security**: RLS, JWT tokens, and session management
+### 🎯 Key Technical Achievements
+- **Personalized Billing Cycles**: Industry-first anniversary-based reset system
+- **Real-Time Usage Display**: Live countdown timers and usage statistics
+- **Multi-Provider Streaming**: Seamless AI model switching
+- **Production-Grade Security**: Comprehensive RLS and authentication
+- **Cross-Device Synchronization**: Real-time conversation sync
+- **Latest AI Models**: Support for 2025 models (GPT-4.1, Claude 4, o3/o4)
 
-### 📊 Performance Metrics
-- **Sub-second response times**: Optimized API calls and caching
-- **Real-time updates**: Live usage statistics and reset timers
-- **Mobile optimization**: Touch-friendly interface with smooth animations
-- **Error recovery**: Graceful handling of network and API failures
+### 📈 Performance Metrics
+- **Sub-Second Response Times**: Optimized AI API integration
+- **Real-Time Updates**: Live usage statistics and reset timers
+- **Mobile-Optimized**: Touch-friendly interface with smooth animations
+- **Error Recovery**: Graceful handling of network and API failures
+- **Scalable Architecture**: Ready for production deployment
 
 ---
 
-## 🎯 Key Differentiators
+## 🏆 Platform Differentiators
 
-1. **Anniversary-Based Billing**: Personalized reset times based on actual signup date
-2. **Real-Time Usage Display**: Live countdown timers and usage statistics
-3. **Multi-Provider AI**: Seamless switching between OpenAI and Anthropic models
-4. **Production-Grade Security**: Comprehensive RLS and session management
+### Unique Value Propositions
+1. **Anniversary-Based Billing**: Personalized monthly cycles based on signup date
+2. **Real-Time Reset Timers**: Exact countdown to limit resets
+3. **Multi-Provider Choice**: Seamless switching between OpenAI and Anthropic
+4. **Latest AI Access**: Early support for 2025 models (GPT-4.1, Claude 4)
 5. **Cross-Device Sync**: Real-time conversation synchronization
-6. **Premium UI/UX**: Apple-level design aesthetics with micro-interactions
+6. **Transparent Usage**: Clear token tracking with detailed statistics
+7. **Premium Design**: Apple-level aesthetics with micro-interactions
 
-The platform is ready for production deployment with comprehensive error handling, security measures, and scalable architecture supporting multiple AI providers and advanced user management features with **real-time, personalized usage tracking**.
+### Market Positioning
+- **Target Audience**: Professionals, developers, researchers, creative professionals
+- **Pricing Strategy**: Competitive with ChatGPT Plus while offering more features
+- **Competitive Edge**: Multi-provider access, transparent billing, premium UX
+- **Growth Strategy**: Freemium model with clear upgrade benefits
+
+The chat.space platform represents a comprehensive, production-ready AI chat solution with innovative billing, transparent usage tracking, and premium user experience design. The implementation showcases advanced technical architecture while maintaining user-focused design principles and business viability.

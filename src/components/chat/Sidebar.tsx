@@ -279,7 +279,8 @@ export function Sidebar({
                         />
                       </div>
                     </div>
-                  ))}
+                  ))
+                )}
               </div>
             </div>
 

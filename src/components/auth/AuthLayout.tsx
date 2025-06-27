@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import { Mail, Lock, User, ArrowRight } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { Logo } from '../common/Logo'
+import { EmailConfirmationScreen } from './EmailConfirmationScreen'
 
 export function AuthLayout() {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -10,6 +11,8 @@ export function AuthLayout() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [awaitingEmailConfirmation, setAwaitingEmailConfirmation] = useState(false)
+  const [pendingEmail, setPendingEmail] = useState('')
   
   const { signUp, signIn } = useAuth()
 
@@ -24,13 +27,31 @@ export function AuthLayout() {
         : await signIn(email, password)
 
       if (error) {
-        setError(error.message)
+        // Handle specific signup cases
+        if (isSignUp && error.message?.includes('Email not confirmed')) {
+          setAwaitingEmailConfirmation(true)
+          setPendingEmail(email)
+        } else if (isSignUp && error.message?.includes('User already registered')) {
+          setAwaitingEmailConfirmation(true)
+          setPendingEmail(email)
+        } else {
+          setError(error.message)
+        }
+      } else if (isSignUp) {
+        // Successful signup - show email confirmation screen
+        setAwaitingEmailConfirmation(true)
+        setPendingEmail(email)
       }
     } catch (err) {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show email confirmation screen if waiting for verification
+  if (awaitingEmailConfirmation && pendingEmail) {
+    return <EmailConfirmationScreen email={pendingEmail} />
   }
 
   return (

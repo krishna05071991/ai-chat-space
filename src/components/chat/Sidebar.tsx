@@ -1,10 +1,12 @@
 // Mobile-first sidebar component with responsive design
 import React from 'react'
-import { Plus, MessageSquare, ChevronLeft, Menu, User, Settings, CreditCard, ChevronDown, LogOut, Trash2 } from 'lucide-react'
+import { Plus, MessageSquare, ChevronLeft, Menu, User, Settings, CreditCard, ChevronDown, LogOut, Trash2, X } from 'lucide-react'
 import { Conversation } from '../../types/chat'
 import { useAuth } from '../../hooks/useAuth'
 import { ConversationMenu } from './ConversationMenu'
 import { UsageDisplay } from '../usage/UsageDisplay'
+import { useUserProfile } from '../../hooks/useUserProfile'
+import { ProfileSettings } from '../settings/ProfileSettings'
 
 import { useUsageStats } from '../../hooks/useUsageStats'
 
@@ -36,8 +38,10 @@ export function Sidebar({
 }: SidebarProps) {
   const { signOut } = useAuth()
   const { usageStats } = useUsageStats()
+  const { profile, displayName, initials } = useUserProfile()
   const [profileMenuOpen, setProfileMenuOpen] = React.useState(false)
   const [showClearConfirm, setShowClearConfirm] = React.useState(false)
+  const [showProfileSettings, setShowProfileSettings] = React.useState(false)
 
   return (
     <>
@@ -161,18 +165,26 @@ export function Sidebar({
               onClick={() => setProfileMenuOpen(!profileMenuOpen)}
               className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/70 transition-colors group"
             >
-              <div className="w-7 h-7 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                <User className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                {profile?.avatar_url ? (
+                  <img 
+                    src={profile.avatar_url} 
+                    alt={displayName}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="text-white text-sm font-semibold">
+                    {initials}
+                  </span>
+                )}
               </div>
               <div className="flex-1 text-left min-w-0">
                 <div className="text-sm font-medium text-gray-800 truncate">
+                  {displayName}
+                </div>
+                <div className="text-xs text-gray-500 truncate">
                   {usageStats?.tier.tier.replace('_', ' ').toUpperCase() || 'FREE'} Plan
                 </div>
-                {usageStats && (
-                  <div className="text-xs text-gray-500 truncate">
-                    {Math.round((usageStats.tokens_used_month / usageStats.tier.monthly_tokens) * 100)}% used
-                  </div>
-                )}
               </div>
               <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ${profileMenuOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -214,11 +226,12 @@ export function Sidebar({
                 <button
                   onClick={() => {
                     setProfileMenuOpen(false)
+                    setShowProfileSettings(true)
                   }}
                   className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50 transition-colors"
                 >
                   <Settings className="w-4 h-4 text-gray-600 flex-shrink-0" />
-                  <span className="text-sm text-gray-700">Settings</span>
+                  <span className="text-sm text-gray-700">Profile Settings</span>
                 </button>
                 
                 <button
@@ -294,6 +307,28 @@ export function Sidebar({
                   Clear conversations
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Settings Modal */}
+      {showProfileSettings && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-gray-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-800">Profile Settings</h2>
+                <button
+                  onClick={() => setShowProfileSettings(false)}
+                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4 sm:p-6">
+              <ProfileSettings />
             </div>
           </div>
         </div>

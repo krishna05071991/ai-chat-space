@@ -44,6 +44,87 @@ class DatabaseService {
   private pendingOperations: (() => Promise<void>)[] = []
 
   /**
+   * Update user profile information
+   */
+  async updateUserProfile(profileData: {
+    full_name?: string | null
+    location?: string | null  
+    profession?: string | null
+    avatar_url?: string | null
+    onboarding_completed?: boolean
+  }): Promise<void> {
+    await this.withAuth(async () => {
+      const user = await this.getCurrentUser()
+      if (!user) {
+        throw new Error('No authenticated user found')
+      }
+
+      const { error } = await supabase
+        .from('users')
+        .update({
+          ...profileData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      if (error) {
+        throw new Error(`Failed to update profile: ${error.message}`)
+      }
+
+    }, 'updateUserProfile')
+  }
+
+  /**
+   * Get user profile information
+   */
+  async getUserProfile(): Promise<{
+    id: string
+    email: string
+    full_name: string | null
+    location: string | null
+    profession: string | null
+    avatar_url: string | null
+    onboarding_completed: boolean
+    created_at: string
+    updated_at: string
+  } | null> {
+    const result = await this.withAuth(async () => {
+      const user = await this.getCurrentUser()
+      if (!user) {
+        throw new Error('No authenticated user found')
+      }
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, email, full_name, location, profession, avatar_url, onboarding_completed, created_at, updated_at')
+        .eq('id', user.id)
+        .single()
+
+      if (error) {
+        throw new Error(`Failed to get user profile: ${error.message}`)
+      }
+
+      return data
+
+    }, 'getUserProfile')
+    
+    return result
+  }
+
+  /**
+   * Check if user has completed onboarding
+   */
+  async isOnboardingComplete(): Promise<boolean> {
+    try {
+      const profile = await this.getUserProfile()
+      return profile?.onboarding_completed === true && !!profile?.full_name
+    } catch (error) {
+      console.error('Failed to check onboarding status:', error)
+      return false
+    }
+  }
+
+  /**
    * Check if user is authenticated and session is valid
    */
   private async isAuthenticated(): Promise<boolean> {

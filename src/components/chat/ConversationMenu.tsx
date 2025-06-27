@@ -55,7 +55,7 @@ export function ConversationMenu({
           onChange={(e) => setNewTitle(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={handleRename}
-          className="flex-1 text-sm bg-white border border-purple-200 rounded-lg px-2 py-1 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          className="flex-1 text-sm bg-white border border-purple-200 rounded-xl px-2 py-1 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
           autoFocus
           maxLength={100}
         />
@@ -71,7 +71,7 @@ export function ConversationMenu({
           setShowMenu(!showMenu)
         }}
         className={`
-          p-1.5 rounded-md transition-all duration-200
+          p-1.5 rounded-xl transition-all duration-200
           ${showMenu ? 'bg-white/70' : 'hover:bg-white/50'}
           ${isActive ? 'text-purple-600' : 'text-gray-500'}
           hover:text-gray-700

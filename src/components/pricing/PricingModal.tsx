@@ -94,7 +94,7 @@ export function PricingModal({ isOpen, onClose, currentTier = 'free', onSelectPl
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white/95 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-2xl border border-gray-200 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         <div className="p-4 sm:p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -105,7 +105,7 @@ export function PricingModal({ isOpen, onClose, currentTier = 'free', onSelectPl
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
             >
               <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500" />
             </button>
@@ -121,7 +121,7 @@ export function PricingModal({ isOpen, onClose, currentTier = 'free', onSelectPl
               return (
                 <div
                   key={tier.id}
-                  className={`relative rounded-xl sm:rounded-2xl border-2 p-4 sm:p-6 cursor-pointer transition-all duration-200 hover:shadow-lg flex flex-col h-full ${
+                  className={`relative rounded-xl border-2 p-4 sm:p-6 cursor-pointer transition-all duration-200 hover:shadow-lg flex flex-col h-full ${
                     getColorClasses(tier.color, isSelected)
                   } ${isSelected ? 'ring-2 ring-offset-2' : ''}`}
                   onClick={() => setSelectedTier(tier.id)}
@@ -163,7 +163,7 @@ export function PricingModal({ isOpen, onClose, currentTier = 'free', onSelectPl
                   </div>
 
                   {tier.limitations.length > 0 && (
-                    <div className="mb-4 sm:mb-6 p-3 bg-gray-50 rounded-lg">
+                    <div className="mb-4 sm:mb-6 p-3 bg-gray-50 rounded-xl">
                       <p className="text-xs text-gray-600 font-medium mb-2">Limitations:</p>
                       {tier.limitations.map((limitation, index) => (
                         <p key={index} className="text-xs text-gray-500">• {limitation}</p>
@@ -178,7 +178,7 @@ export function PricingModal({ isOpen, onClose, currentTier = 'free', onSelectPl
                         onSelectPlan(tier.id)
                       }}
                       disabled={isCurrent}
-                      className={`w-full py-2.5 sm:py-3 px-4 rounded-lg sm:rounded-xl font-medium transition-all duration-200 text-sm sm:text-base ${
+                      className={`w-full py-2.5 sm:py-3 px-4 rounded-xl font-medium transition-all duration-200 text-sm sm:text-base ${
                         isCurrent 
                           ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
                           : getUpgradeButtonClasses(tier.id)

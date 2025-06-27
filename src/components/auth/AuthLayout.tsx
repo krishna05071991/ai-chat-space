@@ -47,7 +47,7 @@ export function AuthLayout() {
         </div>
 
         {/* Mobile-optimized auth form */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-purple-100 p-6 sm:p-8">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-xl border border-purple-100 p-6 sm:p-8">
           <div className="text-center mb-6">
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-800">
               {isSignUp ? 'Create Account' : 'Welcome Back'}
@@ -71,7 +71,7 @@ export function AuthLayout() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-9 sm:pl-10 pr-3 py-2.5 sm:py-3 border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm sm:text-base"
+                  className="block w-full pl-9 sm:pl-10 pr-3 py-2.5 sm:py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm sm:text-base"
                   placeholder="you@example.com"
                 />
               </div>
@@ -90,14 +90,14 @@ export function AuthLayout() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-9 sm:pl-10 pr-3 py-2.5 sm:py-3 border border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm sm:text-base"
+                  className="block w-full pl-9 sm:pl-10 pr-3 py-2.5 sm:py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm sm:text-base"
                   placeholder="••••••••"
                 />
               </div>
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3">
                 <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
@@ -105,7 +105,7 @@ export function AuthLayout() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium py-2.5 sm:py-3 px-4 rounded-lg sm:rounded-xl transition-all duration-200 flex items-center justify-center group disabled:opacity-50 text-sm sm:text-base"
+              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium py-2.5 sm:py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center group disabled:opacity-50 text-sm sm:text-base"
             >
               {loading ? (
                 <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

@@ -173,7 +173,7 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
   }
 
   return (
-    <div className={`border-l-4 p-4 rounded-r-lg ${config.bgColor} shadow-lg backdrop-blur-sm relative z-40`}>
+    <div className={`border-l-4 p-4 rounded-r-xl ${config.bgColor} shadow-lg backdrop-blur-sm relative z-40`}>
       <div className="flex items-start justify-between">
         <div className="flex items-start space-x-3 flex-1">
           <config.icon className={`w-5 h-5 mt-0.5 ${config.iconColor}`} />
@@ -244,7 +244,7 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
             {config.showUpgrade && (
               <button
                 onClick={onUpgrade}
-                className="inline-flex items-center bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all duration-200 group shadow-lg hover:shadow-xl"
+                className="inline-flex items-center bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all duration-200 group shadow-lg hover:shadow-xl"
               >
                 <Crown className="w-4 h-4 mr-2" />
                 {config.action}
@@ -257,7 +257,7 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
         {config.dismissible && (
           <button
             onClick={handleDismiss}
-            className={`${config.iconColor} hover:opacity-70 transition-opacity p-1 rounded-md ml-2`}
+            className={`${config.iconColor} hover:opacity-70 transition-opacity p-1 rounded-xl ml-2`}
           >
             <X className="w-4 h-4" />
           </button>

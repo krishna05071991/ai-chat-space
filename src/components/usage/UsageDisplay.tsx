@@ -70,7 +70,7 @@ export function UsageDisplay({ usageStats, className = '' }: UsageDisplayProps) 
     (usageStats.messages_sent_today / usageStats.tier.daily_messages) * 100 : 0
 
   return (
-    <div className={`bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-4 ${className}`}>
+    <div className={`bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow ${className}`}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-gray-800 flex items-center">
           <TrendingUp className="w-4 h-4 mr-2" />
@@ -120,9 +120,9 @@ export function UsageDisplay({ usageStats, className = '' }: UsageDisplayProps) 
               {usageStats.messages_sent_today} / {usageStats.tier.daily_messages}
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
             <div
-              className={`h-1.5 rounded-full transition-all duration-500 ease-out ${getProgressBarColor(dailyMessagePercentage)}`}
+              className={`h-2 rounded-full transition-all duration-500 ease-out ${getProgressBarColor(dailyMessagePercentage)}`}
               style={{ width: `${Math.min(dailyMessagePercentage, 100)}%` }}
             />
           </div>

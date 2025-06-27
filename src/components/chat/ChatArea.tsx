@@ -66,8 +66,8 @@ export function ChatArea({
   const isLatest2025Model = selectedModel.id.includes('4.1') || selectedModel.id.includes('o3') || selectedModel.id.includes('o4')
 
   const renderEmptyState = () => (
-    <div className="flex-1 flex items-center justify-center p-4 min-h-0">
-      <div className="text-center max-w-full w-full">
+    <div className="flex-1 flex items-center justify-center p-4 min-h-0 lg:px-8">
+      <div className="text-center max-w-5xl w-full">
         {/* Mobile-optimized heading */}
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-3 sm:mb-4 px-2">
           What can I help with?
@@ -94,20 +94,20 @@ export function ChatArea({
         </div>
         
         {/* Mobile-optimized feature grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8 text-sm px-2">
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8 text-sm px-2 lg:px-0">
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
             <h3 className="font-medium mb-2">💡 Creative Tasks</h3>
             <p className="text-xs sm:text-sm">Writing, brainstorming, storytelling, and creative problem-solving</p>
           </div>
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
             <h3 className="font-medium mb-2">📊 Analysis & Research</h3>
             <p className="text-xs sm:text-sm">Data analysis, research assistance, and detailed explanations</p>
           </div>
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
             <h3 className="font-medium mb-2">💻 Coding & Tech</h3>
             <p className="text-xs sm:text-sm">Programming help, debugging, code reviews, and technical guidance</p>
           </div>
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
             <h3 className="font-medium mb-2">🎯 Reasoning</h3>
             <p className="text-xs sm:text-sm">Complex problem-solving, logical analysis, and step-by-step thinking</p>
           </div>
@@ -115,7 +115,7 @@ export function ChatArea({
         
         {/* Mobile-optimized current plan display */}
         {usageStats && (
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-gray-200/60 shadow-sm mb-4 sm:mb-6 space-y-2 sm:space-y-3 mx-2">
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-gray-200/60 shadow-sm mb-4 sm:mb-6 space-y-2 sm:space-y-3 mx-2 lg:mx-0 max-w-md lg:max-w-2xl lg:mx-auto">
             <div className="flex items-center justify-between text-xs sm:text-sm">
               <div className="flex items-center space-x-2">
                 <span className="text-gray-600">Current Plan:</span>
@@ -217,7 +217,7 @@ export function ChatArea({
       <div className="relative z-30 flex-shrink-0">
         {/* Error Banner */}
         {error && (
-          <div className="px-3 sm:px-4 pt-2">
+          <div className="px-3 sm:px-4 lg:px-8 pt-2">
             <div className="rounded-xl overflow-hidden shadow-lg">
               <ErrorBanner
                 message={error}
@@ -229,7 +229,7 @@ export function ChatArea({
 
         {/* Usage Warning Banner */}
         {usageStats && (
-          <div className="px-3 sm:px-4 pt-2">
+          <div className="px-3 sm:px-4 lg:px-8 pt-2">
             <div className="rounded-xl overflow-hidden shadow-lg">
               <UsageWarningBanner
                 usageStats={usageStats}
@@ -241,9 +241,9 @@ export function ChatArea({
 
         {/* Model Restriction Banner */}
         {selectedModel && usageStats && !usageStats.tier.allowed_models.includes(selectedModel.id) && (
-          <div className="px-3 sm:px-4 pt-2">
+          <div className="px-3 sm:px-4 lg:px-8 pt-2">
             <div className="rounded-xl overflow-hidden shadow-lg">
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-400 p-3 sm:p-4">
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-400 p-3 sm:p-4 rounded-r-xl">
                 <div className="flex items-start space-x-3">
                   <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
                     <Crown className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600" />
@@ -263,7 +263,7 @@ export function ChatArea({
                         selectedModel.tier === 'premium' ? 'super_pro' : 
                         selectedModel.tier === 'flagship' ? 'pro' : 'basic'
                       )}
-                      className="inline-flex items-center bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-lg transition-all duration-200 group shadow-lg"
+                      className="inline-flex items-center bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-xl transition-all duration-200 group shadow-lg"
                     >
                       <Crown className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       View Upgrade Options
@@ -280,8 +280,8 @@ export function ChatArea({
       {/* Mobile-optimized messages area */}
       <div className="flex-1 flex flex-col min-h-0 relative z-10 overflow-hidden">
         {!hasMessages && !hasStreamingMessage ? renderEmptyState() : (
-          <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3 sm:py-4">
-            <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+          <div className="flex-1 overflow-y-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
+            <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
               {/* Render all existing messages */}
               {conversation?.messages?.map((message, index) => (
                 <MessageBubble 
@@ -307,7 +307,7 @@ export function ChatArea({
         )}
 
         {/* Mobile-optimized message input */}
-        <div className="flex-shrink-0 max-w-4xl mx-auto w-full px-3 sm:px-4 pb-3 sm:pb-4">
+        <div className="flex-shrink-0 max-w-4xl mx-auto w-full px-3 sm:px-4 lg:px-8 pb-3 sm:pb-4">
           <MessageInput 
             onSendMessage={onSendMessage}
             selectedModel={selectedModel}

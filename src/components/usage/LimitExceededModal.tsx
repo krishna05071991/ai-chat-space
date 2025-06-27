@@ -146,7 +146,7 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white/95 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-2xl border border-gray-200 w-full max-w-md mx-4">
+      <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 w-full max-w-md mx-4">
         <div className="p-4 sm:p-6">
           {/* Mobile-optimized header */}
           <div className="flex items-start justify-between mb-4 sm:mb-6">
@@ -163,7 +163,7 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+              className="p-2 hover:bg-gray-100 rounded-xl transition-colors flex-shrink-0"
             >
               <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
             </button>
@@ -177,7 +177,7 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
 
             {/* Mobile-optimized usage statistics */}
             {error.usage && (
-              <div className="bg-gray-50 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
+              <div className="bg-gray-50 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-600">Current Usage</span>
                   <span className="font-semibold text-gray-800 text-sm">
@@ -209,7 +209,7 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
           </div>
 
           {/* Mobile-optimized upgrade benefits */}
-          <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg sm:rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
+          <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 sm:p-4 mb-4 sm:mb-6">
             <h3 className="font-semibold text-purple-800 mb-2 sm:mb-3 flex items-center text-sm sm:text-base">
               <Crown className="w-4 h-4 mr-2 flex-shrink-0" />
               Upgrade to {config.recommendedPlan.charAt(0).toUpperCase() + config.recommendedPlan.slice(1).replace('_', ' ')}
@@ -234,7 +234,7 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
           <div className="space-y-3">
             <button
               onClick={() => onUpgrade(config.recommendedPlan)}
-              className={`w-full bg-gradient-to-r ${getUrgencyColor()} hover:shadow-lg text-white font-medium py-2.5 sm:py-3 px-4 rounded-lg sm:rounded-xl transition-all duration-200 flex items-center justify-center group text-sm sm:text-base`}
+              className={`w-full bg-gradient-to-r ${getUrgencyColor()} hover:shadow-lg text-white font-medium py-2.5 sm:py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center group text-sm sm:text-base`}
             >
               <Crown className="w-4 h-4 mr-2 flex-shrink-0" />
               <span className="truncate">Upgrade to {config.recommendedPlan.charAt(0).toUpperCase() + config.recommendedPlan.slice(1).replace('_', ' ')} - {config.price}</span>
@@ -244,7 +244,7 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
             <div className="flex space-x-3">
               <button
                 onClick={onClose}
-                className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm"
+                className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm"
               >
                 Maybe Later
               </button>
@@ -252,7 +252,7 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
               {config.showTryTomorrow && onTryTomorrow && (
                 <button
                   onClick={onTryTomorrow}
-                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-200 transition-colors font-medium flex items-center justify-center text-sm"
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium flex items-center justify-center text-sm"
                 >
                   <Calendar className="w-4 h-4 mr-2 flex-shrink-0" />
                   Try Tomorrow

@@ -1,3 +1,4 @@
+// Enhanced chat area component with mobile-first responsive design
 import React, { useEffect, useRef } from 'react'
 import { MessageBubble } from './MessageBubble'
 import { MessageInput } from './MessageInput'
@@ -5,7 +6,9 @@ import { StreamingMessage } from './StreamingMessage'
 import { ErrorBanner } from './ErrorBanner'
 import { ModelSelector } from './ModelSelector'
 import { AIModel, StreamingState, getProviderIcon } from '../../types/chat'
-import { Sparkles, Crown, ArrowRight, Clock, Zap } from 'lucide-react'
+import { Sparkles, MessageSquare, Crown, ArrowRight, Clock } from 'lucide-react'
+import { Logo } from '../common/Logo'
+
 import { useUsageStats } from '../../hooks/useUsageStats'
 import { UsageWarningBanner } from '../usage/UsageWarningBanner'
 
@@ -63,100 +66,88 @@ export function ChatArea({
   const isLatest2025Model = selectedModel.id.includes('4.1') || selectedModel.id.includes('o3') || selectedModel.id.includes('o4')
 
   const renderEmptyState = () => (
-    <div className="flex-1 flex items-center justify-center canvas-section lg:px-8">
-      <div className="text-center max-w-4xl w-full space-canvas">
-        {/* Premium page title */}
-        <h1 className="h1 text-center text-3xl lg:text-4xl mb-6">
+    <div className="flex-1 flex items-center justify-center p-4 min-h-0 lg:px-8">
+      <div className="text-center max-w-5xl w-full">
+        {/* Mobile-optimized heading */}
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-3 sm:mb-4 px-2">
           What can I help with?
         </h1>
         
-        {/* Model info section */}
-        <div className="canvas-card mb-6">
-          <div className="flex items-center justify-center space-x-3 mb-4">
-            <span className="text-2xl">{getProviderIcon(selectedModel.provider)}</span>
-            <span className="h2 truncate">
+        {/* Mobile-optimized model display */}
+        <div className="mb-4 sm:mb-6">
+          <div className="flex items-center justify-center space-x-2 sm:space-x-3 mb-2 sm:mb-3 px-2">
+            <span className="text-lg sm:text-xl md:text-2xl">{getProviderIcon(selectedModel.provider)}</span>
+            <span className="text-base sm:text-lg md:text-xl font-medium text-gray-700 truncate max-w-[200px] sm:max-w-none">
               {selectedModel.displayName}
             </span>
             {isLatest2025Model && (
-              <div className="flex items-center space-x-1 bg-purple-100/50 px-3 py-1 rounded-2xl flex-shrink-0">
-                <Sparkles className="w-4 h-4 text-purple-600" />
-                <span className="tiny-text font-medium text-purple-600">2025</span>
+              <div className="flex items-center space-x-1 bg-purple-100 px-2 py-1 rounded-full flex-shrink-0">
+                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />
+                <span className="text-xs sm:text-sm font-medium text-purple-600">2025</span>
               </div>
             )}
           </div>
-          <p className="body-text leading-relaxed text-center max-w-2xl mx-auto">
+          <p className="text-gray-600 text-sm sm:text-base md:text-lg leading-relaxed px-4 sm:px-2">
             I'm powered by {selectedModel.provider === 'anthropic' ? 'Anthropic Claude' : 'OpenAI'}, ready to assist you with any questions or tasks. 
             You'll see responses appear in real-time as I generate them.
           </p>
         </div>
         
-        {/* Capability cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
-          <div className="canvas-card hover:shadow-lg transition-all duration-300 cursor-pointer group">
-            <div className="text-center">
-              <div className="text-2xl mb-3 group-hover:animate-float">💡</div>
-              <h3 className="h2 mb-2">Creative Tasks</h3>
-              <p className="tiny-text">Writing, brainstorming, storytelling, and creative problem-solving</p>
-            </div>
+        {/* Mobile-optimized feature grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8 text-sm px-2 lg:px-0">
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
+            <h3 className="font-medium mb-2">💡 Creative Tasks</h3>
+            <p className="text-xs sm:text-sm">Writing, brainstorming, storytelling, and creative problem-solving</p>
           </div>
-          <div className="canvas-card hover:shadow-lg transition-all duration-300 cursor-pointer group">
-            <div className="text-center">
-              <div className="text-2xl mb-3 group-hover:animate-float">📊</div>
-              <h3 className="h2 mb-2">Analysis & Research</h3>
-              <p className="tiny-text">Data analysis, research assistance, and detailed explanations</p>
-            </div>
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
+            <h3 className="font-medium mb-2">📊 Analysis & Research</h3>
+            <p className="text-xs sm:text-sm">Data analysis, research assistance, and detailed explanations</p>
           </div>
-          <div className="canvas-card hover:shadow-lg transition-all duration-300 cursor-pointer group">
-            <div className="text-center">
-              <div className="text-2xl mb-3 group-hover:animate-float">💻</div>
-              <h3 className="h2 mb-2">Coding & Tech</h3>
-              <p className="tiny-text">Programming help, debugging, code reviews, and technical guidance</p>
-            </div>
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
+            <h3 className="font-medium mb-2">💻 Coding & Tech</h3>
+            <p className="text-xs sm:text-sm">Programming help, debugging, code reviews, and technical guidance</p>
           </div>
-          <div className="canvas-card hover:shadow-lg transition-all duration-300 cursor-pointer group">
-            <div className="text-center">
-              <div className="text-2xl mb-3 group-hover:animate-float">🎯</div>
-              <h3 className="h2 mb-2">Reasoning</h3>
-              <p className="tiny-text">Complex problem-solving, logical analysis, and step-by-step thinking</p>
-            </div>
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-gray-200/60 shadow-sm hover:shadow-md transition-shadow">
+            <h3 className="font-medium mb-2">🎯 Reasoning</h3>
+            <p className="text-xs sm:text-sm">Complex problem-solving, logical analysis, and step-by-step thinking</p>
           </div>
         </div>
         
-        {/* Current plan display */}
+        {/* Mobile-optimized current plan display */}
         {usageStats && (
-          <div className="canvas-card max-w-md mx-auto mb-6 space-section">
-            <div className="flex items-center justify-between body-text">
-              <div className="flex items-center space-x-3">
-                <Zap className="w-4 h-4 text-purple-600" />
-                <span className="muted-text">Current Plan:</span>
-                <span className="font-semibold text-purple-600 capitalize">
+          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 sm:p-4 border border-gray-200/60 shadow-sm mb-4 sm:mb-6 space-y-2 sm:space-y-3 mx-2 lg:mx-0 max-w-md lg:max-w-2xl lg:mx-auto">
+            <div className="flex items-center justify-between text-xs sm:text-sm">
+              <div className="flex items-center space-x-2">
+                <span className="text-gray-600">Current Plan:</span>
+                <span className="font-medium text-purple-600 capitalize">
                   {usageStats.tier.tier.replace('_', ' ').toUpperCase()}
                 </span>
               </div>
-              <div className="tiny-text">
+              <div className="text-gray-500 text-xs sm:text-sm">
                 {Math.round((usageStats.tokens_used_month / usageStats.tier.monthly_tokens) * 100)}% used
               </div>
             </div>
             
-            <div className="tiny-text border-t border-gray-200/50 pt-3 space-y-2">
-              <div className="flex items-center space-x-2">
+            {/* Mobile-optimized reset time information */}
+            <div className="text-xs text-gray-500 border-t border-gray-200 pt-2 space-y-1">
+              <div className="flex items-center space-x-1">
                 <Clock className="w-3 h-3 flex-shrink-0" />
-                <span>Monthly limit resets {formatResetTime(usageStats.monthly_reset_time)}</span>
+                <span className="truncate">Monthly limit resets {formatResetTime(usageStats.monthly_reset_time)}</span>
               </div>
               {usageStats.tier.daily_messages > 0 && (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1">
                   <Clock className="w-3 h-3 flex-shrink-0" />
-                  <span>Daily limit resets {formatResetTime(usageStats.daily_reset_time)}</span>
+                  <span className="truncate">Daily limit resets {formatResetTime(usageStats.daily_reset_time)}</span>
                 </div>
               )}
             </div>
           </div>
         )}
         
-        {/* Footer tagline */}
-        <div className="flex items-center justify-center space-x-2 muted-text">
-          <Sparkles className="w-4 h-4 text-purple-500 flex-shrink-0" />
-          <span>Real-time streaming • Multi-provider AI • Production ready</span>
+        {/* Mobile-optimized footer */}
+        <div className="flex items-center justify-center space-x-2 text-xs sm:text-sm text-gray-500 px-4">
+          <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-purple-500 flex-shrink-0" />
+          <span className="text-center">Real-time streaming • Multi-provider AI • Production ready</span>
         </div>
       </div>
     </div>
@@ -166,89 +157,119 @@ export function ChatArea({
   const hasStreamingMessage = streamingState.isStreaming && streamingState.currentMessage.length > 0
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-surface-50">
-      {/* Desktop header */}
-      <div className="hidden lg:block border-b border-gray-200/30 bg-white/40 backdrop-blur-md">
-        <div className="px-canvas py-canvas">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <h1 className="h1">
-                {hasMessages ? (conversation?.title || 'Conversation') : 'New conversation'}
-              </h1>
-              <div className="flex items-center space-x-2">
-                <span className="tiny-text">Using:</span>
-                <ModelSelector 
-                  selectedModel={selectedModel}
-                  onModelChange={onModelChange}
-                  onUpgradePrompt={onUpgradePrompt}
-                  compact={true}
-                />
+    <div className="flex-1 flex flex-col h-full bg-gradient-to-br from-white via-purple-50/15 to-white overflow-hidden">
+      {/* Mobile-optimized header with proper spacing */}
+      <div className="relative z-20 flex-shrink-0">
+        <div className="flex items-center justify-between py-3 px-3 sm:py-4 sm:px-4 md:px-6 min-h-[56px] sm:min-h-[60px]">
+          {/* Mobile-optimized brand section */}
+          <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 min-w-0 flex-1 lg:justify-start justify-center">
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+              {/* Responsive icon */}
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
+                <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-white" />
               </div>
+              {/* Hide text on small mobile, show on larger screens */}
+              <h1 className="hidden sm:block text-lg md:text-xl font-bold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent truncate">
+                chat.space
+              </h1>
             </div>
             
-            <div className="flex items-center space-x-4 tiny-text">
-              {conversation && (
-                <span>{conversation.messages?.length || 0} message{(conversation.messages?.length || 0) !== 1 ? 's' : ''}</span>
-              )}
-              {usageStats && (
-                <span className="capitalize">{usageStats.tier.tier.replace('_', ' ')} Plan</span>
-              )}
+            <div className="w-px h-4 sm:h-6 bg-gray-300 flex-shrink-0"></div>
+            
+            {/* Mobile-optimized model selector */}
+            <div className="hidden lg:flex items-center space-x-1 sm:space-x-2 min-w-0 flex-1">
+              <span className="text-xs sm:text-sm text-gray-600 font-medium hidden sm:inline">Using:</span>
+              <ModelSelector 
+                selectedModel={selectedModel}
+                onModelChange={onModelChange}
+                onUpgradePrompt={onUpgradePrompt}
+                compact={true}
+              />
             </div>
+          </div>
+          
+          {/* Mobile model selector - properly centered */}
+          <div className="lg:hidden flex items-center justify-center">
+            <ModelSelector 
+              selectedModel={selectedModel}
+              onModelChange={onModelChange}
+              onUpgradePrompt={onUpgradePrompt}
+              compact={true}
+            />
+          </div>
+
+          {/* Mobile-optimized stats section */}
+          <div className="hidden md:flex items-center space-x-4 text-xs text-gray-500 font-medium">
+            {conversation && (
+              <span>{conversation.messages?.length || 0} message{(conversation.messages?.length || 0) !== 1 ? 's' : ''}</span>
+            )}
+            {usageStats && (
+              <div className="flex items-center space-x-1">
+                <span>•</span>
+                <span className="capitalize">{usageStats.tier.tier.replace('_', ' ')} Plan</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
       
-      {/* Notifications */}
+      {/* Mobile-optimized notifications */}
       <div className="relative z-30 flex-shrink-0">
         {/* Error Banner */}
         {error && (
-          <div className="px-canvas pt-2">
-            <ErrorBanner
-              message={error}
-              onDismiss={onClearError || (() => {})}
-            />
+          <div className="px-3 sm:px-4 lg:px-8 pt-2">
+            <div className="rounded-xl overflow-hidden shadow-lg">
+              <ErrorBanner
+                message={error}
+                onDismiss={onClearError || (() => {})}
+              />
+            </div>
           </div>
         )}
 
         {/* Usage Warning Banner */}
         {usageStats && (
-          <div className="px-canvas pt-2">
-            <UsageWarningBanner
-              usageStats={usageStats}
-              onUpgrade={() => onUpgradePrompt?.('basic')}
-            />
+          <div className="px-3 sm:px-4 lg:px-8 pt-2">
+            <div className="rounded-xl overflow-hidden shadow-lg">
+              <UsageWarningBanner
+                usageStats={usageStats}
+                onUpgrade={() => onUpgradePrompt?.('basic')}
+              />
+            </div>
           </div>
         )}
 
         {/* Model Restriction Banner */}
         {selectedModel && usageStats && !usageStats.tier.allowed_models.includes(selectedModel.id) && (
-          <div className="px-canvas pt-2">
-            <div className="bg-gradient-to-r from-amber-50/50 to-orange-50/50 border-l-4 border-amber-400 p-4 rounded-r-2xl backdrop-blur-sm">
-              <div className="flex items-start space-x-4">
-                <div className="w-8 h-8 rounded-2xl bg-amber-100/50 flex items-center justify-center flex-shrink-0">
-                  <Crown className="w-4 h-4 text-amber-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="h2 text-amber-800 mb-2">
-                    Premium Model Access Required
-                  </h3>
-                  <p className="body-text text-amber-700 mb-4">
-                    <strong>{selectedModel.displayName}</strong> requires a higher plan. 
-                    {selectedModel.tier === 'premium' ? ' Upgrade to Super Pro' : 
-                     selectedModel.tier === 'flagship' ? ' Upgrade to Pro' : 
-                     ' Upgrade to Basic'} to access this model.
-                  </p>
-                  <button
-                    onClick={() => onUpgradePrompt?.(
-                      selectedModel.tier === 'premium' ? 'super_pro' : 
-                      selectedModel.tier === 'flagship' ? 'pro' : 'basic'
-                    )}
-                    className="inline-flex items-center bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white body-text font-medium px-4 py-2 rounded-2xl transition-all duration-200 group shadow-lg hover:shadow-xl"
-                  >
-                    <Crown className="w-4 h-4 mr-2" />
-                    View Upgrade Options
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </button>
+          <div className="px-3 sm:px-4 lg:px-8 pt-2">
+            <div className="rounded-xl overflow-hidden shadow-lg">
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-400 p-3 sm:p-4 rounded-r-xl">
+                <div className="flex items-start space-x-3">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <Crown className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-amber-800 mb-1 text-sm sm:text-base">
+                      Premium Model Access Required
+                    </h3>
+                    <p className="text-xs sm:text-sm text-amber-700 mb-2 sm:mb-3">
+                      <strong>{selectedModel.displayName}</strong> requires a higher plan. 
+                      {selectedModel.tier === 'premium' ? ' Upgrade to Super Pro' : 
+                       selectedModel.tier === 'flagship' ? ' Upgrade to Pro' : 
+                       ' Upgrade to Basic'} to access this model.
+                    </p>
+                    <button
+                      onClick={() => onUpgradePrompt?.(
+                        selectedModel.tier === 'premium' ? 'super_pro' : 
+                        selectedModel.tier === 'flagship' ? 'pro' : 'basic'
+                      )}
+                      className="inline-flex items-center bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-xl transition-all duration-200 group shadow-lg"
+                    >
+                      <Crown className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                      View Upgrade Options
+                      <ArrowRight className="ml-2 h-3 w-3 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -256,11 +277,11 @@ export function ChatArea({
         )}
       </div>
 
-      {/* Messages area */}
+      {/* Mobile-optimized messages area */}
       <div className="flex-1 flex flex-col min-h-0 relative z-10 overflow-hidden">
         {!hasMessages && !hasStreamingMessage ? renderEmptyState() : (
-          <div className="flex-1 overflow-y-auto scrollbar-thin px-canvas py-canvas">
-            <div className="max-w-4xl mx-auto space-section">
+          <div className="flex-1 overflow-y-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
+            <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
               {/* Render all existing messages */}
               {conversation?.messages?.map((message, index) => (
                 <MessageBubble 
@@ -285,8 +306,8 @@ export function ChatArea({
           </div>
         )}
 
-        {/* Message input */}
-        <div className="flex-shrink-0 max-w-4xl mx-auto w-full px-canvas pb-canvas">
+        {/* Mobile-optimized message input */}
+        <div className="flex-shrink-0 max-w-4xl mx-auto w-full px-3 sm:px-4 lg:px-8 pb-3 sm:pb-4">
           <MessageInput 
             onSendMessage={onSendMessage}
             selectedModel={selectedModel}

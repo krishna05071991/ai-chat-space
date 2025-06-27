@@ -125,7 +125,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           )}
 
           {/* Message content */}
-          <div className={`message-content leading-relaxed ${isErrorMessage ? 'text-red-800' : ''}`}
+          <div 
+            className={`
+            text-gray-800 leading-relaxed
+            ${isErrorMessage ? 'text-red-800' : ''}
+          `}
             dangerouslySetInnerHTML={{ 
               __html: marked.parse(message.content) 
             }}
@@ -133,13 +137,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
           {/* Enhanced timestamp - only show on hover */}
           <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <div className="flex items-center space-x-3">
-              <span className="tiny-text flex items-center space-x-1">
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-gray-500 flex items-center space-x-1">
                 <Clock className="w-3 h-3" />
                 <span>{formatTime(message.created_at)}</span>
               </span>
               {!isUser && message.model_used && (
-                <span className="tiny-text">
+                <span className="text-xs text-gray-400">
                   • {provider === 'anthropic' ? 'Claude API' : 'OpenAI API'}
                 </span>
               )}

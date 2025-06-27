@@ -617,81 +617,37 @@ export function ChatLayout() {
   }
 
   return (
-    <div className="infinite-canvas h-screen flex overflow-hidden">
-      {/* Desktop Sidebar */}
-      <div className="desktop-sidebar">
-        <Sidebar
-          conversations={conversations}
-          activeConversationId={activeConversationId}
-          onNewChat={handleNewChat}
-          onSelectConversation={handleSelectConversation}
-          isOpen={sidebarOpen}
-          onToggle={() => setSidebarOpen(!sidebarOpen)}
-          usageStats={null}
-          onUpgrade={() => handleUpgrade()}
+    <div className="h-screen flex bg-gray-50 overflow-hidden">
+      <Sidebar
+        conversations={conversations}
+        activeConversationId={activeConversationId}
+        onNewChat={handleNewChat}
+        onSelectConversation={handleSelectConversation}
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        usageStats={null}
+        onUpgrade={() => handleUpgrade()}
+        onRenameConversation={handleRenameConversation}
+        onDeleteConversation={handleDeleteConversation}
+        onClearAllConversations={handleClearAllConversations}
+      />
+      
+      <div className="flex-1 flex flex-col min-w-0 h-full">
+        <ChatArea
+          conversation={activeConversation}
+          selectedModel={selectedModel}
+          onModelChange={handleModelChange}
+          onUpgradePrompt={handleUpgradePrompt}
+          onSendMessage={handleSendMessage}
+          streamingState={streamingState}
+          onCancelGeneration={handleCancelGeneration}
+          error={error}
+          onClearError={() => setError(null)}
           onRenameConversation={handleRenameConversation}
           onDeleteConversation={handleDeleteConversation}
-          onClearAllConversations={handleClearAllConversations}
+          onExportConversation={() => {}}
         />
       </div>
-      
-      {/* Main Canvas Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full bg-surface-50">
-        {/* Mobile Top Bar */}
-        <div className="mobile-top-bar lg:hidden">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-100/50 rounded-2xl transition-colors"
-          >
-            <Menu className="w-5 h-5 text-[#222427]" />
-          </button>
-          
-          <h1 className="text-lg font-semibold text-[#222427]">
-            {activeConversation?.title || 'chat.space'}
-          </h1>
-          
-          <button className="p-2 hover:bg-gray-100/50 rounded-2xl transition-colors">
-            <Settings className="w-5 h-5 text-[#8A8377]" />
-          </button>
-        </div>
-
-        {/* Chat Canvas */}
-        <div className="flex-1 overflow-hidden">
-          <ChatArea
-            conversation={activeConversation}
-            selectedModel={selectedModel}
-            onModelChange={handleModelChange}
-            onUpgradePrompt={handleUpgradePrompt}
-            onSendMessage={handleSendMessage}
-            streamingState={streamingState}
-            onCancelGeneration={handleCancelGeneration}
-            error={error}
-            onClearError={() => setError(null)}
-            onRenameConversation={handleRenameConversation}
-            onDeleteConversation={handleDeleteConversation}
-            onExportConversation={handleExportConversation}
-          />
-        </div>
-      </div>
-
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div className="lg:hidden">
-          <Sidebar
-            conversations={conversations}
-            activeConversationId={activeConversationId}
-            onNewChat={handleNewChat}
-            onSelectConversation={handleSelectConversation}
-            isOpen={sidebarOpen}
-            onToggle={() => setSidebarOpen(!sidebarOpen)}
-            usageStats={null}
-            onUpgrade={() => handleUpgrade()}
-            onRenameConversation={handleRenameConversation}
-            onDeleteConversation={handleDeleteConversation}
-            onClearAllConversations={handleClearAllConversations}
-          />
-        </div>
-      )}
 
       {/* Usage Limit Exceeded Modal */}
       {limitExceededModal.isOpen && limitExceededModal.error && (

@@ -1,6 +1,6 @@
 // Mobile-first sidebar component with responsive design
 import React from 'react'
-import { Plus, MessageSquare, Menu, User, Settings, CreditCard, ChevronDown, LogOut, Trash2, X } from 'lucide-react'
+import { Plus, MessageSquare, ChevronLeft, Menu, User, Settings, CreditCard, ChevronDown, LogOut, Trash2 } from 'lucide-react'
 import { Conversation } from '../../types/chat'
 import { useAuth } from '../../hooks/useAuth'
 import { ConversationMenu } from './ConversationMenu'
@@ -41,117 +41,187 @@ export function Sidebar({
 
   return (
     <>
-      {/* Desktop Sidebar - Always visible on desktop */}
-      <div className="hidden lg:flex lg:flex-col lg:w-60 lg:bg-white/40 lg:backdrop-blur-md lg:border-r lg:border-gray-200/30">
-        {/* Desktop Header */}
-        <div className="p-6 border-b border-gray-200/30">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="w-8 h-8 rounded-2xl bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <MessageSquare className="w-4 h-4 text-white" />
-            </div>
-            <h1 className="text-lg font-semibold text-[#222427]">chat.space</h1>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
+          onClick={onToggle}
+        />
+      )}
+
+      {/* Mobile toggle button - properly centered and positioned */}
+      {!isOpen && (
+        <button
+          onClick={onToggle}
+          className="fixed top-4 left-4 z-50 lg:hidden bg-white/90 backdrop-blur-sm rounded-xl p-3 shadow-lg border border-gray-200 hover:bg-white hover:shadow-xl transition-all duration-200 flex items-center justify-center"
+        >
+          <Menu className="w-5 h-5 text-gray-600" />
+        </button>
+      )}
+
+      {/* Mobile-first sidebar */}
+      <div className={`
+        fixed lg:relative top-0 left-0 h-full bg-white/95 backdrop-blur-sm border-r border-gray-200 z-40
+        transform transition-transform duration-300 ease-in-out
+        w-72 sm:w-80 lg:w-64
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        shadow-2xl lg:shadow-none
+        flex flex-col
+      `}>
+        {/* Sidebar header with close button and New Chat */}
+        <div className="flex-shrink-0 border-b border-gray-200 lg:border-b-0">
+          {/* Mobile header with close button */}
+          <div className="flex items-center justify-between p-3 sm:p-4 lg:hidden">
+            <h2 className="text-lg font-semibold text-gray-800">Menu</h2>
+            <button
+              onClick={onToggle}
+              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            </button>
           </div>
           
-          <button
-            onClick={onNewChat}
-            className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-2xl transition-all duration-200 flex items-center justify-center group shadow-lg hover:shadow-xl"
-          >
-            <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" />
-            New conversation
-          </button>
+          {/* New Chat Button */}
+          <div className="p-3 sm:p-4">
+            <button
+              onClick={onNewChat}
+              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center group text-sm shadow-lg hover:shadow-xl"
+            >
+              <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" />
+              New chat
+            </button>
+          </div>
         </div>
 
-        {/* Desktop Conversations */}
-        <div className="flex-1 overflow-y-auto p-3 scrollbar-thin">
-          <div className="space-y-1">
+        {/* Mobile-optimized conversations list */}
+        <div className="flex-1 overflow-y-auto px-2 sm:px-3">
+          <div className="space-y-1 sm:space-y-2">
             {conversations.length === 0 ? (
-              <div className="text-center py-8 text-[#8A8377]">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-r from-purple-500/20 to-purple-600/20 flex items-center justify-center mx-auto mb-3 opacity-60">
-                  <MessageSquare className="w-6 h-6 text-purple-600" />
+              <div className="text-center py-6 sm:py-8 text-gray-500">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg mx-auto mb-3 sm:mb-4 opacity-60">
+                  <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
-                <p className="tiny-text">No conversations yet</p>
+                <p className="text-sm">No conversations yet</p>
               </div>
             ) : (
-              conversations.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  className={`group relative rounded-2xl transition-all duration-200 cursor-pointer p-3 ${
-                    activeConversationId === conversation.id
-                      ? 'bg-white/60 shadow-sm border border-purple-200/30'
-                      : 'hover:bg-white/40 border border-transparent'
-                  }`}
-                  onClick={() => onSelectConversation(conversation.id)}
-                >
-                  <div className="flex items-center space-x-3">
-                    <MessageSquare className={`w-4 h-4 flex-shrink-0 ${
-                      activeConversationId === conversation.id 
-                        ? 'text-purple-600' 
-                        : 'text-[#8A8377]'
-                    }`} />
-                    <span className={`text-sm truncate ${
-                      activeConversationId === conversation.id 
-                        ? 'text-[#222427] font-medium' 
-                        : 'text-[#222427]'
-                    }`}>
-                      {conversation.title}
-                    </span>
+              <>
+                {conversations.map((conversation) => (
+                  <div
+                    key={conversation.id}
+                    className={`
+                      group relative rounded-xl transition-all duration-200 cursor-pointer
+                      ${activeConversationId === conversation.id
+                        ? 'bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 shadow-sm'
+                        : 'hover:bg-gray-50 border border-transparent'
+                      }
+                    `}
+                    onClick={() => onSelectConversation(conversation.id)}
+                  >
+                    <div className="flex items-center p-3 pr-10">
+                      <MessageSquare className={`w-4 h-4 mr-3 flex-shrink-0 ${
+                        activeConversationId === conversation.id 
+                          ? 'text-purple-600' 
+                          : 'text-gray-400'
+                      }`} />
+                      <span className={`text-sm truncate ${
+                        activeConversationId === conversation.id 
+                          ? 'text-purple-800 font-medium' 
+                          : 'text-gray-700'
+                      }`}>
+                        {conversation.title}
+                      </span>
+                    </div>
+
+                    {/* Mobile-optimized conversation menu */}
+                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ConversationMenu
+                        conversation={conversation}
+                        onRename={onRenameConversation}
+                        onDelete={onDeleteConversation}
+                        isActive={activeConversationId === conversation.id}
+                      />
+                    </div>
                   </div>
-                  
-                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <ConversationMenu
-                      conversation={conversation}
-                      onRename={onRenameConversation}
-                      onDelete={onDeleteConversation}
-                      isActive={activeConversationId === conversation.id}
-                    />
-                  </div>
-                </div>
-              ))
+                ))}
+              </>
             )}
           </div>
         </div>
 
-        {/* Desktop Usage Stats */}
+        {/* Mobile-optimized usage stats display */}
         {usageStats && (
-          <div className="p-3">
-            <div className="rounded-2xl overflow-hidden">
+          <div className="p-3 sm:p-4 flex-shrink-0">
+            <div className="rounded-xl overflow-hidden">
               <UsageDisplay usageStats={usageStats} />
             </div>
           </div>
         )}
 
-        {/* Desktop Footer */}
-        <div className="p-3 border-t border-gray-200/30">
+        {/* Mobile-optimized footer */}
+        <div className="p-3 sm:p-4 border-t border-gray-200 bg-gradient-to-r from-purple-50 to-white flex-shrink-0">
           <div className="relative">
             <button
               onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-              className="w-full flex items-center space-x-3 p-3 rounded-2xl hover:bg-white/40 transition-colors group"
+              className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/70 transition-colors group"
             >
-              <div className="w-7 h-7 rounded-2xl bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
+              <div className="w-7 h-7 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
                 <User className="w-4 h-4 text-white" />
               </div>
               <div className="flex-1 text-left min-w-0">
-                <div className="text-sm font-medium text-[#222427] truncate">
-                  {usageStats?.tier.tier.replace('_', ' ').toUpperCase() || 'FREE'}
+                <div className="text-sm font-medium text-gray-800 truncate">
+                  {usageStats?.tier.tier.replace('_', ' ').toUpperCase() || 'FREE'} Plan
                 </div>
                 {usageStats && (
-                  <div className="tiny-text truncate">
+                  <div className="text-xs text-gray-500 truncate">
                     {Math.round((usageStats.tokens_used_month / usageStats.tier.monthly_tokens) * 100)}% used
                   </div>
                 )}
               </div>
-              <ChevronDown className={`w-4 h-4 text-[#8A8377] transition-transform flex-shrink-0 ${profileMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ${profileMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
-            {/* Desktop Profile Menu */}
+            {/* Mobile-optimized profile menu */}
             {profileMenuOpen && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 bg-white/95 backdrop-blur-sm border border-gray-200/50 rounded-2xl shadow-xl overflow-hidden">
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                
+                {/* Mobile-optimized usage statistics in profile menu */}
+                {usageStats && (
+                  <div className="px-3 py-3 border-b border-gray-100">
+                    <div className="text-xs text-gray-600 font-medium mb-2 flex items-center">
+                      <span className="mr-1">📊</span>
+                      Usage Statistics
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-600">Tokens:</span>
+                        <span className="font-medium text-gray-800 truncate ml-2">
+                          {usageStats.tokens_used_month.toLocaleString()}/{(usageStats.tier.monthly_tokens / 1000).toFixed(0)}K 
+                          ({Math.round((usageStats.tokens_used_month / usageStats.tier.monthly_tokens) * 100)}%)
+                        </span>
+                      </div>
+                      {usageStats.tier.daily_messages > 0 && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-600">Messages:</span>
+                          <span className="font-medium text-gray-800">
+                            {usageStats.messages_sent_today}/{usageStats.tier.daily_messages} today
+                          </span>
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-500 mt-1 truncate">
+                        📅 Resets monthly • Today: {usageStats.tokens_used_today.toLocaleString()} tokens
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <button
-                  onClick={() => setProfileMenuOpen(false)}
-                  className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50/50 transition-colors"
+                  onClick={() => {
+                    setProfileMenuOpen(false)
+                  }}
+                  className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50 transition-colors"
                 >
-                  <Settings className="w-4 h-4 text-[#8A8377] flex-shrink-0" />
-                  <span className="text-sm text-[#222427]">Settings</span>
+                  <Settings className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                  <span className="text-sm text-gray-700">Settings</span>
                 </button>
                 
                 <button
@@ -159,7 +229,7 @@ export function Sidebar({
                     onUpgrade()
                     setProfileMenuOpen(false)
                   }}
-                  className="w-full flex items-center space-x-3 p-3 hover:bg-purple-50/50 transition-colors"
+                  className="w-full flex items-center space-x-3 p-3 hover:bg-purple-50 transition-colors"
                 >
                   <CreditCard className="w-4 h-4 text-purple-600 flex-shrink-0" />
                   <span className="text-sm text-purple-600 font-medium">Upgrade plan</span>
@@ -171,23 +241,23 @@ export function Sidebar({
                       setShowClearConfirm(true)
                       setProfileMenuOpen(false)
                     }}
-                    className="w-full flex items-center space-x-3 p-3 hover:bg-red-50/50 transition-colors"
+                    className="w-full flex items-center space-x-3 p-3 hover:bg-red-50 transition-colors"
                   >
                     <Trash2 className="w-4 h-4 text-red-500 flex-shrink-0" />
                     <span className="text-sm text-red-600">Clear conversations</span>
                   </button>
                 )}
                 
-                <div className="border-t border-gray-200/50">
+                <div className="border-t border-gray-100">
                   <button
                     onClick={() => {
                       signOut()
                       setProfileMenuOpen(false)
                     }}
-                    className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50/50 transition-colors"
+                    className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50 transition-colors"
                   >
-                    <LogOut className="w-4 h-4 text-[#8A8377] flex-shrink-0" />
-                    <span className="text-sm text-[#222427]">Log out</span>
+                    <LogOut className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                    <span className="text-sm text-gray-700">Log out</span>
                   </button>
                 </div>
               </div>
@@ -196,193 +266,16 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Mobile Sidebar - Slide-in drawer */}
-      {isOpen && (
-        <>
-          {/* Mobile backdrop */}
-          <div 
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
-            onClick={onToggle}
-          />
-          
-          {/* Mobile drawer */}
-          <div className="fixed top-0 left-0 h-full w-80 bg-white/95 backdrop-blur-md z-50 lg:hidden shadow-2xl flex flex-col">
-            {/* Mobile header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200/50">
-              <div className="flex items-center space-x-3">
-                <div className="w-7 h-7 rounded-2xl bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
-                  <MessageSquare className="w-4 h-4 text-white" />
-                </div>
-                <h2 className="text-lg font-semibold text-[#222427]">chat.space</h2>
-              </div>
-              <button
-                onClick={onToggle}
-                className="p-2 hover:bg-gray-100/50 rounded-2xl transition-colors"
-              >
-                <X className="w-5 h-5 text-[#8A8377]" />
-              </button>
-            </div>
-            
-            {/* Mobile New Chat */}
-            <div className="p-4">
-              <button
-                onClick={onNewChat}
-                className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-2xl transition-all duration-200 flex items-center justify-center group shadow-lg hover:shadow-xl"
-              >
-                <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" />
-                New conversation
-              </button>
-            </div>
-
-            {/* Mobile conversations */}
-            <div className="flex-1 overflow-y-auto px-3 scrollbar-thin">
-              <div className="space-y-1">
-                {conversations.length === 0 ? (
-                  <div className="text-center py-8 text-[#8A8377]">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-r from-purple-500/20 to-purple-600/20 flex items-center justify-center mx-auto mb-3 opacity-60">
-                      <MessageSquare className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <p className="tiny-text">No conversations yet</p>
-                  </div>
-                ) : (
-                  conversations.map((conversation) => (
-                    <div
-                      key={conversation.id}
-                      className={`group relative rounded-2xl transition-all duration-200 cursor-pointer p-3 ${
-                        activeConversationId === conversation.id
-                          ? 'bg-white/60 shadow-sm border border-purple-200/30'
-                          : 'hover:bg-white/40 border border-transparent'
-                      }`}
-                      onClick={() => onSelectConversation(conversation.id)}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <MessageSquare className={`w-4 h-4 flex-shrink-0 ${
-                          activeConversationId === conversation.id 
-                            ? 'text-purple-600' 
-                            : 'text-[#8A8377]'
-                        }`} />
-                        <span className={`text-sm truncate ${
-                          activeConversationId === conversation.id 
-                            ? 'text-[#222427] font-medium' 
-                            : 'text-[#222427]'
-                        }`}>
-                          {conversation.title}
-                        </span>
-                      </div>
-
-                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <ConversationMenu
-                          conversation={conversation}
-                          onRename={onRenameConversation}
-                          onDelete={onDeleteConversation}
-                          isActive={activeConversationId === conversation.id}
-                        />
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Mobile usage stats */}
-            {usageStats && (
-              <div className="p-3">
-                <div className="rounded-2xl overflow-hidden">
-                  <UsageDisplay usageStats={usageStats} />
-                </div>
-              </div>
-            )}
-
-            {/* Mobile footer */}
-            <div className="p-3 border-t border-gray-200/50">
-              <div className="relative">
-                <button
-                  onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                  className="w-full flex items-center space-x-3 p-3 rounded-2xl hover:bg-white/40 transition-colors group"
-                >
-                  <div className="w-7 h-7 rounded-2xl bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
-                    <User className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="flex-1 text-left min-w-0">
-                    <div className="text-sm font-medium text-[#222427] truncate">
-                      {usageStats?.tier.tier.replace('_', ' ').toUpperCase() || 'FREE'} Plan
-                    </div>
-                    {usageStats && (
-                      <div className="tiny-text truncate">
-                        {Math.round((usageStats.tokens_used_month / usageStats.tier.monthly_tokens) * 100)}% used
-                      </div>
-                    )}
-                  </div>
-                  <ChevronDown className={`w-4 h-4 text-[#8A8377] transition-transform flex-shrink-0 ${profileMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {/* Mobile profile menu - similar to desktop */}
-                {profileMenuOpen && (
-                  <div className="absolute bottom-full left-0 right-0 mb-2 bg-white/95 backdrop-blur-sm border border-gray-200/50 rounded-2xl shadow-xl overflow-hidden">
-                    <button
-                      onClick={() => {
-                        setProfileMenuOpen(false)
-                      }}
-                      className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50/50 transition-colors"
-                    >
-                      <Settings className="w-4 h-4 text-[#8A8377] flex-shrink-0" />
-                      <span className="text-sm text-[#222427]">Settings</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        onUpgrade()
-                        setProfileMenuOpen(false)
-                      }}
-                      className="w-full flex items-center space-x-3 p-3 hover:bg-purple-50/50 transition-colors"
-                    >
-                      <CreditCard className="w-4 h-4 text-purple-600 flex-shrink-0" />
-                      <span className="text-sm text-purple-600 font-medium">Upgrade plan</span>
-                    </button>
-                    
-                    {conversations.length > 1 && (
-                      <button
-                        onClick={() => {
-                          setShowClearConfirm(true)
-                          setProfileMenuOpen(false)
-                        }}
-                        className="w-full flex items-center space-x-3 p-3 hover:bg-red-50/50 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500 flex-shrink-0" />
-                        <span className="text-sm text-red-600">Clear conversations</span>
-                      </button>
-                    )}
-                    
-                    <div className="border-t border-gray-200/50">
-                      <button
-                        onClick={() => {
-                          signOut()
-                          setProfileMenuOpen(false)
-                        }}
-                        className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50/50 transition-colors"
-                      >
-                        <LogOut className="w-4 h-4 text-[#8A8377] flex-shrink-0" />
-                        <span className="text-sm text-[#222427]">Log out</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Clear conversations modal */}
+      {/* Mobile-optimized clear conversations modal */}
       {showClearConfirm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4">
             <div className="mb-6">
               <div>
-                <h3 className="text-lg font-semibold text-[#222427] mb-1">Clear conversations</h3>
-                <p className="text-sm text-[#8A8377]">This will delete all your conversations</p>
+                <h3 className="text-lg font-semibold text-gray-800 mb-1">Clear conversations</h3>
+                <p className="text-sm text-gray-600">This will delete all your conversations</p>
               </div>
-              <div className="bg-red-50/50 border border-red-200/50 rounded-2xl p-3 mb-6 mt-3">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-6 mt-3">
                 <p className="text-sm text-red-800 font-medium">
                   This action cannot be undone.
                 </p>
@@ -390,7 +283,7 @@ export function Sidebar({
               <div className="flex space-x-3">
                 <button
                   onClick={() => setShowClearConfirm(false)}
-                  className="flex-1 px-4 py-3 border border-gray-200/50 text-[#222427] rounded-2xl hover:bg-gray-50/50 transition-colors font-medium text-sm"
+                  className="flex-1 px-4 py-3 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium text-sm"
                 >
                   Cancel
                 </button>
@@ -399,7 +292,7 @@ export function Sidebar({
                     onClearAllConversations()
                     setShowClearConfirm(false)
                   }}
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-2xl transition-colors font-medium px-4 py-3 text-sm shadow-lg hover:shadow-xl"
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors font-medium px-4 py-3 text-sm"
                 >
                   Clear conversations
                 </button>

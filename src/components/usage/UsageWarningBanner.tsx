@@ -173,21 +173,21 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
   }
 
   return (
-    <div className={`border-l-4 p-4 rounded-r-2xl ${config.bgColor} backdrop-blur-sm shadow-lg relative z-40`}>
+    <div className={`border-l-4 p-4 rounded-r-xl ${config.bgColor} shadow-lg backdrop-blur-sm relative z-40`}>
       <div className="flex items-start justify-between">
         <div className="flex items-start space-x-3 flex-1">
           <config.icon className={`w-5 h-5 mt-0.5 ${config.iconColor}`} />
           <div className="flex-1">
-            <h3 className={`h2 ${config.textColor} mb-2`}>
+            <h3 className={`font-semibold ${config.textColor} mb-1`}>
               {config.title}
             </h3>
-            <p className={`body-text ${config.textColor} mb-4`}>
+            <p className={`text-sm ${config.textColor} mb-3`}>
               {config.message}
             </p>
 
             {/* Usage Progress */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between tiny-text mb-2">
+            <div className="mb-3">
+              <div className="flex items-center justify-between text-xs mb-1">
                 <span className={config.textColor}>Current Usage</span>
                 <span className={`font-medium ${config.textColor}`}>
                   {usageStats.tier.daily_messages > 0 && config.icon === MessageSquare
@@ -196,9 +196,9 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
                   }
                 </span>
               </div>
-              <div className="w-full bg-white/60 rounded-full h-3">
+              <div className="w-full bg-white/50 rounded-full h-2">
                 <div
-                  className={`h-3 rounded-full ${
+                  className={`h-2 rounded-full ${
                     config.level === 'critical' ? 'bg-red-500' :
                     config.level === 'warning' ? 'bg-amber-500' : 'bg-blue-500'
                   }`}
@@ -214,14 +214,14 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
 
             {/* Upgrade Benefits */}
             {config.showUpgrade && (
-              <div className="mb-4">
-                <p className={`body-text ${config.textColor} mb-3 font-medium`}>
+              <div className="mb-3">
+                <p className={`text-xs ${config.textColor} mb-2 font-medium`}>
                   Upgrade benefits:
                 </p>
-                <ul className="space-y-2">
+                <ul className="space-y-1">
                   {getNextTierBenefits(usageStats.tier.tier).map((benefit, index) => (
-                    <li key={index} className={`tiny-text ${config.textColor} flex items-center`}>
-                      <span className="w-1.5 h-1.5 bg-current rounded-full mr-3" />
+                    <li key={index} className={`text-xs ${config.textColor} flex items-center`}>
+                      <span className="w-1 h-1 bg-current rounded-full mr-2" />
                       {benefit}
                     </li>
                   ))}
@@ -230,7 +230,7 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
             )}
 
             {/* Reset Timer */}
-            <div className={`tiny-text ${config.textColor} flex items-center mb-4`}>
+            <div className={`text-xs ${config.textColor} flex items-center mb-3`}>
               <Clock className="w-3 h-3 mr-1" />
               <span>
                 {config.icon === MessageSquare
@@ -244,7 +244,7 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
             {config.showUpgrade && (
               <button
                 onClick={onUpgrade}
-                className="inline-flex items-center bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white body-text font-medium px-6 py-3 rounded-2xl transition-all duration-200 group shadow-lg hover:shadow-xl"
+                className="inline-flex items-center bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all duration-200 group shadow-lg hover:shadow-xl"
               >
                 <Crown className="w-4 h-4 mr-2" />
                 {config.action}
@@ -257,7 +257,7 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
         {config.dismissible && (
           <button
             onClick={handleDismiss}
-            className={`${config.iconColor} hover:opacity-70 transition-opacity p-2 rounded-2xl ml-3`}
+            className={`${config.iconColor} hover:opacity-70 transition-opacity p-1 rounded-xl ml-2`}
           >
             <X className="w-4 h-4" />
           </button>

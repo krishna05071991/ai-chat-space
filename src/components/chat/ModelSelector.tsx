@@ -183,7 +183,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
       <div className="relative">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center space-x-2 glass border rounded-2xl px-3 py-2 hover:bg-white/80 transition-all duration-200 body-text font-medium min-w-0 max-w-[140px] lg:max-w-none lg:min-w-[160px] ${
+          className={`flex items-center space-x-1 sm:space-x-2 bg-white/80 backdrop-blur-sm border rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 hover:bg-white transition-all duration-200 text-xs sm:text-sm font-medium min-w-0 max-w-[120px] sm:max-w-[140px] md:max-w-none md:min-w-[140px] ${
             !isModelAllowed(selectedModel) 
               ? 'border-amber-300 hover:border-amber-400 text-amber-700 bg-amber-50/50' 
               : 'border-gray-200 hover:border-gray-300 text-gray-700'
@@ -191,7 +191,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
         >
           <span className="truncate">{selectedModel.displayName}</span>
           {!isModelAllowed(selectedModel) && <Lock className="w-3 h-3 text-amber-600 animate-pulse flex-shrink-0" />}
-          <ChevronDown className={`w-4 h-4 text-[#8A8377] transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {isOpen && (
@@ -200,42 +200,42 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
               className="fixed inset-0 z-[99998]" 
               onClick={() => setIsOpen(false)}
             />
-            <div className="absolute top-full mt-2 left-0 right-0 mx-2 lg:left-0 lg:right-auto lg:mx-0 glass border border-gray-200/50 rounded-2xl shadow-2xl z-[99999] overflow-hidden min-w-[280px] lg:min-w-[320px] max-w-[calc(100vw-1rem)] lg:max-w-none max-h-[60vh] lg:max-h-[500px] overflow-y-auto">
+            <div className="absolute top-full mt-2 left-0 right-0 mx-2 sm:left-0 sm:right-auto sm:mx-0 bg-white border border-gray-200 rounded-xl shadow-2xl z-[99999] overflow-hidden min-w-[280px] sm:min-w-[320px] max-w-[calc(100vw-1rem)] sm:max-w-none max-h-[60vh] sm:max-h-[500px] overflow-y-auto">
               
-              {/* OpenAI models section */}
+              {/* Mobile-optimized OpenAI models section */}
               <div className="border-b border-gray-200">
-                <div className="px-4 py-3 bg-blue-50/30 border-b border-gray-200/50">
-                  <span className="body-text font-semibold text-blue-800">OpenAI Models</span>
+                <div className="px-3 py-2 bg-blue-50 border-b border-gray-200">
+                  <span className="text-xs font-semibold text-blue-800">OpenAI Models</span>
                 </div>
                 {getModelsByCategory('openai').map(({ category, categoryInfo, models }) =>
                   renderCategoryGroup(category, categoryInfo, models, 'openai')
                 )}
               </div>
 
-              {/* Anthropic models section */}
+              {/* Mobile-optimized Anthropic models section */}
               <div>
-                <div className="px-4 py-3 bg-orange-50/30 border-b border-gray-200/50">
-                  <span className="body-text font-semibold text-orange-800">Anthropic Claude</span>
+                <div className="px-3 py-2 bg-orange-50 border-b border-gray-200">
+                  <span className="text-xs font-semibold text-orange-800">Anthropic Claude</span>
                 </div>
                 {getModelsByCategory('anthropic').map(({ category, categoryInfo, models }) =>
                   renderCategoryGroup(category, categoryInfo, models, 'anthropic')
                 )}
               </div>
 
-              {/* Upgrade prompt */}
+              {/* Mobile-optimized upgrade prompt */}
               {currentTier === 'free' && (
-                <div className="border-t border-gray-200/50 p-4 bg-gradient-to-r from-purple-50/30 to-purple-100/30">
+                <div className="border-t border-gray-200 p-3 bg-gradient-to-r from-purple-50 to-purple-100">
                   <div className="text-center">
-                    <Crown className="w-6 h-6 text-purple-600 mx-auto mb-3" />
-                    <p className="body-text font-medium text-purple-800 mb-2">
+                    <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-purple-800 mb-1">
                       Unlock Premium Models
                     </p>
-                    <p className="tiny-text text-purple-600 mb-4 hidden lg:block">
+                    <p className="text-xs text-purple-600 mb-3 hidden sm:block">
                       Upgrade to access GPT-4o, Claude 3.5 Sonnet, and more
                     </p>
                     <button
                       onClick={() => onUpgradePrompt?.('basic')}
-                      className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white body-text font-medium py-3 px-4 rounded-2xl hover:from-purple-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
+                      className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs font-medium py-2 px-3 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all"
                     >
                       View Plans
                     </button>

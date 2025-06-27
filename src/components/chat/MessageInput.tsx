@@ -235,8 +235,6 @@ export function MessageInput({
               disabled={!canSend && !isStreaming}
               className={`
                 w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl
-              className={`
-                w-8 h-8 sm:w-10 sm:h-10 rounded-2xl sm:rounded-3xl flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl
                 ${isStreaming 
                   ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white' 
                   : canSend

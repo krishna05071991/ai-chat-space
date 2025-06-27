@@ -466,28 +466,101 @@ export function ChatLayout() {
     databaseService.saveConversationMetadata(conversations.find(c => c.id === id)!)
   }
   
+  /**
+   * Archive conversation (soft delete)
+   */
   const handleDeleteConversation = async (id: string) => {
-    setConversations(prev => prev.filter(c => c.id !== id))
-    if (id === activeConversationId) {
-      const remaining = conversations.filter(c => c.id !== id)
-      if (remaining.length > 0) {
-        setActiveConversationId(remaining[0].id)
-      } else {
-        setActiveConversationId(null)
-      }
-    }
-    
     try {
+      console.log('📁 Archiving conversation:', id)
+      
+      // Archive in database first
       await databaseService.deleteConversation(id)
+      
+      // Remove from local state after successful archiving
+      setConversations(prev => prev.filter(c => c.id !== id))
+      
+      // Handle active conversation
+      if (id === activeConversationId) {
+        const remaining = conversations.filter(c => c.id !== id)
+        if (remaining.length > 0) {
+          setActiveConversationId(remaining[0].id)
+        } else {
+          setActiveConversationId(null)
+        }
+      }
+      
+      console.log('✅ Conversation archived successfully')
+      
     } catch (error) {
-      console.error('Failed to delete conversation from database:', error)
+      console.error('❌ Failed to archive conversation:', error)
+      setError(`Failed to delete conversation: ${error.message}`)
     }
   }
   
   /**
-   * SIMPLIFIED: Clear all conversations - database first, then state
+   * Archive all conversations (soft delete)
    */
   const handleClearAllConversations = async () => {
+    try {
+      console.log('📁 Archiving all conversations...')
+      
+      // Archive in database first
+      await databaseService.deleteAllConversations()
+      
+      // Clear local state after successful archiving
+      setConversations([])
+      setActiveConversationId(null)
+      setError(null)
+      setStreamingState({
+        isStreaming: false,
+        currentMessage: '',
+        messageId: null
+      })
+      
+      console.log('✅ All conversations archived successfully')
+      
+    } catch (error) {
+      console.error('❌ Failed to archive conversations:', error)
+      setError(`Failed to clear conversations: ${error.message}`)
+    }
+  }
+  
+  const handleExportConversation = (id: string) => {
+    try {
+      const conversation = conversations.find(c => c.id === id)
+      if (!conversation) {
+        setError('Conversation not found')
+        return
+      }
+      
+      const exportData = {
+        title: conversation.title,
+        messages: conversation.messages,
+        created_at: conversation.created_at,
+        updated_at: conversation.updated_at,
+        total_tokens: conversation.total_tokens
+      }
+      
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json'
+      })
+      
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `conversation-${conversation.title.substring(0, 30)}-${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+    } catch (error) {
+      console.error('❌ Failed to export conversation:', error)
+      setError('Failed to export conversation')
+    }
+  }
+
+  const handleClearAllConversationsOld = async () => {
     try {
       console.log('🗑️ Clearing all conversations...')
       
@@ -511,6 +584,26 @@ export function ChatLayout() {
       setError(`Failed to clear conversations: ${error.message}`)
     }
   }
+
+  // LEGACY IMPLEMENTATION - REMOVE AFTER TESTING
+  const handleDeleteConversationOld = async (id: string) => {
+    setConversations(prev => prev.filter(c => c.id !== id))
+    if (id === activeConversationId) {
+      const remaining = conversations.filter(c => c.id !== id)
+      if (remaining.length > 0) {
+        setActiveConversationId(remaining[0].id)
+      } else {
+        setActiveConversationId(null)
+      }
+    }
+    
+    try {
+      await databaseService.deleteConversation(id)
+    } catch (error) {
+      console.error('Failed to delete conversation from database:', error)
+    }
+  }
+  
 
   if (isLoadingConversations) {
     return (

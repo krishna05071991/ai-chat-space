@@ -112,6 +112,7 @@ class DatabaseService {
 
   /**
    * Load all conversations for the current user from database with proper user filtering
+   * Only loads non-archived conversations
    */
   async loadConversations(): Promise<Conversation[]> {
     const result = await this.withAuth(async () => {
@@ -127,6 +128,7 @@ class DatabaseService {
         .from('conversations')
         .select('*')
         .eq('user_id', user.id)
+        .or('is_archived.is.null,is_archived.eq.false') // Only non-archived conversations
         .order('updated_at', { ascending: false })
 
       if (convError) {
@@ -259,57 +261,53 @@ class DatabaseService {
   }
 
   /**
-   * Delete conversation from database
+   * Archive conversation instead of deleting it
    */
   async deleteConversation(conversationId: string): Promise<void> {
     await this.withAuth(async () => {
+      console.log('📁 Archiving conversation:', conversationId)
+      
       const { error } = await supabase
         .from('conversations')
-        .delete()
+        .update({ is_archived: true })
         .eq('id', conversationId)
 
       if (error) {
-        throw new Error(`Failed to delete conversation: ${error.message}`)
+        throw new Error(`Failed to archive conversation: ${error.message}`)
       }
+      
+      console.log('✅ Conversation archived successfully')
 
     }, 'deleteConversation')
   }
 
   /**
-   * SIMPLIFIED: Delete all conversations - direct database operation
+   * Archive all conversations for the current user instead of deleting them
    */
   async deleteAllConversations(): Promise<void> {
-    try {
-      // Check authentication first
-      const isAuth = await this.isAuthenticated()
-      if (!isAuth) {
-        throw new Error('Authentication required to delete conversations')
-      }
-      
+    await this.withAuth(async () => {
       const user = await this.getCurrentUser()
       if (!user) {
-        throw new Error('No user session found')
+        throw new Error('No authenticated user found')
       }
       
-      console.log('🗑️ Starting delete all conversations for user:', user.id)
+      console.log('📁 Archiving all conversations for user:', user.id.substring(0, 8))
       
-      // DIRECT DELETE - no counting, just delete
-      const { error: deleteError } = await supabase
+      // Archive all non-archived conversations for this user
+      const { error: archiveError, count } = await supabase
         .from('conversations')
-        .delete()
+        .update({ is_archived: true })
         .eq('user_id', user.id)
+        .or('is_archived.is.null,is_archived.eq.false') // Only update non-archived ones
       
-      if (deleteError) {
-        console.error('❌ Delete error:', deleteError)
-        throw new Error(`Failed to delete conversations: ${deleteError.message}`)
+      if (archiveError) {
+        console.error('❌ Archive error:', archiveError)
+        throw new Error(`Failed to archive conversations: ${archiveError.message}`)
       }
       
-      console.log('✅ All conversations deleted from database')
+      console.log('✅ All conversations archived:', count || 'unknown count')
       
-    } catch (error) {
-      console.error('❌ Delete all conversations error:', error)
-      throw error
-    }
+    }, 'deleteAllConversations')
   }
 
   /**

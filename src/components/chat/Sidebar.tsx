@@ -86,7 +86,7 @@ export function Sidebar({
           </div>
           
           {/* New Chat Button - Aligned with chat.space icon */}
-          <div className="p-4 lg:px-6">
+          <div className="p-4 lg:px-6 lg:py-6">
             <button
               onClick={onNewChat}
               className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 flex items-center text-sm shadow-lg hover:shadow-xl"

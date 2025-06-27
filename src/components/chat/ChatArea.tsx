@@ -126,25 +126,13 @@ export function ChatArea({
           
           {/* Desktop header */}
           <div className="hidden lg:flex items-center justify-between w-full max-w-6xl">
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
-                  <MessageSquare className="w-4 h-4 text-white" />
-                </div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent">
-                  chat.space
-                </h1>
-              </div>
-              <div className="w-px h-6 bg-gray-300"></div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600 font-medium">Using:</span>
-                <ModelSelector 
-                  selectedModel={selectedModel}
-                  onModelChange={onModelChange}
-                  onUpgradePrompt={onUpgradePrompt}
-                  compact={true}
-                />
-              </div>
+            <div className="flex items-center">
+              <ModelSelector 
+                selectedModel={selectedModel}
+                onModelChange={onModelChange}
+                onUpgradePrompt={onUpgradePrompt}
+                compact={true}
+              />
             </div>
             
             <div className="flex items-center space-x-4 text-xs text-gray-500 font-medium">
@@ -224,6 +212,14 @@ export function ChatArea({
         )}
       </div>
 
+      {/* Footer - Desktop only */}
+      <div className="hidden lg:block fixed bottom-4 left-1/2 transform -translate-x-1/2 z-10">
+        <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-full px-4 py-2 shadow-sm">
+          <p className="text-xs text-gray-500 font-medium">
+            chat by <span className="text-purple-600">thelaunch.space</span>
+          </p>
+        </div>
+      </div>
       {/* Messages area with proper bottom spacing for sticky input */}
       <div className="flex-1 flex flex-col min-h-0 relative z-10 overflow-hidden">
         {!hasMessages && !hasStreamingMessage ? renderEmptyState() : (

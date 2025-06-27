@@ -177,24 +177,25 @@ export function ChatArea({
               </h1>
               <div className="flex items-center space-x-2">
                 <span className="tiny-text">Using:</span>
-              <ModelSelector 
-                selectedModel={selectedModel}
-                onModelChange={onModelChange}
-                onUpgradePrompt={onUpgradePrompt}
-                compact={true}
-              />
+                <ModelSelector 
+                  selectedModel={selectedModel}
+                  onModelChange={onModelChange}
+                  onUpgradePrompt={onUpgradePrompt}
+                  compact={true}
+                />
+              </div>
             </div>
             
             <div className="flex items-center space-x-4 tiny-text">
-            {conversation && (
-              <span>{conversation.messages?.length || 0} message{(conversation.messages?.length || 0) !== 1 ? 's' : ''}</span>
-            )}
-            {usageStats && (
+              {conversation && (
+                <span>{conversation.messages?.length || 0} message{(conversation.messages?.length || 0) !== 1 ? 's' : ''}</span>
+              )}
+              {usageStats && (
                 <span className="capitalize">{usageStats.tier.tier.replace('_', ' ')} Plan</span>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
       </div>
       
       {/* Notifications */}
@@ -202,55 +203,55 @@ export function ChatArea({
         {/* Error Banner */}
         {error && (
           <div className="px-canvas pt-2">
-              <ErrorBanner
-                message={error}
-                onDismiss={onClearError || (() => {})}
-              />
-            </div>
+            <ErrorBanner
+              message={error}
+              onDismiss={onClearError || (() => {})}
+            />
+          </div>
         )}
 
         {/* Usage Warning Banner */}
         {usageStats && (
           <div className="px-canvas pt-2">
-              <UsageWarningBanner
-                usageStats={usageStats}
-                onUpgrade={() => onUpgradePrompt?.('basic')}
-              />
-            </div>
+            <UsageWarningBanner
+              usageStats={usageStats}
+              onUpgrade={() => onUpgradePrompt?.('basic')}
+            />
+          </div>
         )}
 
         {/* Model Restriction Banner */}
         {selectedModel && usageStats && !usageStats.tier.allowed_models.includes(selectedModel.id) && (
           <div className="px-canvas pt-2">
-              <div className="bg-gradient-to-r from-amber-50/50 to-orange-50/50 border-l-4 border-amber-400 p-4 rounded-r-2xl backdrop-blur-sm">
-                <div className="flex items-start space-x-4">
-                  <div className="w-8 h-8 rounded-2xl bg-amber-100/50 flex items-center justify-center flex-shrink-0">
-                    <Crown className="w-4 h-4 text-amber-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="h2 text-amber-800 mb-2">
-                      Premium Model Access Required
-                    </h3>
-                    <p className="body-text text-amber-700 mb-4">
-                      <strong>{selectedModel.displayName}</strong> requires a higher plan. 
-                      {selectedModel.tier === 'premium' ? ' Upgrade to Super Pro' : 
-                       selectedModel.tier === 'flagship' ? ' Upgrade to Pro' : 
-                       ' Upgrade to Basic'} to access this model.
-                    </p>
-                    <button
-                      onClick={() => onUpgradePrompt?.(
-                        selectedModel.tier === 'premium' ? 'super_pro' : 
-                        selectedModel.tier === 'flagship' ? 'pro' : 'basic'
-                      )}
-                      className="inline-flex items-center bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white body-text font-medium px-4 py-2 rounded-2xl transition-all duration-200 group shadow-lg hover:shadow-xl"
-                    >
-                      <Crown className="w-4 h-4 mr-2" />
-                      View Upgrade Options
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    </button>
-                  </div>
+            <div className="bg-gradient-to-r from-amber-50/50 to-orange-50/50 border-l-4 border-amber-400 p-4 rounded-r-2xl backdrop-blur-sm">
+              <div className="flex items-start space-x-4">
+                <div className="w-8 h-8 rounded-2xl bg-amber-100/50 flex items-center justify-center flex-shrink-0">
+                  <Crown className="w-4 h-4 text-amber-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="h2 text-amber-800 mb-2">
+                    Premium Model Access Required
+                  </h3>
+                  <p className="body-text text-amber-700 mb-4">
+                    <strong>{selectedModel.displayName}</strong> requires a higher plan. 
+                    {selectedModel.tier === 'premium' ? ' Upgrade to Super Pro' : 
+                     selectedModel.tier === 'flagship' ? ' Upgrade to Pro' : 
+                     ' Upgrade to Basic'} to access this model.
+                  </p>
+                  <button
+                    onClick={() => onUpgradePrompt?.(
+                      selectedModel.tier === 'premium' ? 'super_pro' : 
+                      selectedModel.tier === 'flagship' ? 'pro' : 'basic'
+                    )}
+                    className="inline-flex items-center bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white body-text font-medium px-4 py-2 rounded-2xl transition-all duration-200 group shadow-lg hover:shadow-xl"
+                  >
+                    <Crown className="w-4 h-4 mr-2" />
+                    View Upgrade Options
+                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </button>
                 </div>
               </div>
+            </div>
           </div>
         )}
       </div>

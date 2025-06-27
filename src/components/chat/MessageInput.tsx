@@ -172,7 +172,7 @@ export function MessageInput({
     <div className="py-3 sm:py-4">
       {/* Mobile-optimized usage warning banner */}
       {((warning && warning.type === 'warning' && !warningShown) || !modelAllowed) && (
-        <div className="mb-2 sm:mb-3 p-3 rounded-xl bg-amber-50 border border-amber-200 shadow-lg relative z-30">
+        <div className="mb-2 sm:mb-3 p-3 rounded-xl bg-amber-50 border border-amber-200 shadow-sm relative z-30">
           <div className="flex items-start space-x-2">
             <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
@@ -183,7 +183,7 @@ export function MessageInput({
                 }
               </p>
               {!modelAllowed && (
-                <button className="text-xs text-amber-700 hover:text-amber-800 font-medium mt-1 flex items-center">
+                <button className="text-xs text-amber-700 hover:text-amber-800 font-medium mt-1 flex items-center rounded-xl px-2 py-1 hover:bg-amber-100 transition-colors">
                   <Crown className="w-3 h-3 mr-1" />
                   <span>View upgrade options</span>
                 </button>
@@ -195,14 +195,14 @@ export function MessageInput({
 
       {/* Mobile-optimized critical usage warning */}
       {warning && !warning.canSend && (
-        <div className="mb-2 sm:mb-3 p-3 rounded-xl bg-red-50 border border-red-200 shadow-lg relative z-30">
+        <div className="mb-2 sm:mb-3 p-3 rounded-xl bg-red-50 border border-red-200 shadow-sm relative z-30">
           <div className="flex items-start space-x-2">
             <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm text-red-800 font-medium mb-2">
                 {warning.message}
               </p>
-              <button className="inline-flex items-center text-xs bg-gradient-to-r from-purple-500 to-purple-600 text-white px-3 py-1.5 rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all font-medium">
+              <button className="inline-flex items-center text-xs bg-gradient-to-r from-purple-500 to-purple-600 text-white px-3 py-1.5 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all font-medium shadow-sm hover:shadow-md">
                 <Crown className="w-3 h-3 mr-1" />
                 <span>Upgrade Now</span>
               </button>

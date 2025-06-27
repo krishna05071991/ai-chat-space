@@ -12,6 +12,26 @@ function App() {
   const { profile, loading: profileLoading, refetchProfile } = useUserProfile()
   const { conversations } = useDatabaseSync()
 
+  // CRITICAL: Additional session validation check for extra safety
+  // This async check happens after the basic user object validation
+  React.useEffect(() => {
+    const validateSession = async () => {
+      if (user && isSessionValid) {
+        try {
+          const sessionValid = await isSessionValid()
+          if (!sessionValid) {
+            console.log('🚫 Session validation failed, user will be redirected to auth')
+            // The useAuth hook will handle clearing the invalid session
+          }
+        } catch (error) {
+          console.error('Session validation error:', error)
+        }
+      }
+    }
+    
+    validateSession()
+  }, [user, isSessionValid])
+
   // CRITICAL: Always show loading if auth is not fully resolved OR if checking session
   if (loading) {
     return (
@@ -44,26 +64,6 @@ function App() {
     })
     return <AuthLayout />
   }
-
-  // CRITICAL: Additional session validation check for extra safety
-  // This async check happens after the basic user object validation
-  React.useEffect(() => {
-    const validateSession = async () => {
-      if (user && isSessionValid) {
-        try {
-          const sessionValid = await isSessionValid()
-          if (!sessionValid) {
-            console.log('🚫 Session validation failed, user will be redirected to auth')
-            // The useAuth hook will handle clearing the invalid session
-          }
-        } catch (error) {
-          console.error('Session validation error:', error)
-        }
-      }
-    }
-    
-    validateSession()
-  }, [user, isSessionValid])
 
   // CRITICAL: Wait for profile data to load before proceeding (only for authenticated users)
   if (profileLoading) {

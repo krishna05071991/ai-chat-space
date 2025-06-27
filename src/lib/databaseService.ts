@@ -61,11 +61,12 @@ class DatabaseService {
 
       const { error } = await supabase
         .from('users')
-        .update({
+        .upsert({
+          id: user.id,
+          email: user.email || '',
           ...profileData,
           updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id)
+        }, { onConflict: 'id' })
 
       if (error) {
         throw new Error(`Failed to update profile: ${error.message}`)
@@ -98,7 +99,7 @@ class DatabaseService {
         .from('users')
         .select('id, email, full_name, location, profession, avatar_url, onboarding_completed, created_at, updated_at')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       if (error) {
         throw new Error(`Failed to get user profile: ${error.message}`)

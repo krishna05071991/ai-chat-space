@@ -137,9 +137,9 @@ class DatabaseService {
       console.log('📋 Found conversations:', {
         total: conversations?.length || 0,
         conversations: conversations?.map(c => ({
-          id: c.id.substring(0, 8),
-          title: c.title.substring(0, 30),
-          is_archived: c.is_archived
+          id: c?.id?.substring(0, 8) || 'N/A',
+          title: c?.title?.substring(0, 30) || 'N/A',
+          is_archived: c?.is_archived || false
         }))
       })
 
@@ -166,6 +166,7 @@ class DatabaseService {
 
       // Combine conversations with their messages
       const result: Conversation[] = (conversations || []).map(conv => ({
+        id: conv.id,
         title: conv.title,
         messages: allMessages
           .filter(msg => msg.conversation_id === conv.id)
@@ -190,9 +191,9 @@ class DatabaseService {
         conversationsWithMessages: result.filter(c => c.messages.length > 0).length,
         totalMessages: result.reduce((sum, c) => sum + c.messages.length, 0),
         conversationSummary: result.map(c => ({
-          id: c.id.substring(0, 8),
-          title: c.title.substring(0, 30),
-          messageCount: c.messages.length
+          id: c?.id?.substring(0, 8) || 'N/A',
+          title: c?.title?.substring(0, 30) || 'N/A',
+          messageCount: c?.messages?.length || 0
         }))
       })
 
@@ -490,13 +491,13 @@ class DatabaseService {
 
       if (userError) {
         console.error('❌ Error loading user data:', userError)
-        // Fall back to calculated usage
+        // Continue without user data - we'll use defaults
       }
 
       console.log('👤 User data loaded:', {
         hasUserData: !!userData,
-        tierName: userData?.subscription_tiers?.tier_name,
-        monthlyLimit: userData?.subscription_tiers?.monthly_token_limit
+        tierName: userData?.subscription_tiers?.tier_name || 'free',
+        monthlyLimit: userData?.subscription_tiers?.monthly_token_limit || 35000
       })
 
       // Get calculated usage stats

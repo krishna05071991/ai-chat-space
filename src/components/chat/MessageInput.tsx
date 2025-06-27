@@ -1,4 +1,4 @@
-// Mobile-first message input component with responsive design
+// UPDATED: Mobile-first message input with enhanced usage validation
 import React, { useState, useRef, useEffect } from 'react'
 import { Send, Square, AlertTriangle, Crown } from 'lucide-react'
 import { AIModel, UsageStats } from '../../types/chat'
@@ -40,7 +40,7 @@ export function MessageInput({
     }
   }, [message])
 
-  // Check usage limits and warnings
+  // UPDATED: Enhanced usage warning logic with anniversary-based reset times
   const getUsageWarning = () => {
     if (!usageStats) return null
 
@@ -52,38 +52,49 @@ export function MessageInput({
         return {
           type: 'critical',
           message: 'Daily message limit reached. Upgrade to Basic for unlimited messages!',
-          canSend: false
+          canSend: false,
+          resetTime: formatResetTime(usageStats.daily_reset_time)
         }
       } else if (remaining <= 2) {
         return {
           type: 'warning',
           message: `${remaining} message${remaining !== 1 ? 's' : ''} remaining today. Upgrade for unlimited access.`,
-          canSend: true
+          canSend: true,
+          resetTime: formatResetTime(usageStats.daily_reset_time)
         }
       }
     }
 
-    // Check monthly token limit
+    // Check monthly token limit with anniversary-based reset
     const tokenPercentage = Math.round((usageStats.tokens_used_month / usageStats.tier.monthly_tokens) * 100)
     
-    if (tokenPercentage >= 95) {
+    if (tokenPercentage >= 98) {
       return {
         type: 'critical',
-        message: 'Monthly token limit almost reached. Upgrade to continue chatting!',
-        canSend: false
+        message: 'Monthly token limit reached. Upgrade to continue chatting!',
+        canSend: false,
+        resetTime: formatResetTime(usageStats.monthly_reset_time, usageStats.billing_period_start, true)
       }
-    } else if (tokenPercentage >= 90) {
+    } else if (tokenPercentage >= 95) {
       return {
         type: 'warning',
         message: `${tokenPercentage}% of monthly tokens used. Consider upgrading for more capacity.`,
-        canSend: true
+        canSend: true,
+        resetTime: formatResetTime(usageStats.monthly_reset_time, usageStats.billing_period_start, true)
+      }
+    } else if (tokenPercentage >= 90) {
+      return {
+        type: 'info',
+        message: `${tokenPercentage}% of monthly tokens used. Keep an eye on your usage.`,
+        canSend: true,
+        resetTime: formatResetTime(usageStats.monthly_reset_time, usageStats.billing_period_start, true)
       }
     }
 
     return null
   }
 
-  // Check if model is allowed for current tier
+  // UPDATED: Check if model is allowed for current tier
   const isModelAllowed = () => {
     if (!usageStats || !selectedModel) return true
     return usageStats.tier.allowed_models.includes(selectedModel.id)
@@ -170,7 +181,7 @@ export function MessageInput({
 
   return (
     <div>
-      {/* Mobile-optimized usage warning banner */}
+      {/* UPDATED: Mobile-optimized usage warning banner with reset times */}
       {((warning && warning.type === 'warning' && !warningShown) || !modelAllowed) && (
         <div className="mb-3 p-3 rounded-xl bg-amber-50 border border-amber-200 shadow-sm">
           <div className="flex items-start space-x-2">
@@ -182,6 +193,11 @@ export function MessageInput({
                   : warning?.message
                 }
               </p>
+              {warning?.resetTime && (
+                <p className="text-xs text-amber-700 mt-1">
+                  {warning.resetTime}
+                </p>
+              )}
               {!modelAllowed && (
                 <button className="text-xs text-amber-700 hover:text-amber-800 font-medium mt-1 flex items-center rounded-xl px-2 py-1 hover:bg-amber-100 transition-colors">
                   <Crown className="w-3 h-3 mr-1" />
@@ -193,15 +209,20 @@ export function MessageInput({
         </div>
       )}
 
-      {/* Mobile-optimized critical usage warning */}
+      {/* UPDATED: Critical usage warning with anniversary reset info */}
       {warning && !warning.canSend && (
         <div className="mb-3 p-3 rounded-xl bg-red-50 border border-red-200 shadow-sm">
           <div className="flex items-start space-x-2">
             <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-red-800 font-medium mb-2">
+              <p className="text-sm text-red-800 font-medium mb-1">
                 {warning.message}
               </p>
+              {warning.resetTime && (
+                <p className="text-xs text-red-700 mb-2">
+                  {warning.resetTime}
+                </p>
+              )}
               <button className="inline-flex items-center text-xs bg-gradient-to-r from-purple-500 to-purple-600 text-white px-3 py-1.5 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all font-medium shadow-sm hover:shadow-md">
                 <Crown className="w-3 h-3 mr-1" />
                 <span>Upgrade Now</span>
@@ -253,7 +274,7 @@ export function MessageInput({
         </form>
       </div>
 
-      {/* Mobile-optimized footer text with usage info */}
+      {/* UPDATED: Mobile-optimized footer text with anniversary billing info */}
       <div className="text-center mt-3 text-xs text-gray-500">
         <div className="flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2">
           <span>chat.space can make mistakes</span>
@@ -269,8 +290,48 @@ export function MessageInput({
               <span className="ml-1 sm:ml-2">{Math.round((usageStats.tokens_used_month / usageStats.tier.monthly_tokens) * 100)}% monthly usage</span>
             </span>
           )}
+          {usageStats?.billing_period_start && (
+            <span className="flex items-center text-xs text-gray-400">
+              <span className="hidden sm:inline">•</span>
+              <span className="ml-1 sm:ml-2">Anniversary billing: {new Date(usageStats.billing_period_start).getDate()}{getOrdinalSuffix(new Date(usageStats.billing_period_start).getDate())}</span>
+            </span>
+          )}
         </div>
       </div>
     </div>
   )
+}
+
+/**
+ * UPDATED: Format reset time helper function
+ */
+function formatResetTime(resetTime?: string, billingPeriodStart?: string, isMonthly = false): string {
+  if (resetTime) {
+    const resetDate = new Date(resetTime)
+    const now = new Date()
+    const diffMs = resetDate.getTime() - now.getTime()
+    
+    if (diffMs < 24 * 60 * 60 * 1000) {
+      const hours = Math.floor(diffMs / (60 * 60 * 1000))
+      const minutes = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000))
+      return `Resets in ${hours}h ${minutes}m`
+    } else if (isMonthly && billingPeriodStart) {
+      const day = new Date(billingPeriodStart).getDate()
+      return `Resets on ${day}${getOrdinalSuffix(day)} (billing anniversary)`
+    } else {
+      return `Resets on ${resetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+    }
+  }
+  
+  return isMonthly ? 'Resets monthly' : 'Resets daily'
+}
+
+function getOrdinalSuffix(day: number): string {
+  if (day >= 11 && day <= 13) return 'th'
+  switch (day % 10) {
+    case 1: return 'st'
+    case 2: return 'nd'
+    case 3: return 'rd'
+    default: return 'th'
+  }
 }

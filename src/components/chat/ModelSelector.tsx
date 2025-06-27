@@ -1,4 +1,4 @@
-// Mobile-first model selector with responsive design
+// UPDATED: Mobile-first model selector with enhanced tier-based restrictions
 import React, { useState } from 'react'
 import { ChevronDown, Check, Lock, Crown, Sparkles } from 'lucide-react'
 import { AIModel, getModelsByCategory, MODEL_CATEGORIES, PRICING_TIERS } from '../../types/chat'
@@ -18,10 +18,12 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
   const currentTier = usageStats?.tier?.tier || 'free'
   const allowedModels = usageStats?.tier?.allowed_models || PRICING_TIERS.free.allowed_models
 
+  // UPDATED: Enhanced model allowance check
   const isModelAllowed = (model: AIModel): boolean => {
     return allowedModels.includes(model.id)
   }
 
+  // UPDATED: Get required tier for model access
   const getRequiredTier = (model: AIModel): string => {
     // Check which tier includes this model
     for (const [tierName, tierData] of Object.entries(PRICING_TIERS)) {
@@ -29,19 +31,20 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
         return tierName
       }
     }
-    return 'pro' // Default to highest tier
+    return 'pro' // Default to highest tier if not found
   }
 
+  // UPDATED: Enhanced tier badge system
   const getTierBadge = (model: AIModel) => {
     const requiredTier = getRequiredTier(model)
     
-    // Implement tier-based label visibility rules
+    // Smart tier label visibility rules
     const shouldShowLabel = () => {
       if (currentTier === 'pro') {
-        // Pro users: No labels shown
+        // Pro users: No labels shown (they have access to everything)
         return false
       } else if (currentTier === 'basic') {
-        // Basic users: Only show "Pro" labels
+        // Basic users: Only show "Pro" labels for models they can't access
         return requiredTier === 'pro'
       } else {
         // Free users: Show "Basic" and "Pro" labels
@@ -78,6 +81,13 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
       setIsOpen(false)
     } else {
       const requiredTier = getRequiredTier(model)
+      console.log('🔒 Model access denied:', {
+        modelId: model.id,
+        modelName: model.displayName,
+        currentTier,
+        requiredTier,
+        allowedModels: allowedModels.length
+      })
       onUpgradePrompt?.(requiredTier)
     }
   }
@@ -119,21 +129,26 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
                 className={`w-full flex items-center justify-between px-3 py-2.5 transition-colors text-left relative ${
                   isSelected 
                     ? provider === 'openai' ? 'bg-blue-50' : 'bg-orange-50'
-                    : isAllowed ? 'hover:bg-gray-50' : 'hover:bg-gray-25'
+                    : isAllowed ? 'hover:bg-gray-50' : 'hover:bg-gray-25 opacity-75'
                 }`}
                 disabled={!isAllowed}
-                title={!isAllowed ? `Requires ${getTierBadge(model)} tier or higher` : undefined}
+                title={!isAllowed ? `Requires ${getRequiredTier(model)} tier or higher` : undefined}
               >
-                {/* Mobile-optimized lock indicator */}
+                {/* UPDATED: Enhanced lock indicator for restricted models */}
                 {!isAllowed && (
                   <div className="absolute top-2 right-2 pointer-events-none">
-                    <Lock className="w-3 h-3 text-amber-500" />
+                    <div className="flex items-center space-x-1">
+                      <Lock className="w-3 h-3 text-amber-500" />
+                      <span className="text-xs text-amber-600 font-medium hidden sm:inline">
+                        {getRequiredTier(model)}
+                      </span>
+                    </div>
                   </div>
                 )}
 
                 <div className="flex-1 min-w-0 pr-2">
                   <div className="flex items-center space-x-2 mb-1">
-                    <span className={`font-medium text-sm ${isAllowed ? 'text-gray-800' : 'text-gray-700'} truncate`}>
+                    <span className={`font-medium text-sm ${isAllowed ? 'text-gray-800' : 'text-gray-600'} truncate`}>
                       {model.displayName}
                     </span>
                     
@@ -151,13 +166,13 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
                       {model.description}
                     </span>
                     
-                    {/* Mobile-optimized tier badge */}
+                    {/* UPDATED: Enhanced tier badge display */}
                     {!isAllowed ? (
                       <div className="flex items-center space-x-1 flex-shrink-0">
                         <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700 border border-amber-200">
                           Upgrade Required
                         </span>
-                        {getTierBadge(model) && getTierBadge(model)}
+                        {getTierBadge(model)}
                       </div>
                     ) : (
                       getTierBadge(model) && (
@@ -222,22 +237,29 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
                 )}
               </div>
 
-              {/* Mobile-optimized upgrade prompt */}
-              {currentTier === 'free' && (
+              {/* UPDATED: Enhanced upgrade prompt for restricted access */}
+              {(currentTier === 'free' || currentTier === 'basic') && (
                 <div className="border-t border-gray-200 p-4 bg-gradient-to-r from-purple-50 to-purple-100">
                   <div className="text-center">
                     <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 mx-auto mb-2" />
                     <p className="text-sm font-medium text-purple-800 mb-1">
-                      Unlock Premium Models
+                      {currentTier === 'free' ? 'Unlock Premium Models' : 'Unlock All Models'}
                     </p>
                     <p className="text-xs text-purple-600 mb-3 hidden sm:block">
-                      Upgrade to access GPT-4o, Claude 3.5 Sonnet, and more
+                      {currentTier === 'free' 
+                        ? 'Upgrade to access GPT-4o, Claude 3.5 Sonnet, and more'
+                        : 'Upgrade to Pro for latest AI models including GPT-4.1 and Claude 4'
+                      }
                     </p>
                     <button
-                      onClick={() => onUpgradePrompt?.('basic')}
+                      onClick={() => {
+                        const targetTier = currentTier === 'free' ? 'basic' : 'pro'
+                        onUpgradePrompt?.(targetTier)
+                        setIsOpen(false)
+                      }}
                       className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm font-medium py-2.5 px-4 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
                     >
-                      View Plans
+                      {currentTier === 'free' ? 'View Plans' : 'Upgrade to Pro'}
                     </button>
                   </div>
                 </div>
@@ -249,10 +271,9 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
     )
   }
 
-  // Full model selector implementation would go here
-  // For now, return the compact version as it's the most commonly used
   return (
     <div className="relative">
+      {/* Full model selector implementation would be similar to compact version */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-2 sm:space-x-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl px-3 sm:px-4 py-2 sm:py-3 hover:bg-white hover:border-gray-300 transition-all duration-200 group min-w-[240px] sm:min-w-[280px]"
@@ -274,13 +295,11 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
             <span className="text-xs text-gray-500 truncate">
               {selectedModel.provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} • {MODEL_CATEGORIES[selectedModel.category]?.name || selectedModel.category}
             </span>
-            {getTierBadge(selectedModel) && getTierBadge(selectedModel)}
+            {getTierBadge(selectedModel)}
           </div>
         </div>
         <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
-
-      {/* Full dropdown implementation would be similar to compact version */}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-// Enhanced streaming service - Updated for backend-driven usage tracking
+// UPDATED: Enhanced streaming service with better error type handling
 import { supabase } from './supabase'
 import { AIModel, Message, StreamingCallbacks, TokenUsage } from '../types/chat'
 
@@ -294,33 +294,74 @@ class StreamingService {
   }
 
   /**
-   * Handle specific usage limit errors
+   * UPDATED: Handle specific usage limit errors with better type checking
    */
   private handleUsageLimitError(errorData: any, callbacks: StreamingCallbacks, model: AIModel): void {
-    console.log('⚠️ Usage limit error received:', errorData)
+    console.log('⚠️ Processing error from Edge Function:', errorData)
 
-    // Create structured error
-    const usageLimitError: UsageLimitError = {
-      error: errorData.error || 'Usage limit exceeded',
-      errorType: errorData.type || errorData.error || 'UNKNOWN',
-      message: errorData.message || 'Unknown error occurred',
-      usage: {
-        current: errorData.usage?.current || 0,
-        limit: errorData.usage?.limit || 0,
-        percentage: errorData.usage?.percentage,
-        resetTime: errorData.usage?.resetTime
-      },
-      userTier: errorData.userTier,
-      allowedModels: errorData.allowedModels
+    // ENHANCED: Only trigger usage limit modal for actual usage limit errors
+    const usageLimitErrorTypes = [
+      'DAILY_MESSAGE_LIMIT_EXCEEDED',
+      'MONTHLY_LIMIT_EXCEEDED', 
+      'MONTHLY_TOKEN_LIMIT_EXCEEDED',
+      'MODEL_NOT_ALLOWED'
+    ]
+
+    const errorType = errorData.type || errorData.error
+    
+    if (usageLimitErrorTypes.includes(errorType)) {
+      // Create structured error for usage limit modal
+      const usageLimitError: UsageLimitError = {
+        error: errorData.error || 'Usage limit exceeded',
+        errorType: errorType,
+        message: errorData.message || 'Unknown usage limit error occurred',
+        usage: {
+          current: errorData.usage?.current || 0,
+          limit: errorData.usage?.limit || 0,
+          percentage: errorData.usage?.percentage,
+          resetTime: errorData.usage?.resetTime
+        },
+        userTier: errorData.userTier,
+        allowedModels: errorData.allowedModels
+      }
+
+      // Trigger custom event for limit exceeded modal
+      window.dispatchEvent(new CustomEvent('usageLimitExceeded', {
+        detail: usageLimitError
+      }))
+
+      // Also call the regular error callback
+      callbacks.onError(this.getErrorMessage(errorData, model))
+    } else {
+      // ENHANCED: For non-usage errors, just show regular error message
+      console.log('ℹ️ Non-usage error, showing regular error message:', errorType)
+      
+      let userFriendlyMessage = errorData.message || 'An error occurred. Please try again.'
+      
+      // Customize message based on error type
+      switch (errorType) {
+        case 'DATABASE_OPERATION_FAILED':
+          userFriendlyMessage = 'Unable to save your message. Please try again.'
+          break
+        case 'AI_SERVICE_ERROR':
+          userFriendlyMessage = 'AI service temporarily unavailable. Please try again in a moment.'
+          break
+        case 'API_CONFIGURATION_ERROR':
+          userFriendlyMessage = 'Service configuration issue. Please contact support if this persists.'
+          break
+        case 'AUTHENTICATION_FAILED':
+          userFriendlyMessage = 'Authentication expired. Please sign in again.'
+          break
+        case 'INVALID_REQUEST':
+          userFriendlyMessage = 'Invalid request format. Please refresh and try again.'
+          break
+        default:
+          // Use original message or fallback
+          userFriendlyMessage = errorData.message || 'An unexpected error occurred. Please try again.'
+      }
+      
+      callbacks.onError(userFriendlyMessage)
     }
-
-    // Trigger custom event for limit exceeded modal
-    window.dispatchEvent(new CustomEvent('usageLimitExceeded', {
-      detail: usageLimitError
-    }))
-
-    // Also call the regular error callback
-    callbacks.onError(this.getErrorMessage(errorData, model))
   }
 
   /**
@@ -332,6 +373,7 @@ class StreamingService {
         return `Daily message limit reached. Upgrade to Basic for unlimited messages!`
       
       case 'MONTHLY_LIMIT_EXCEEDED':
+      case 'MONTHLY_TOKEN_LIMIT_EXCEEDED':
         return `Monthly token limit exceeded. Upgrade for more tokens!`
       
       case 'MODEL_NOT_ALLOWED':

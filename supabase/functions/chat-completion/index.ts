@@ -1,4 +1,4 @@
-// COMPLETE: Edge Function with comprehensive usage tracking and anniversary-based billing
+// COMPLETE: Edge Function with comprehensive conversation tracking and usage management
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -206,7 +206,7 @@ async function getUserTierAndUsage(supabase, userId) {
   }
 }
 
-// CRITICAL: Message persistence with proper sequence and token tracking
+// FIXED: Message persistence without explicit total_tokens (let DB calculate it)
 async function saveUserMessage(supabase, conversationId, userId, content, sequenceNumber) {
   try {
     console.log('💾 Saving user message:', { conversationId, userId, sequenceNumber });
@@ -220,7 +220,7 @@ async function saveUserMessage(supabase, conversationId, userId, content, sequen
         model_used: null,
         input_tokens: 0,
         output_tokens: 0,
-        total_tokens: 0,
+        // REMOVED: total_tokens: 0 - Let database calculate this automatically
         sequence_number: sequenceNumber
       })
       .select()
@@ -260,7 +260,7 @@ async function saveAIMessage(supabase, conversationId, content, modelUsed, usage
         model_used: modelUsed,
         input_tokens: usage.prompt_tokens || 0,
         output_tokens: usage.completion_tokens || 0,
-        total_tokens: usage.total_tokens || 0,
+        // REMOVED: total_tokens - Let database calculate this automatically
         sequence_number: sequenceNumber
       })
       .select()
@@ -276,6 +276,106 @@ async function saveAIMessage(supabase, conversationId, content, modelUsed, usage
   } catch (error) {
     console.error('❌ Error saving AI message:', error);
     throw error;
+  }
+}
+
+// NEW: Update conversation title if it's still "New Chat"
+async function updateConversationTitle(supabase, conversationId, firstUserMessage) {
+  try {
+    console.log('🏷️ Checking conversation title for:', conversationId);
+
+    // Get current conversation
+    const { data: conversation, error: fetchError } = await supabase
+      .from('conversations')
+      .select('title')
+      .eq('id', conversationId)
+      .single();
+
+    if (fetchError) {
+      console.error('❌ Error fetching conversation:', fetchError);
+      return; // Don't throw, this is not critical
+    }
+
+    // Only update if title is "New Chat"
+    if (conversation && conversation.title === 'New Chat') {
+      // Create title from first user message (first 50 characters)
+      let newTitle = firstUserMessage.trim();
+      if (newTitle.length > 50) {
+        newTitle = newTitle.substring(0, 50) + '...';
+      }
+
+      console.log('📝 Updating conversation title:', { conversationId, newTitle });
+
+      const { error: updateError } = await supabase
+        .from('conversations')
+        .update({ title: newTitle })
+        .eq('id', conversationId);
+
+      if (updateError) {
+        console.error('❌ Error updating conversation title:', updateError);
+        return; // Don't throw, this is not critical
+      }
+
+      console.log('✅ Conversation title updated successfully');
+    } else {
+      console.log('ℹ️ Conversation title already set, skipping update');
+    }
+
+  } catch (error) {
+    console.error('❌ Error in updateConversationTitle:', error);
+    // Don't throw - title update is not critical for functionality
+  }
+}
+
+// NEW: Track model history in conversation
+async function updateModelHistory(supabase, conversationId, modelUsed) {
+  try {
+    console.log('📊 Updating model history for:', { conversationId, modelUsed });
+
+    // Get current model history
+    const { data: conversation, error: fetchError } = await supabase
+      .from('conversations')
+      .select('model_history')
+      .eq('id', conversationId)
+      .single();
+
+    if (fetchError) {
+      console.error('❌ Error fetching conversation for model history:', fetchError);
+      return; // Don't throw, this is not critical
+    }
+
+    // Get current model history array
+    let modelHistory = conversation?.model_history || [];
+    
+    // Ensure it's an array
+    if (!Array.isArray(modelHistory)) {
+      modelHistory = [];
+    }
+
+    // Add model to history if not already present
+    if (!modelHistory.includes(modelUsed)) {
+      modelHistory.push(modelUsed);
+
+      console.log('📈 Adding model to history:', { conversationId, modelUsed, newHistory: modelHistory });
+
+      const { error: updateError } = await supabase
+        .from('conversations')
+        .update({ model_history: modelHistory })
+        .eq('id', conversationId);
+
+      if (updateError) {
+        console.error('❌ Error updating model history:', updateError);
+        return; // Don't throw, this is not critical
+      }
+
+      console.log('✅ Model history updated successfully');
+    } else {
+      console.log('ℹ️ Model already in history, skipping update');
+    }
+
+  } catch (error) {
+    console.error('❌ Error in updateModelHistory:', error);
+    // Don't throw - model history update is not critical for functionality
   }
 }
 
@@ -594,6 +694,7 @@ serve(async (req) => {
     if (!authToken) {
       return new Response(JSON.stringify({
         error: 'AUTHENTICATION_REQUIRED',
+        type: 'AUTHENTICATION_FAILED',
         message: 'Authentication token required'
       }), {
         status: 401,
@@ -605,6 +706,7 @@ serve(async (req) => {
     if (!user) {
       return new Response(JSON.stringify({
         error: 'INVALID_TOKEN',
+        type: 'AUTHENTICATION_FAILED',
         message: 'Invalid authentication token'
       }), {
         status: 401,
@@ -689,6 +791,7 @@ serve(async (req) => {
     if (!validModels.includes(requestBody.model)) {
       return new Response(JSON.stringify({
         error: 'INVALID_MODEL',
+        type: 'INVALID_MODEL',
         message: `Model ${requestBody.model} is not supported`
       }), {
         status: 400,
@@ -703,6 +806,7 @@ serve(async (req) => {
     if (!conversationId || !userMessage || userMessage.role !== 'user') {
       return new Response(JSON.stringify({
         error: 'INVALID_REQUEST',
+        type: 'INVALID_REQUEST',
         message: 'Conversation ID and user message required'
       }), {
         status: 400,
@@ -776,6 +880,12 @@ serve(async (req) => {
               result.model
             );
 
+            // NEW: Update conversation title if this is the first user message
+            await updateConversationTitle(supabase, conversationId, userMessage.content);
+
+            // NEW: Track model usage in conversation history
+            await updateModelHistory(supabase, conversationId, result.model);
+
             // Send completion event with message IDs and usage
             const encoder = new TextEncoder();
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
@@ -789,15 +899,27 @@ serve(async (req) => {
               }
             })}\n\n`));
 
-            console.log('✅ Streaming completed successfully with usage tracking');
+            console.log('✅ Streaming completed successfully with full conversation tracking');
             controller.close();
 
           } catch (error) {
             console.error('❌ Streaming error:', error);
             const encoder = new TextEncoder();
+            
+            // ENHANCED: Better error type classification
+            let errorType = 'INTERNAL_ERROR';
+            if (error.message.includes('API key')) {
+              errorType = 'API_CONFIGURATION_ERROR';
+            } else if (error.message.includes('Failed to save')) {
+              errorType = 'DATABASE_OPERATION_FAILED';
+            } else if (error.message.includes('OpenAI') || error.message.includes('Anthropic')) {
+              errorType = 'AI_SERVICE_ERROR';
+            }
+
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'error',
-              error: error.message
+              error: errorType,
+              message: error.message
             })}\n\n`));
             controller.close();
           }
@@ -817,6 +939,7 @@ serve(async (req) => {
     // Non-streaming fallback
     return new Response(JSON.stringify({
       error: 'STREAMING_ONLY',
+      type: 'STREAMING_ONLY',
       message: 'This endpoint only supports streaming requests'
     }), {
       status: 400,
@@ -825,11 +948,25 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('💥 Edge function error:', error);
+    
+    // ENHANCED: Better error classification
+    let errorType = 'INTERNAL_ERROR';
+    let statusCode = 500;
+    
+    if (error.message.includes('Authentication') || error.message.includes('User not found')) {
+      errorType = 'AUTHENTICATION_FAILED';
+      statusCode = 401;
+    } else if (error.message.includes('Failed to fetch user data') || error.message.includes('database')) {
+      errorType = 'DATABASE_OPERATION_FAILED';
+      statusCode = 503;
+    }
+
     return new Response(JSON.stringify({
-      error: 'INTERNAL_ERROR',
+      error: errorType,
+      type: errorType,
       message: error instanceof Error ? error.message : 'An unexpected error occurred'
     }), {
-      status: 500,
+      status: statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }

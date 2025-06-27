@@ -1,5 +1,5 @@
 // Main App component for chat.space - AI chat platform with multi-model switching
-import React from 'react'
+import React, { useEffect } from 'react'
 import { AuthLayout } from './components/auth/AuthLayout'
 import { ChatLayout } from './components/chat/ChatLayout'
 import { SimpleNameSetupScreen } from './components/onboarding/SimpleNameSetupScreen'
@@ -8,10 +8,34 @@ import { useUserProfile } from './hooks/useUserProfile'
 import { useDatabaseSync } from './hooks/useDatabaseSync'
 
 function App() {
-  const { user, loading } = useAuth()
+  const { user, loading, isSessionValid, clearInvalidSession } = useAuth()
+  
+  // CRITICAL: Validate session on every render and clear if invalid
+  useEffect(() => {
+    const validateSession = async () => {
+      if (user && user.id) {
+        console.log('🔍 Validating session for user:', user.id.substring(0, 8))
+        
+        const valid = await isSessionValid()
+        if (!valid) {
+          console.log('🚫 Session is invalid, clearing session...')
+          await clearInvalidSession()
+          return
+        }
+        
+        console.log('✅ Session is valid')
+      }
+    }
+    
+    // Only validate if we think we have a user
+    if (user && !loading) {
+      validateSession()
+    }
+  }, [user, loading, isSessionValid, clearInvalidSession])
   
   // CRITICAL: Always show loading if auth is not fully resolved
   if (loading) {
+    console.log('⏳ Authentication loading...')
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
@@ -22,20 +46,41 @@ function App() {
     )
   }
 
-  // CRITICAL: FIRST AND ABSOLUTE PRIORITY - Authentication check
-  // If user is not authenticated, IMMEDIATELY show auth screen - NO EXCEPTIONS
-  if (!user || !user.id || !user.email || user.aud !== 'authenticated') {
-    console.log('🚫 User not authenticated, showing auth screen:', {
-      hasUser: !!user,
-      hasUserId: !!user?.id,
-      hasEmail: !!user?.email,
-      userAud: user?.aud
-    })
+  // CRITICAL: STRICTEST POSSIBLE AUTHENTICATION CHECK
+  // Multiple layers of validation to ensure user is DEFINITELY authenticated
+  const isDefinitelyAuthenticated = (
+    user && 
+    user.id && 
+    user.email && 
+    user.aud === 'authenticated' &&
+    user.role === 'authenticated' &&
+    user.email_confirmed_at &&  // Email must be confirmed
+    !user.banned_until &&       // User not banned
+    user.created_at &&          // User has creation date
+    user.updated_at             // User has update date
+  )
+
+  console.log('🔐 Authentication validation:', {
+    hasUser: !!user,
+    hasUserId: !!user?.id,
+    hasEmail: !!user?.email,
+    userAud: user?.aud,
+    userRole: user?.role,
+    emailConfirmed: !!user?.email_confirmed_at,
+    notBanned: !user?.banned_until,
+    hasCreatedAt: !!user?.created_at,
+    hasUpdatedAt: !!user?.updated_at,
+    isDefinitelyAuthenticated
+  })
+
+  // CRITICAL: If ANY authentication check fails, show auth screen
+  if (!isDefinitelyAuthenticated) {
+    console.log('🚫 User not properly authenticated, showing auth screen')
     return <AuthLayout />
   }
 
-  // CRITICAL: Only call these hooks AFTER confirming authentication
-  // This prevents any data fetching for non-authenticated users
+  // CRITICAL: Only proceed if user is DEFINITELY authenticated
+  console.log('✅ User is definitively authenticated, proceeding...')
   return <AuthenticatedApp user={user} />
 }
 
@@ -44,8 +89,11 @@ function AuthenticatedApp({ user }: { user: any }) {
   const { profile, loading: profileLoading, refetchProfile } = useUserProfile()
   const { conversations } = useDatabaseSync()
 
+  console.log('👤 AuthenticatedApp loaded for user:', user.id.substring(0, 8))
+
   // Wait for profile data to load
   if (profileLoading) {
+    console.log('⏳ Profile loading...')
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
@@ -57,35 +105,31 @@ function AuthenticatedApp({ user }: { user: any }) {
   }
 
   // CRITICAL: Onboarding check - with additional safety measures
-  // Only show onboarding if ALL conditions are met AND user is definitely authenticated
   const isNewUser = user && 
                     user.id && 
                     user.email && 
-                    user.aud === 'authenticated' &&     // Double-check authentication
-                    profile !== null &&                 // Profile loaded successfully
-                    !profile?.full_name &&              // No name set
-                    conversations.length === 0 &&       // No conversations exist
-                    !profileLoading                     // Profile loading complete
+                    user.aud === 'authenticated' &&     
+                    profile !== null &&                 
+                    !profile?.full_name &&              
+                    conversations.length === 0 &&       
+                    !profileLoading                     
   
-  console.log('🔍 Onboarding decision for authenticated user:', {
-    userId: user.id,
-    userEmail: user.email,
-    userAud: user.aud,
+  console.log('🔍 Onboarding decision:', {
+    userId: user.id.substring(0, 8),
     hasProfile: !!profile,
     hasFullName: !!profile?.full_name,
     conversationCount: conversations.length,
-    profileLoading,
     isNewUser
   })
   
   // Show onboarding for new authenticated users
   if (isNewUser) {
-    console.log('✅ Showing onboarding for authenticated new user')
+    console.log('📝 Showing onboarding for new user')
     return <SimpleNameSetupScreen onComplete={refetchProfile} />
   }
 
   // Show main app for existing authenticated users
-  console.log('✅ Showing main app for authenticated user')
+  console.log('🏠 Showing main app for existing user')
   return <ChatLayout />
 }
 

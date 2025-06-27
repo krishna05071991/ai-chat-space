@@ -73,13 +73,14 @@ export function ChatLayout() {
 
       setIsLoadingConversations(true)
       try {
-        console.log('📥 Loading conversations from database for user:', user.id)
+        console.log('📥 Loading conversations from database for user:', user.id.substring(0, 8))
         const dbConversations = await databaseService.loadConversations()
         
         if (dbConversations && dbConversations.length > 0) {
-          console.log('✅ Loaded conversations:', {
+          console.log('✅ Successfully loaded conversations:', {
             count: dbConversations.length,
-            withMessages: dbConversations.filter(c => c.messages.length > 0).length
+            withMessages: dbConversations.filter(c => c.messages.length > 0).length,
+            titles: dbConversations.map(c => c.title.substring(0, 30))
           })
           
           // Convert to our state format
@@ -93,15 +94,27 @@ export function ChatLayout() {
           
           setConversations(stateConversations)
           
-          // If no active conversation is selected, don't auto-select one
-          // Let user click to select
+          // Don't auto-select conversation, let user choose
         } else {
-          console.log('📭 No conversations found in database')
+          console.log('📭 No conversations found (or all archived)')
           setConversations([])
         }
       } catch (error) {
-        console.error('❌ Failed to load conversations:', error)
-        setError('Failed to load conversations. Please refresh the page.')
+        console.error('❌ Failed to load conversations:', {
+          error: error.message,
+          stack: error.stack?.split('\n').slice(0, 3)
+        })
+        
+        // More specific error messaging
+        if (error.message?.includes('refresh_token_not_found') || 
+            error.message?.includes('Invalid Refresh Token')) {
+          clearInvalidSession()
+          setError('Session expired. Please sign in again.')
+        } else if (error.message?.includes('row-level security')) {
+          setError('Database access error. Please try signing out and back in.')
+        } else {
+          setError(`Failed to load conversations: ${error.message}`)
+        }
       } finally {
         setIsLoadingConversations(false)
       }

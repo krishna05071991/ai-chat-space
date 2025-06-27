@@ -122,12 +122,11 @@ class DatabaseService {
 
       console.log('📥 Loading conversations for user:', user.id.substring(0, 8))
 
-      // Get conversations - RLS policy will filter out archived ones automatically
+      // Get conversations - let RLS policy handle all filtering automatically
       const { data: conversations, error: convError } = await supabase
         .from('conversations')
         .select('*')
         .eq('user_id', user.id)
-        .or('is_archived.is.null,is_archived.eq.false') // Only non-archived conversations
         .order('updated_at', { ascending: false })
 
       if (convError) {
@@ -135,7 +134,14 @@ class DatabaseService {
         throw new Error(`Failed to load conversations: ${convError.message}`)
       }
 
-      console.log('📋 Found conversations:', conversations?.length || 0)
+      console.log('📋 Found conversations:', {
+        total: conversations?.length || 0,
+        conversations: conversations?.map(c => ({
+          id: c.id.substring(0, 8),
+          title: c.title.substring(0, 30),
+          is_archived: c.is_archived
+        }))
+      })
 
       // Then, get all messages for these conversations
       const conversationIds = conversations?.map(c => c.id) || []

@@ -1,4 +1,4 @@
-// Enhanced streaming service with real-time SSE streaming - SIMPLE VERSION
+// UPDATED: Enhanced streaming service with better error type handling
 import { supabase } from './supabase'
 import { AIModel, Message, StreamingCallbacks, TokenUsage } from '../types/chat'
 
@@ -21,10 +21,11 @@ class StreamingService {
   private currentController: AbortController | null = null
 
   /**
-   * Send streaming message through Supabase Edge Function with real-time streaming
+   * UPDATED: Send streaming message with FULL conversation history to Edge Function
+   * The Edge Function now handles ALL message persistence and usage tracking
    */
   async sendStreamingMessage(
-    messages: Message[],
+    conversationHistory: Message[],
     model: AIModel,
     callbacks: StreamingCallbacks,
     signal?: AbortSignal
@@ -46,28 +47,47 @@ class StreamingService {
       })
     }
 
+    // Validate conversation history
+    if (!conversationHistory || conversationHistory.length === 0) {
+      callbacks.onError('No conversation history provided')
+      return
+    }
+
+    const lastMessage = conversationHistory[conversationHistory.length - 1]
+    if (lastMessage.role !== 'user') {
+      callbacks.onError('Last message must be from user')
+      return
+    }
+
     console.log('🚀 Starting streaming via Edge Function:', {
       model: model.id,
-      messageCount: messages.length,
-      provider: model.provider
+      messageCount: conversationHistory.length,
+      provider: model.provider,
+      conversationId: lastMessage.conversation_id
     })
 
     try {
+      // CRITICAL: Send FULL conversation history to Edge Function
       const payload = {
         model: model.id,
-        messages: messages.map(msg => ({
+        messages: conversationHistory.map(msg => ({
           role: msg.role,
           content: msg.content
         })),
+        conversation_id: lastMessage.conversation_id, // Include conversation ID
         stream: true,
         max_tokens: Math.min(model.maxTokens, 4000),
         temperature: 0.7
       }
 
-      // Debug the Edge Function URL
+      console.log('📤 Sending to Edge Function:', {
+        model: payload.model,
+        messageCount: payload.messages.length,
+        conversationId: payload.conversation_id,
+        lastMessagePreview: payload.messages[payload.messages.length - 1]?.content?.substring(0, 50) + '...'
+      })
+      
       const edgeFunctionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-completion`
-      console.log('📡 Edge Function URL:', edgeFunctionUrl)
-      console.log('🔑 Session token:', session.access_token?.substring(0, 10) + '...')
       
       const response = await fetch(edgeFunctionUrl, {
         method: 'POST',
@@ -88,7 +108,7 @@ class StreamingService {
       const contentType = response.headers.get('content-type')
       console.log('📥 Response content type:', contentType)
       
-      // Handle non-streaming response (fallback)
+      // Handle non-streaming response (error cases)
       if (!contentType?.includes('text/event-stream')) {
         console.error('❌ Expected SSE but got:', contentType)
         const data = await response.json()
@@ -150,6 +170,7 @@ class StreamingService {
     let buffer = ''
     let fullContent = ''
     let usage: TokenUsage | undefined
+    let messageIds: { userMessage?: string; aiMessage?: string } | undefined
 
     try {
       while (true) {
@@ -193,7 +214,7 @@ class StreamingService {
                   break
 
                 case 'done':
-                  console.log('🏁 Stream completion event')
+                  console.log('🏁 Stream completion event received')
                   if (event.usage) {
                     usage = {
                       prompt_tokens: event.usage.prompt_tokens || 0,
@@ -201,7 +222,20 @@ class StreamingService {
                       total_tokens: event.usage.total_tokens || 0
                     }
                   }
+                  
+                  // Store message IDs for frontend reference
+                  if (event.messageIds) {
+                    messageIds = event.messageIds
+                    console.log('📝 Message IDs received:', messageIds)
+                  }
+                  
                   callbacks.onComplete(event.content || fullContent, usage)
+                  
+                  // Dispatch refresh event for usage stats
+                  setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('refreshUsageStats'))
+                  }, 500)
+                  
                   return
 
                 case 'error':
@@ -210,21 +244,7 @@ class StreamingService {
                   return
 
                 default:
-                  // Handle OpenAI format streaming (delta content)
-                  const delta = event.choices?.[0]?.delta?.content
-                  if (delta) {
-                    fullContent += delta
-                    callbacks.onToken(delta)
-                  }
-
-                  // Capture usage from OpenAI format
-                  if (event.usage) {
-                    usage = {
-                      prompt_tokens: event.usage.prompt_tokens || 0,
-                      completion_tokens: event.usage.completion_tokens || 0,
-                      total_tokens: event.usage.total_tokens || 0
-                    }
-                  }
+                  console.warn('⚠️ Unknown event type:', event.type)
                   break
               }
             } catch (parseError) {
@@ -257,6 +277,7 @@ class StreamingService {
   private async handleErrorResponse(response: Response, callbacks: StreamingCallbacks, model: AIModel): Promise<void> {
     try {
       const errorData = await response.json()
+      console.log('📥 Error response from Edge Function:', errorData)
       this.handleUsageLimitError(errorData, callbacks, model)
     } catch (parseError) {
       // Handle non-JSON error responses
@@ -273,33 +294,74 @@ class StreamingService {
   }
 
   /**
-   * Handle specific usage limit errors
+   * UPDATED: Handle specific usage limit errors with better type checking
    */
   private handleUsageLimitError(errorData: any, callbacks: StreamingCallbacks, model: AIModel): void {
-    console.log('⚠️ Usage limit error received:', errorData)
+    console.log('⚠️ Processing error from Edge Function:', errorData)
 
-    // Create structured error
-    const usageLimitError: UsageLimitError = {
-      error: errorData.error || 'Usage limit exceeded',
-      errorType: errorData.type || errorData.error || 'UNKNOWN',
-      message: errorData.message || 'Unknown error occurred',
-      usage: {
-        current: errorData.usage?.current || 0,
-        limit: errorData.usage?.limit || 0,
-        percentage: errorData.usage?.percentage,
-        resetTime: errorData.usage?.resetTime
-      },
-      userTier: errorData.tier,
-      allowedModels: errorData.allowedModels
+    // ENHANCED: Only trigger usage limit modal for actual usage limit errors
+    const usageLimitErrorTypes = [
+      'DAILY_MESSAGE_LIMIT_EXCEEDED',
+      'MONTHLY_LIMIT_EXCEEDED', 
+      'MONTHLY_TOKEN_LIMIT_EXCEEDED',
+      'MODEL_NOT_ALLOWED'
+    ]
+
+    const errorType = errorData.type || errorData.error
+    
+    if (usageLimitErrorTypes.includes(errorType)) {
+      // Create structured error for usage limit modal
+      const usageLimitError: UsageLimitError = {
+        error: errorData.error || 'Usage limit exceeded',
+        errorType: errorType,
+        message: errorData.message || 'Unknown usage limit error occurred',
+        usage: {
+          current: errorData.usage?.current || 0,
+          limit: errorData.usage?.limit || 0,
+          percentage: errorData.usage?.percentage,
+          resetTime: errorData.usage?.resetTime
+        },
+        userTier: errorData.userTier,
+        allowedModels: errorData.allowedModels
+      }
+
+      // Trigger custom event for limit exceeded modal
+      window.dispatchEvent(new CustomEvent('usageLimitExceeded', {
+        detail: usageLimitError
+      }))
+
+      // Also call the regular error callback
+      callbacks.onError(this.getErrorMessage(errorData, model))
+    } else {
+      // ENHANCED: For non-usage errors, just show regular error message
+      console.log('ℹ️ Non-usage error, showing regular error message:', errorType)
+      
+      let userFriendlyMessage = errorData.message || 'An error occurred. Please try again.'
+      
+      // Customize message based on error type
+      switch (errorType) {
+        case 'DATABASE_OPERATION_FAILED':
+          userFriendlyMessage = 'Unable to save your message. Please try again.'
+          break
+        case 'AI_SERVICE_ERROR':
+          userFriendlyMessage = 'AI service temporarily unavailable. Please try again in a moment.'
+          break
+        case 'API_CONFIGURATION_ERROR':
+          userFriendlyMessage = 'Service configuration issue. Please contact support if this persists.'
+          break
+        case 'AUTHENTICATION_FAILED':
+          userFriendlyMessage = 'Authentication expired. Please sign in again.'
+          break
+        case 'INVALID_REQUEST':
+          userFriendlyMessage = 'Invalid request format. Please refresh and try again.'
+          break
+        default:
+          // Use original message or fallback
+          userFriendlyMessage = errorData.message || 'An unexpected error occurred. Please try again.'
+      }
+      
+      callbacks.onError(userFriendlyMessage)
     }
-
-    // Trigger custom event for limit exceeded modal
-    window.dispatchEvent(new CustomEvent('usageLimitExceeded', {
-      detail: usageLimitError
-    }))
-
-    // Also call the regular error callback
-    callbacks.onError(this.getErrorMessage(errorData, model))
   }
 
   /**
@@ -311,6 +373,7 @@ class StreamingService {
         return `Daily message limit reached. Upgrade to Basic for unlimited messages!`
       
       case 'MONTHLY_LIMIT_EXCEEDED':
+      case 'MONTHLY_TOKEN_LIMIT_EXCEEDED':
         return `Monthly token limit exceeded. Upgrade for more tokens!`
       
       case 'MODEL_NOT_ALLOWED':
@@ -321,24 +384,6 @@ class StreamingService {
       
       default:
         return errorData.message || 'An error occurred. Please try again.'
-    }
-  }
-
-  /**
-   * Check if user can send message (pre-request validation)
-   */
-  async validateMessageRequest(model: AIModel, messageCount: number): Promise<{ canSend: boolean; warning?: string; error?: string }> {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session) {
-        return { canSend: false, error: 'Authentication required' }
-      }
-
-      return { canSend: true }
-
-    } catch (error) {
-      return { canSend: false, error: 'Validation failed' }
     }
   }
 

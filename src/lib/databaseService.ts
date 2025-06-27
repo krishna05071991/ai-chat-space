@@ -1,4 +1,4 @@
-// Database service for syncing conversations with Supabase for cross-device support
+// UPDATED: Database service - Now works with backend-driven usage tracking
 import { supabase } from './supabase'
 import { Conversation, Message } from '../types/chat'
 
@@ -188,7 +188,7 @@ class DatabaseService {
    */
   async saveMessage(message: Message, sequenceNumber?: number, usage?: { input_tokens?: number; output_tokens?: number; total_tokens?: number }): Promise<void> {
     // REMOVED - Edge Function handles ALL message saving
-    console.warn('saveMessage() called but disabled - Edge Function handles message saving')
+    console.warn('❌ saveMessage() is now handled by Edge Function. This method is deprecated.')
     return Promise.resolve()
   }
 
@@ -454,7 +454,8 @@ class DatabaseService {
   }
 
   /**
-   * Get usage statistics for the current user with proper RLS handling
+   * UPDATED: Get usage statistics - Now primarily for frontend display
+   * NOTE: The Edge Function handles the real usage enforcement
    */
   async getUserUsageStats(): Promise<{
     tokensUsedToday: number
@@ -538,7 +539,8 @@ class DatabaseService {
   }
 
   /**
-   * Get current user usage with anniversary-based billing information
+   * UPDATED: Get current user usage - Enhanced with backend compatibility
+   * NOTE: For frontend display only. Real usage is tracked by Edge Function.
    */
   async getCurrentUsage(): Promise<UserUsageData | null> {
     const result = await this.withAuth(async () => {
@@ -572,17 +574,31 @@ class DatabaseService {
       console.log('👤 User data loaded:', {
         hasUserData: !!userData,
         tierName: userData?.subscription_tiers?.tier_name || 'free',
-        monthlyLimit: userData?.subscription_tiers?.monthly_token_limit || 35000
+        monthlyLimit: userData?.subscription_tiers?.monthly_token_limit || 35000,
+        tokensUsed: userData?.monthly_tokens_used || 0,
+        messagesUsed: userData?.daily_messages_sent || 0
       })
 
-      // Get calculated usage stats
-      const usageStats = await this.getUserUsageStats()
+      // Get fallback usage stats if user data is incomplete
+      let usage: any
+      if (userData?.monthly_tokens_used !== undefined && userData?.daily_messages_sent !== undefined) {
+        // Use data from users table (updated by Edge Function)
+        usage = {
+          tokensUsedToday: 0, // Not tracked separately in users table
+          tokensUsedMonth: userData.monthly_tokens_used,
+          messagesUsedToday: userData.daily_messages_sent
+        }
+      } else {
+        // Fallback to message table calculation
+        usage = await this.getUserUsageStats()
+      }
       
       // Calculate billing period start (anniversary-based)
       const now = new Date()
-      // Use user creation date as billing anniversary, or default to 15th
       const userCreatedAt = userData?.created_at ? new Date(userData.created_at) : new Date(now.getFullYear(), now.getMonth(), 15)
-      const billingPeriodStart = new Date(now.getFullYear(), now.getMonth(), userCreatedAt.getDate())
+      const billingPeriodStart = userData?.billing_period_start ? 
+        new Date(userData.billing_period_start) : 
+        new Date(now.getFullYear(), now.getMonth(), userCreatedAt.getDate())
       
       // Calculate reset times
       const nextDayReset = new Date(now)
@@ -595,11 +611,10 @@ class DatabaseService {
         // If we're past the anniversary date, next reset is next month's anniversary
         nextMonthReset.setMonth(nextMonthReset.getMonth() + 1)
       }
-      // If we're before the anniversary date, next reset is this month's anniversary
       
       return {
-        daily_messages_sent: usageStats.messagesUsedToday,
-        monthly_tokens_used: usageStats.tokensUsedMonth,
+        daily_messages_sent: usage.messagesUsedToday,
+        monthly_tokens_used: usage.tokensUsedMonth,
         billing_period_start: billingPeriodStart.toISOString(),
         last_daily_reset: nextDayReset.toISOString(),
         last_monthly_reset: nextMonthReset.toISOString(),

@@ -1,9 +1,9 @@
-// Mobile-first limit exceeded modal component
+// UPDATED: Mobile-first limit exceeded modal with anniversary-based reset times
 import React from 'react'
 import { X, Zap, MessageSquare, Crown, ArrowRight, Clock, Calendar, Users } from 'lucide-react'
 
 /**
- * Format anniversary-based reset time for user display
+ * UPDATED: Format anniversary-based reset time for user display
  */
 function formatResetTime(resetTime: string): string {
   const resetDate = new Date(resetTime)
@@ -14,13 +14,29 @@ function formatResetTime(resetTime: string): string {
     // Less than 24 hours - show relative time
     const hours = Math.floor(diffMs / (60 * 60 * 1000))
     const minutes = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000))
-    return `Resets in ${hours}h ${minutes}m`
+    
+    if (hours > 0) {
+      return `Resets in ${hours}h ${minutes}m`
+    } else if (minutes > 0) {
+      return `Resets in ${minutes}m`
+    } else {
+      return 'Resets very soon'
+    }
   } else {
     // More than 24 hours - show anniversary date
-    return `Resets on ${resetDate.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
-    })} (your billing anniversary)`
+    const day = resetDate.getDate()
+    const ordinalSuffix = getOrdinalSuffix(day)
+    return `Resets on the ${day}${ordinalSuffix} (your billing anniversary)`
+  }
+}
+
+function getOrdinalSuffix(day: number): string {
+  if (day >= 11 && day <= 13) return 'th'
+  switch (day % 10) {
+    case 1: return 'st'
+    case 2: return 'nd'
+    case 3: return 'rd'
+    default: return 'th'
   }
 }
 
@@ -32,7 +48,7 @@ export interface UsageLimitError {
     current: number
     limit: number
     percentage?: number
-    resetTime?: string  // NEW: ISO timestamp of exact reset time
+    resetTime?: string  // ISO timestamp of exact reset time
   }
   userTier?: string
   allowedModels?: string[]
@@ -59,12 +75,12 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
           recommendedPlan: 'basic',
           benefits: [
             'Unlimited daily messages',
-            '300K tokens per month (10x more)',
-            'Access to GPT-4o Mini',
+            '1M tokens per month (28x more)',
+            'Access to GPT-4o and advanced models',
             'Multi-device sync',
             'Priority support'
           ],
-          price: '$5/month',
+          price: '$6/month',
           resetInfo: formatResetTime(error.usage?.resetTime || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()),
           showTryTomorrow: true,
           urgency: 'medium'
@@ -99,7 +115,6 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
         }
 
       case 'MODEL_NOT_ALLOWED':
-        const requiredTier = 'Pro' // Since we only have 3 tiers, premium models require Pro
         return {
           icon: <Crown className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />,
           title: 'Premium Model Access Required',
@@ -109,7 +124,7 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
           benefits: [
             'Access to ALL premium models',
             '1.5M tokens per month',
-            'Latest AI models (GPT-4.1, o3/o4)',
+            'Latest AI models (GPT-4.1, o3/o4, Claude 4)',
             'Premium support'
           ],
           price: '$9/month',
@@ -126,7 +141,7 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
           currentPlan: userTier,
           recommendedPlan: 'basic',
           benefits: ['Unlimited access', 'Premium features'],
-          price: '$5/month',
+          price: '$6/month',
           resetInfo: '',
           showTryTomorrow: false,
           urgency: 'medium'
@@ -175,7 +190,7 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
               {config.description}
             </p>
 
-            {/* Mobile-optimized usage statistics */}
+            {/* UPDATED: Usage statistics with anniversary-based reset times */}
             {error.usage && (
               <div className="bg-gray-50 rounded-xl p-3 sm:p-4 mb-3 sm:mb-4">
                 <div className="flex items-center justify-between mb-2">
@@ -204,6 +219,16 @@ export function LimitExceededModal({ error, onClose, onUpgrade, onTryTomorrow }:
                     </span>
                   </div>
                 </div>
+                
+                {/* UPDATED: Anniversary billing information */}
+                {error.errorType === 'MONTHLY_LIMIT_EXCEEDED' && (
+                  <div className="mt-2 pt-2 border-t border-gray-200">
+                    <div className="flex items-center space-x-1 text-xs text-gray-500">
+                      <Calendar className="w-3 h-3 flex-shrink-0" />
+                      <span>Anniversary-based billing cycle</span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

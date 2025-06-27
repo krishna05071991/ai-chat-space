@@ -1,29 +1,59 @@
-// Enhanced warning banner with pre-request validation and tier-specific messaging
+// UPDATED: Enhanced warning banner with anniversary-based reset times
 import React, { useState } from 'react'
-import { AlertTriangle, X, Crown, ArrowRight, Clock, Zap, MessageSquare } from 'lucide-react'
+import { AlertTriangle, X, Crown, ArrowRight, Clock, Zap, MessageSquare, Calendar } from 'lucide-react'
 import { UsageStats } from '../../types/chat'
 
 /**
- * Format anniversary-based reset time for user display
+ * UPDATED: Format anniversary-based reset time for user display
  */
-function formatResetTime(resetTime?: string): string {
-  if (!resetTime) return 'soon'
+function formatResetTime(resetTime?: string, billingPeriodStart?: string, isMonthly = false): string {
+  if (resetTime) {
+    const resetDate = new Date(resetTime)
+    const now = new Date()
+    const diffMs = resetDate.getTime() - now.getTime()
+    
+    if (diffMs < 24 * 60 * 60 * 1000) {
+      // Less than 24 hours - show relative time
+      const hours = Math.floor(diffMs / (60 * 60 * 1000))
+      const minutes = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000))
+      
+      if (hours > 0) {
+        return `in ${hours}h ${minutes}m`
+      } else if (minutes > 0) {
+        return `in ${minutes}m`
+      } else {
+        return 'very soon'
+      }
+    } else {
+      // More than 24 hours - show anniversary date
+      if (isMonthly && billingPeriodStart) {
+        const billingDay = new Date(billingPeriodStart).getDate()
+        return `on the ${billingDay}${getOrdinalSuffix(billingDay)} (your billing anniversary)`
+      } else {
+        return `on ${resetDate.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric' 
+        })}`
+      }
+    }
+  }
   
-  const resetDate = new Date(resetTime)
-  const now = new Date()
-  const diffMs = resetDate.getTime() - now.getTime()
-  
-  if (diffMs < 24 * 60 * 60 * 1000) {
-    // Less than 24 hours - show relative time
-    const hours = Math.floor(diffMs / (60 * 60 * 1000))
-    const minutes = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000))
-    return `in ${hours}h ${minutes}m`
+  // Fallback calculation
+  if (isMonthly && billingPeriodStart) {
+    const billingDay = new Date(billingPeriodStart).getDate()
+    return `on the ${billingDay}${getOrdinalSuffix(billingDay)} (billing anniversary)`
   } else {
-    // More than 24 hours - show anniversary date
-    return `on ${resetDate.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
-    })} (your billing anniversary)`
+    return 'at midnight'
+  }
+}
+
+function getOrdinalSuffix(day: number): string {
+  if (day >= 11 && day <= 13) return 'th'
+  switch (day % 10) {
+    case 1: return 'st'
+    case 2: return 'nd' 
+    case 3: return 'rd'
+    default: return 'th'
   }
 }
 
@@ -44,7 +74,7 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
     ? Math.round((usageStats.messages_sent_today / usageStats.tier.daily_messages) * 100)
     : 0
 
-  // Determine warning level and configuration
+  // UPDATED: Determine warning level and configuration with anniversary-based resets
   const getWarningConfig = () => {
     // Daily message limit warnings (for free tier)
     if (usageStats.tier.daily_messages > 0 && usageStats.messages_sent_today >= usageStats.tier.daily_messages - 2) {
@@ -58,10 +88,11 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
           iconColor: 'text-red-500',
           title: 'Daily Message Limit Reached',
           message: `You've used all ${usageStats.tier.daily_messages} messages today. Upgrade to Basic for unlimited messages!`,
-          action: 'Upgrade to Basic - $5/month',
+          action: 'Upgrade to Basic - $6/month',
           showUpgrade: true,
           dismissible: false,
-          icon: MessageSquare
+          icon: MessageSquare,
+          resetInfo: formatResetTime(usageStats.daily_reset_time)
         }
       } else if (remaining === 1) {
         return {
@@ -74,7 +105,8 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
           action: 'Upgrade Now',
           showUpgrade: true,
           dismissible: true,
-          icon: MessageSquare
+          icon: MessageSquare,
+          resetInfo: formatResetTime(usageStats.daily_reset_time)
         }
       } else {
         return {
@@ -87,12 +119,13 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
           action: 'View Plans',
           showUpgrade: true,
           dismissible: true,
-          icon: MessageSquare
+          icon: MessageSquare,
+          resetInfo: formatResetTime(usageStats.daily_reset_time)
         }
       }
     }
 
-    // Monthly token limit warnings
+    // Monthly token limit warnings with anniversary-based resets
     if (tokenPercentage >= 95) {
       return {
         level: 'critical',
@@ -104,7 +137,8 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
         action: getUpgradeAction(usageStats.tier.tier),
         showUpgrade: true,
         dismissible: false,
-        icon: Zap
+        icon: Zap,
+        resetInfo: formatResetTime(usageStats.monthly_reset_time, usageStats.billing_period_start, true)
       }
     } else if (tokenPercentage >= 90) {
       return {
@@ -117,7 +151,8 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
         action: getUpgradeAction(usageStats.tier.tier),
         showUpgrade: true,
         dismissible: true,
-        icon: Zap
+        icon: Zap,
+        resetInfo: formatResetTime(usageStats.monthly_reset_time, usageStats.billing_period_start, true)
       }
     } else if (tokenPercentage >= 70) {
       return {
@@ -130,7 +165,8 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
         action: 'View Usage',
         showUpgrade: false,
         dismissible: true,
-        icon: Zap
+        icon: Zap,
+        resetInfo: formatResetTime(usageStats.monthly_reset_time, usageStats.billing_period_start, true)
       }
     }
 
@@ -185,7 +221,7 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
               {config.message}
             </p>
 
-            {/* Usage Progress */}
+            {/* UPDATED: Usage Progress with anniversary info */}
             <div className="mb-3">
               <div className="flex items-center justify-between text-xs mb-1">
                 <span className={config.textColor}>Current Usage</span>
@@ -212,7 +248,7 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
               </div>
             </div>
 
-            {/* Upgrade Benefits */}
+            {/* UPDATED: Upgrade Benefits */}
             {config.showUpgrade && (
               <div className="mb-3">
                 <p className={`text-xs ${config.textColor} mb-2 font-medium`}>
@@ -229,15 +265,25 @@ export function UsageWarningBanner({ usageStats, onUpgrade, onDismiss }: UsageWa
               </div>
             )}
 
-            {/* Reset Timer */}
+            {/* UPDATED: Anniversary-based Reset Timer */}
             <div className={`text-xs ${config.textColor} flex items-center mb-3`}>
-              <Clock className="w-3 h-3 mr-1" />
-              <span>
-                {config.icon === MessageSquare
-                  ? `Daily limit resets ${formatResetTime()}`
-                  : `Monthly limit resets ${formatResetTime()} (billing anniversary)`
-                }
-              </span>
+              <div className="flex items-center space-x-1 mr-4">
+                <Clock className="w-3 h-3" />
+                <span>
+                  {config.icon === MessageSquare
+                    ? `Daily limit resets ${config.resetInfo}`
+                    : `Monthly limit resets ${config.resetInfo}`
+                  }
+                </span>
+              </div>
+              {config.icon === Zap && usageStats.billing_period_start && (
+                <div className="flex items-center space-x-1">
+                  <Calendar className="w-3 h-3" />
+                  <span className="text-xs">
+                    Anniversary billing: {new Date(usageStats.billing_period_start).getDate()}{getOrdinalSuffix(new Date(usageStats.billing_period_start).getDate())} of each month
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Action Button */}

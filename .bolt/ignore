@@ -1,0 +1,52 @@
+# .bolt/ignore - Files and directories to exclude from LLM context
+
+# Supabase migrations - database schema changes don't need to be in LLM context
+supabase/migrations/
+.bolt/supabase_discarded_migrations/
+
+# Environment files - contain sensitive data
+.env
+.env.local
+.env.production
+
+# Dependencies - large files not needed for development context
+node_modules/
+package-lock.json
+
+# Build outputs - generated files
+dist/
+build/
+
+# Logs and temporary files
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git files
+.git/
+.gitignore
+
+# Other large assets that don't need context
+public/logo.png
+public/*.jpg
+public/*.jpeg
+public/*.png
+public/*.gif
+public/*.svg
+
+# Documentation that's not needed in context
+README.md
+docs/db-schema-for-debugging.md
+
+# Config files that rarely change
+tailwind.config.js
+vite.config.ts
+tsconfig*.json
+postcss.config.js
+eslint.config.js

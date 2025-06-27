@@ -618,9 +618,9 @@ export function ChatLayout() {
   }
 
   return (
-    <div className="infinite-canvas h-screen flex overflow-hidden">
-      {/* Desktop Sidebar */}
-      <div className="desktop-sidebar">
+    <div className="h-screen flex bg-surface-50 overflow-hidden">
+      {/* Desktop Sidebar - Hidden on mobile */}
+      <div className="hidden lg:flex lg:flex-col lg:w-72 lg:bg-white/60 lg:backdrop-blur-md lg:border-r lg:border-gray-200/30">
         <Sidebar
           conversations={conversations}
           activeConversationId={activeConversationId}
@@ -636,28 +636,28 @@ export function ChatLayout() {
         />
       </div>
       
-      {/* Main Canvas Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full bg-surface-50">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 h-full relative">
         {/* Mobile Top Bar */}
-        <div className="mobile-top-bar lg:hidden">
+        <div className="lg:hidden sticky top-0 z-50 h-14 bg-surface-50/95 backdrop-blur-md border-b border-gray-200/30 px-4 flex items-center justify-between">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-100/50 rounded-2xl transition-colors"
+            className="p-2 hover:bg-white/60 rounded-2xl transition-colors shadow-sm"
           >
             <Menu className="w-5 h-5 text-[#222427]" />
           </button>
           
-          <h1 className="text-lg font-semibold text-[#222427]">
+          <h1 className="text-lg font-semibold text-[#222427] truncate max-w-[200px]">
             {activeConversation?.title || 'chat.space'}
           </h1>
           
-          <button className="p-2 hover:bg-gray-100/50 rounded-2xl transition-colors">
+          <button className="p-2 hover:bg-white/60 rounded-2xl transition-colors shadow-sm">
             <Settings className="w-5 h-5 text-[#8A8377]" />
           </button>
         </div>
 
-        {/* Chat Canvas */}
-        <div className="flex-1 overflow-hidden">
+        {/* Chat Content - Full height with proper mobile spacing */}
+        <div className="flex-1 flex flex-col overflow-hidden">
           <ChatArea
             conversation={activeConversation}
             selectedModel={selectedModel}
@@ -675,24 +675,20 @@ export function ChatLayout() {
         </div>
       </div>
 
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div className="lg:hidden">
-          <Sidebar
-            conversations={conversations}
-            activeConversationId={activeConversationId}
-            onNewChat={handleNewChat}
-            onSelectConversation={handleSelectConversation}
-            isOpen={sidebarOpen}
-            onToggle={() => setSidebarOpen(!sidebarOpen)}
-            usageStats={null}
-            onUpgrade={() => handleUpgrade()}
-            onRenameConversation={handleRenameConversation}
-            onDeleteConversation={handleDeleteConversation}
-            onClearAllConversations={handleClearAllConversations}
-          />
-        </div>
-      )}
+      {/* Mobile Sidebar - Renders overlay when open */}
+      <Sidebar
+        conversations={conversations}
+        activeConversationId={activeConversationId}
+        onNewChat={handleNewChat}
+        onSelectConversation={handleSelectConversation}
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        usageStats={null}
+        onUpgrade={() => handleUpgrade()}
+        onRenameConversation={handleRenameConversation}
+        onDeleteConversation={handleDeleteConversation}
+        onClearAllConversations={handleClearAllConversations}
+      />
 
       {/* Usage Limit Exceeded Modal */}
       {limitExceededModal.isOpen && limitExceededModal.error && (

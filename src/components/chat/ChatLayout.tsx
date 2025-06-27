@@ -485,47 +485,30 @@ export function ChatLayout() {
   }
   
   /**
-   * FIXED: Clear all conversations with proper error handling
-   * Now only clears local state if database deletion succeeds
+   * SIMPLIFIED: Clear all conversations - database first, then state
    */
   const handleClearAllConversations = async () => {
     try {
-      console.log('🗑️ Starting clear conversations process...')
+      console.log('🗑️ Clearing all conversations...')
       
-      // CRITICAL: Delete from database FIRST
-      // This will now throw an error if authentication fails or deletion fails
+      // Delete from database FIRST
       await databaseService.deleteAllConversations()
-      console.log('✅ Database deletion completed successfully')
       
-      // ONLY clear React state if database deletion succeeded
+      // Clear local state AFTER successful database deletion
       setConversations([])
       setActiveConversationId(null)
+      setError(null)
+      setStreamingState({
+        isStreaming: false,
+        currentMessage: '',
+        messageId: null
+      })
       
-      // Create new conversation after successful deletion
-      if (user) {
-        const newConversation = createNewConversation('New Chat')
-        setActiveConversationId(newConversation.id)
-      }
+      console.log('✅ All conversations cleared successfully')
       
-      console.log('✅ Clear conversations completed successfully')
     } catch (error) {
       console.error('❌ Failed to clear conversations:', error)
-      
-      // Show specific error message to user
-      if (error instanceof Error) {
-        if (error.message.includes('Authentication required') || error.message.includes('Session expired')) {
-          setError('Session expired. Please sign in again to clear conversations.')
-          // Optionally trigger re-authentication
-          clearInvalidSession()
-        } else {
-          setError(`Failed to clear conversations: ${error.message}`)
-        }
-      } else {
-        setError('Failed to clear conversations. Please try again.')
-      }
-      
-      // DO NOT clear local state if database deletion failed
-      // This ensures the UI remains consistent with the database
+      setError(`Failed to clear conversations: ${error.message}`)
     }
   }
 

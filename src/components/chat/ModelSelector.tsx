@@ -183,7 +183,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
       <div className="relative">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center space-x-1 sm:space-x-2 bg-white/80 backdrop-blur-sm border rounded-lg sm:rounded-xl px-2 sm:px-3 py-1.5 sm:py-2 hover:bg-white transition-all duration-200 text-xs sm:text-sm font-medium min-w-0 max-w-[120px] sm:max-w-[140px] md:max-w-none md:min-w-[140px] ${
+          className={`flex items-center space-x-1 sm:space-x-2 bg-white/80 backdrop-blur-sm border rounded-xl sm:rounded-2xl px-2 sm:px-3 py-1.5 sm:py-2 hover:bg-white transition-all duration-200 text-xs sm:text-sm font-medium min-w-0 max-w-[120px] sm:max-w-[140px] md:max-w-none md:min-w-[140px] ${
             !isModelAllowed(selectedModel) 
               ? 'border-amber-300 hover:border-amber-400 text-amber-700 bg-amber-50/50' 
               : 'border-gray-200 hover:border-gray-300 text-gray-700'
@@ -255,7 +255,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 sm:space-x-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 sm:py-3 hover:bg-white hover:border-gray-300 transition-all duration-200 group min-w-[240px] sm:min-w-[280px]"
+        className="flex items-center space-x-2 sm:space-x-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl sm:rounded-3xl px-3 sm:px-4 py-2 sm:py-3 hover:bg-white hover:border-gray-300 transition-all duration-200 group min-w-[240px] sm:min-w-[280px]"
       >
         <div className="text-left flex-1 min-w-0">
           <div className="flex items-center space-x-2">

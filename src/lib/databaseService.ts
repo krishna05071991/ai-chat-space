@@ -276,40 +276,27 @@ class DatabaseService {
   }
 
   /**
-   * FIXED: Delete all conversations for the current user from database
-   * Now properly throws errors when authentication fails
+   * SIMPLIFIED: Delete all conversations - direct database operation
    */
   async deleteAllConversations(): Promise<void> {
-    return await this.withAuth(async () => {
+    try {
+      // Check authentication first
+      const isAuth = await this.isAuthenticated()
+      if (!isAuth) {
+        throw new Error('Authentication required to delete conversations')
+      }
+      
       const user = await this.getCurrentUser()
       if (!user) {
-        throw new Error('No authenticated user found')
+        throw new Error('No user session found')
       }
-
-      console.log('🗑️ Deleting conversations for user:', user.id.substring(0, 8))
       
-      // First check how many conversations exist
-      const { count: beforeCount, error: countError } = await supabase
+      console.log('🗑️ Starting delete all conversations for user:', user.id)
+      
+      // DIRECT DELETE - no counting, just delete
+      const { error: deleteError } = await supabase
         .from('conversations')
-        .select('*', { count: 'exact' })
-        .eq('user_id', user.id)
-      
-      if (countError) {
-        throw new Error(`Failed to count conversations: ${countError.message}`)
-      }
-      
-      console.log('📋 Conversations to delete:', beforeCount)
-      
-      // If no conversations exist, we're done
-      if (beforeCount === 0) {
-        console.log('✅ No conversations to delete')
-        return
-      }
-      
-      // Delete all conversations
-      const { error: deleteError, count: deletedCount } = await supabase
-        .from('conversations')
-        .delete({ count: 'exact' })
+        .delete()
         .eq('user_id', user.id)
       
       if (deleteError) {
@@ -317,27 +304,12 @@ class DatabaseService {
         throw new Error(`Failed to delete conversations: ${deleteError.message}`)
       }
       
-      console.log('✅ Deleted conversations:', deletedCount)
+      console.log('✅ All conversations deleted from database')
       
-      // Verify deletion worked
-      const { count: afterCount, error: verifyError } = await supabase
-        .from('conversations')
-        .select('*', { count: 'exact' })
-        .eq('user_id', user.id)
-      
-      if (verifyError) {
-        throw new Error(`Failed to verify deletion: ${verifyError.message}`)
-      }
-      
-      console.log('📋 Conversations remaining:', afterCount)
-      
-      if (afterCount > 0) {
-        throw new Error(`Delete verification failed: ${afterCount} conversations still exist`)
-      }
-      
-      console.log('✅ All conversations successfully deleted from database')
-      
-    }, 'deleteAllConversations')
+    } catch (error) {
+      console.error('❌ Delete all conversations error:', error)
+      throw error
+    }
   }
 
   /**

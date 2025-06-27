@@ -94,7 +94,11 @@
 
   /* Mobile-first safe area handling */
   .safe-area-top {
-    padding-top: env(safe-area-inset-top);
+    padding-top: max(env(safe-area-inset-top), 1rem);
+  }
+
+  .pt-safe {
+    padding-top: max(env(safe-area-inset-top), 0.5rem);
   }
 
   .safe-area-bottom {

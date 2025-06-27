@@ -1,4 +1,4 @@
-// COMPLETE: Edge Function with comprehensive conversation tracking and usage management
+// FIXED: Edge Function with proper OpenAI reasoning model support and conversation handling
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -8,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
-// COMPLETE: All supported models
+// COMPLETE: All supported models with reasoning model detection
 const VALID_OPENAI_MODELS = [
   'gpt-3.5-turbo',
   'gpt-4o-mini',
@@ -81,6 +81,11 @@ const PRICING_TIERS = {
     ]
   }
 };
+
+// NEW: Function to detect OpenAI reasoning models
+function isReasoningModel(modelId) {
+  return modelId.includes('o1') || modelId.includes('o3') || modelId.includes('o4');
+}
 
 // CRITICAL: Enhanced getUserTierAndUsage with anniversary-based reset logic
 async function getUserTierAndUsage(supabase, userId) {
@@ -202,6 +207,56 @@ async function getUserTierAndUsage(supabase, userId) {
 
   } catch (error) {
     console.error('💥 Error in getUserTierAndUsage:', error);
+    throw error;
+  }
+}
+
+// NEW: Ensure conversation exists before saving messages
+async function ensureConversationExists(supabase, conversationId, userId) {
+  try {
+    console.log('🔍 Checking if conversation exists:', conversationId);
+
+    // Check if conversation exists
+    const { data: existingConversation, error: fetchError } = await supabase
+      .from('conversations')
+      .select('id, title')
+      .eq('id', conversationId)
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError && fetchError.code === 'PGRST116') {
+      // Conversation doesn't exist, create it
+      console.log('📝 Creating new conversation:', conversationId);
+      
+      const { data: newConversation, error: createError } = await supabase
+        .from('conversations')
+        .insert({
+          id: conversationId,
+          user_id: userId,
+          title: 'New Chat',
+          model_history: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        throw new Error(`Failed to create conversation: ${createError.message}`);
+      }
+
+      console.log('✅ Conversation created successfully:', newConversation.id);
+      return newConversation;
+
+    } else if (fetchError) {
+      throw new Error(`Failed to check conversation: ${fetchError.message}`);
+    } else {
+      console.log('✅ Conversation already exists:', existingConversation.id);
+      return existingConversation;
+    }
+
+  } catch (error) {
+    console.error('❌ Error ensuring conversation exists:', error);
     throw error;
   }
 }
@@ -516,7 +571,7 @@ function isClaudeModel(modelId) {
   return VALID_CLAUDE_MODELS.includes(modelId);
 }
 
-// STREAMING: OpenAI API with usage tracking
+// FIXED: OpenAI API with proper reasoning model support
 async function callOpenAIStreamingAPI(requestBody, controller) {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiApiKey) {
@@ -525,13 +580,41 @@ async function callOpenAIStreamingAPI(requestBody, controller) {
 
   console.log('🌊 Streaming OpenAI API with model:', requestBody.model);
 
-  const openaiPayload = {
-    model: requestBody.model,
-    messages: requestBody.messages,
-    max_tokens: requestBody.max_tokens || 4000,
-    temperature: requestBody.temperature || 0.7,
-    stream: true
-  };
+  // CRITICAL FIX: Detect reasoning models and use different parameters
+  const isReasoning = isReasoningModel(requestBody.model);
+  
+  let openaiPayload;
+  
+  if (isReasoning) {
+    // FIXED: Reasoning models require different parameters
+    console.log('🧠 Using reasoning model parameters for:', requestBody.model);
+    openaiPayload = {
+      model: requestBody.model,
+      messages: requestBody.messages,
+      max_completion_tokens: requestBody.max_tokens || 25000, // Use max_completion_tokens for reasoning models
+      reasoning_effort: "medium", // Required for reasoning models
+      stream: true
+      // REMOVED: temperature, top_p, presence_penalty, frequency_penalty, logprobs (not supported)
+    };
+  } else {
+    // Standard models use normal parameters
+    console.log('📝 Using standard model parameters for:', requestBody.model);
+    openaiPayload = {
+      model: requestBody.model,
+      messages: requestBody.messages,
+      max_tokens: requestBody.max_tokens || 4000,
+      temperature: requestBody.temperature || 0.7,
+      stream: true
+    };
+  }
+
+  console.log('📤 OpenAI payload:', {
+    model: openaiPayload.model,
+    isReasoningModel: isReasoning,
+    hasReasoningEffort: !!openaiPayload.reasoning_effort,
+    hasMaxCompletionTokens: !!openaiPayload.max_completion_tokens,
+    hasMaxTokens: !!openaiPayload.max_tokens
+  });
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -545,7 +628,15 @@ async function callOpenAIStreamingAPI(requestBody, controller) {
   if (!response.ok) {
     const errorData = await response.text();
     console.error('❌ OpenAI API error:', response.status, errorData);
-    throw new Error(`OpenAI API error: ${response.status}`);
+    
+    // ENHANCED: Better error messages for reasoning model issues
+    if (response.status === 404 && isReasoning) {
+      throw new Error(`OpenAI reasoning model ${requestBody.model} not available. This might be a model access or API configuration issue.`);
+    } else if (response.status === 400 && isReasoning) {
+      throw new Error(`OpenAI reasoning model ${requestBody.model} parameter error. Check model availability and API access.`);
+    } else {
+      throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
+    }
   }
 
   const reader = response.body?.getReader();
@@ -651,7 +742,15 @@ async function callAnthropicStreamingAPI(requestBody, controller) {
   if (!response.ok) {
     const errorData = await response.text();
     console.error('❌ Anthropic API error:', response.status, errorData);
-    throw new Error(`Anthropic API error: ${response.status}`);
+    
+    // ENHANCED: Better error messages for Claude 4 model issues
+    if (response.status === 404) {
+      throw new Error(`Claude model ${requestBody.model} not available. This might be a model access or API configuration issue.`);
+    } else if (response.status === 400) {
+      throw new Error(`Claude model ${requestBody.model} parameter error. Check model availability and API access.`);
+    } else {
+      throw new Error(`Anthropic API error: ${response.status} - ${errorData}`);
+    }
   }
 
   const reader = response.body?.getReader();
@@ -733,7 +832,8 @@ serve(async (req) => {
       model: requestBody.model,
       messageCount: requestBody.messages?.length,
       conversationId: requestBody.conversation_id,
-      hasStream: !!requestBody.stream
+      hasStream: !!requestBody.stream,
+      isReasoningModel: isReasoningModel(requestBody.model)
     });
 
     // Initialize Supabase client
@@ -866,6 +966,9 @@ serve(async (req) => {
       });
     }
 
+    // CRITICAL FIX: Ensure conversation exists before saving messages
+    await ensureConversationExists(supabase, conversationId, user.id);
+
     // CRITICAL: Get next sequence numbers
     const baseSequence = await getNextSequenceNumber(supabase, conversationId);
     const userSequence = baseSequence;
@@ -885,7 +988,8 @@ serve(async (req) => {
       messageCount: requestBody.messages.length,
       userId: user.id,
       tier: userTierData.tier,
-      conversationId
+      conversationId,
+      isReasoningModel: !isAnthropic && isReasoningModel(requestBody.model)
     });
 
     // STREAMING: Process AI response
@@ -902,7 +1006,8 @@ serve(async (req) => {
 
             console.log('✅ AI response completed:', {
               contentLength: result.content.length,
-              tokensUsed: result.usage.total_tokens
+              tokensUsed: result.usage.total_tokens,
+              model: result.model
             });
 
             // CRITICAL: Save AI message with usage data
@@ -960,11 +1065,11 @@ serve(async (req) => {
             
             // ENHANCED: Better error type classification
             let errorType = 'INTERNAL_ERROR';
-            if (error.message.includes('API key')) {
+            if (error.message.includes('API key') || error.message.includes('not configured')) {
               errorType = 'API_CONFIGURATION_ERROR';
-            } else if (error.message.includes('Failed to save')) {
+            } else if (error.message.includes('Failed to save') || error.message.includes('Failed to create conversation')) {
               errorType = 'DATABASE_OPERATION_FAILED';
-            } else if (error.message.includes('OpenAI') || error.message.includes('Anthropic')) {
+            } else if (error.message.includes('OpenAI') || error.message.includes('Anthropic') || error.message.includes('reasoning model') || error.message.includes('Claude model')) {
               errorType = 'AI_SERVICE_ERROR';
             }
 

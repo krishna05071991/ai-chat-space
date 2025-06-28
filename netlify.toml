@@ -1,11 +1,10 @@
-# Simplified Netlify deployment configuration
+# Netlify deployment configuration
 [build]
-  command = "npm install && npm run build"
+  command = "npm ci && npm run build"
   publish = "dist"
 
 [build.environment]
   NODE_VERSION = "18"
-  NPM_VERSION = "8"
 
 # SPA routing - redirect all routes to index.html
 [[redirects]]

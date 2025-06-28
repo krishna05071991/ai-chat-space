@@ -114,14 +114,9 @@ export function ChatArea({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
-      {/* Clean header with Chat Models branding - FIXED ALIGNMENT */}
+      {/* CLEAN: Minimal header - REMOVED mobile logo */}
       <div className="relative z-20 flex-shrink-0 pt-safe">
         <div className="flex items-center justify-center py-6 px-4 min-h-[80px]">
-          {/* Mobile: Only centered logo, Desktop: Full header */}
-          <div className="lg:hidden flex items-center justify-center">
-            <Logo size="md" compact={true} />
-          </div>
-          
           {/* Desktop header */}
           <div className="hidden lg:flex items-center justify-between w-full max-w-6xl">
             <div className="flex items-center">
@@ -146,7 +141,7 @@ export function ChatArea({
             </div>
           </div>
           
-          {/* Mobile model selector - FIXED: Better aligned with header center */}
+          {/* Mobile model selector - floating */}
           <div className="lg:hidden fixed top-6 right-4 z-30 pt-safe" style={{ paddingRight: 'max(env(safe-area-inset-right), 0.5rem)' }}>
             <ModelSelector 
               selectedModel={selectedModel}

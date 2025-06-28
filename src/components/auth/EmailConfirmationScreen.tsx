@@ -1,4 +1,4 @@
-// Email confirmation waiting screen
+// Email confirmation waiting screen with Chat Models branding
 import React, { useState } from 'react'
 import { Mail, RefreshCw, CheckCircle } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
@@ -57,7 +57,7 @@ export function EmailConfirmationScreen({ email }: EmailConfirmationScreenProps)
           </p>
 
           <p className="text-sm text-gray-500 mb-8">
-            Click the link in the email to activate your account and start using chat.space
+            Click the link in the email to activate your account and start using Chat Models
           </p>
 
           {/* Resend button */}
@@ -88,8 +88,8 @@ export function EmailConfirmationScreen({ email }: EmailConfirmationScreenProps)
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-500">
             Having trouble? Email us at{' '}
-            <a href="mailto:support@chat.space" className="text-purple-600 hover:text-purple-700 font-medium">
-              support@chat.space
+            <a href="mailto:support@chatmodels.app" className="text-purple-600 hover:text-purple-700 font-medium">
+              support@chatmodels.app
             </a>
           </p>
         </div>

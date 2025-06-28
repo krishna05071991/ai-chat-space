@@ -157,7 +157,7 @@ export function MessageInput({
       return `${selectedModel.displayName} requires upgrade`
     }
     
-    return 'Message chat.space...'
+    return 'Message Chat Models...'
   }
 
   const warning = getUsageWarning()
@@ -274,10 +274,10 @@ export function MessageInput({
         </form>
       </div>
 
-      {/* UPDATED: Mobile-optimized footer text with anniversary billing info */}
+      {/* CLEAN: Simplified footer without billing information */}
       <div className="text-center mt-3 text-xs text-gray-500">
         <div className="flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2">
-          <span>chat.space can make mistakes</span>
+          <span>Chat Models can make mistakes</span>
           {usageStats && usageStats.tier.daily_messages > 0 && (
             <span className="flex items-center">
               <span className="hidden sm:inline">•</span>
@@ -288,12 +288,6 @@ export function MessageInput({
             <span className="flex items-center">
               <span className="hidden sm:inline">•</span>
               <span className="ml-1 sm:ml-2">{Math.round((usageStats.tokens_used_month / usageStats.tier.monthly_tokens) * 100)}% monthly usage</span>
-            </span>
-          )}
-          {usageStats?.billing_period_start && (
-            <span className="flex items-center text-xs text-gray-400">
-              <span className="hidden sm:inline">•</span>
-              <span className="ml-1 sm:ml-2">Anniversary billing: {new Date(usageStats.billing_period_start).getDate()}{getOrdinalSuffix(new Date(usageStats.billing_period_start).getDate())}</span>
             </span>
           )}
         </div>

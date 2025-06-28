@@ -1,4 +1,4 @@
-// Enhanced chat area component with mobile-first responsive design
+// Enhanced chat area component with Chat Models branding and clean header
 import React, { useEffect, useRef } from 'react'
 import { MessageBubble } from './MessageBubble'
 import { MessageInput } from './MessageInput'
@@ -114,16 +114,9 @@ export function ChatArea({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
-      {/* Clean minimal header - NO OPAQUE BACKGROUND */}
+      {/* CLEAN: Minimal header - REMOVED mobile logo */}
       <div className="relative z-20 flex-shrink-0 pt-safe">
         <div className="flex items-center justify-center py-6 px-4 min-h-[80px]">
-          {/* Mobile: Only centered chat.space icon, Desktop: Full header */}
-          <div className="lg:hidden flex items-center justify-center">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
-              <MessageSquare className="w-4 h-4 text-white" />
-            </div>
-          </div>
-          
           {/* Desktop header */}
           <div className="hidden lg:flex items-center justify-between w-full max-w-6xl">
             <div className="flex items-center">
@@ -149,7 +142,7 @@ export function ChatArea({
           </div>
           
           {/* Mobile model selector - floating */}
-          <div className="lg:hidden fixed top-4 right-4 z-30 pt-safe" style={{ paddingRight: 'max(env(safe-area-inset-right), 0.5rem)' }}>
+          <div className="lg:hidden fixed top-6 right-4 z-30 pt-safe" style={{ paddingRight: 'max(env(safe-area-inset-right), 0.5rem)' }}>
             <ModelSelector 
               selectedModel={selectedModel}
               onModelChange={onModelChange}
@@ -216,7 +209,7 @@ export function ChatArea({
       <div className="hidden lg:block fixed bottom-4 left-1/2 transform -translate-x-1/2 z-10">
         <div className="bg-white/80 backdrop-blur-sm border border-gray-200 rounded-full px-4 py-2 shadow-sm">
           <p className="text-xs text-gray-500 font-medium">
-            chat by <span className="text-purple-600">thelaunch.space</span>
+            powered by <span className="text-purple-600 font-poppins">chat models</span>
           </p>
         </div>
       </div>
@@ -275,7 +268,7 @@ function formatResetTime(resetTime?: string): string {
     // Less than 24 hours - show relative time
     const hours = Math.floor(diffMs / (60 * 60 * 1000))
     const minutes = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000))
-    return `in ${hours}h ${minutes}m`
+    return `Resets in ${hours}h ${minutes}m`
   } else {
     // More than 24 hours - show date
     return `on ${resetDate.toLocaleDateString('en-US', { 

@@ -1,19 +1,19 @@
-// Custom logo component for chat.space - supports both light and dark variants
+// Updated logo component for Chat Models branding
 import React from 'react'
-import { MessageSquare } from 'lucide-react'
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl'
   variant?: 'light' | 'dark' | 'gradient'
   className?: string
   showText?: boolean
+  compact?: boolean
 }
 
 const sizeClasses = {
   sm: 'w-6 h-6',
   md: 'w-8 h-8',
-  lg: 'w-12 h-12',
-  xl: 'w-16 h-16'
+  lg: 'w-10 h-10',
+  xl: 'w-12 h-12'
 }
 
 const textSizeClasses = {
@@ -27,65 +27,20 @@ export function Logo({
   size = 'md', 
   variant = 'gradient', 
   className = '',
-  showText = false 
+  showText = false,
+  compact = false
 }: LogoProps) {
-  // Try to use custom logo first, fallback to icon
-  const useCustomLogo = true // Set to true when logo.png is available
-
-  const getBackgroundClass = () => {
-    switch (variant) {
-      case 'light':
-        return 'bg-white border border-purple-200'
-      case 'dark':
-        return 'bg-gray-800 border border-gray-700'
-      case 'gradient':
-      default:
-        return 'bg-gradient-to-r from-purple-500 to-purple-600'
-    }
-  }
-
-  const getIconColor = () => {
-    switch (variant) {
-      case 'light':
-        return 'text-purple-600'
-      case 'dark':
-        return 'text-white'
-      case 'gradient':
-      default:
-        return 'text-white'
-    }
-  }
-
-  const logoElement = useCustomLogo ? (
-    <div className={`
-      ${sizeClasses[size]} rounded-2xl ${getBackgroundClass()} 
-      flex items-center justify-center p-2 ${className}
-    `}>
+  const logoElement = (
+    <div className={`${sizeClasses[size]} flex-shrink-0 ${className}`}>
       <img 
-        src="/logo.png" 
-        alt="chat.space logo" 
+        src="/cm-logo.png" 
+        alt="Chat Models logo" 
         className="w-full h-full object-contain"
-        onError={(e) => {
-          // Fallback to icon if custom logo fails to load
-          e.currentTarget.style.display = 'none'
-          e.currentTarget.nextElementSibling?.removeAttribute('style')
-        }}
       />
-      <MessageSquare 
-        className={`${getIconColor()} w-3/4 h-3/4`}
-        style={{ display: 'none' }}
-      />
-    </div>
-  ) : (
-    <div className={`
-      ${sizeClasses[size]} rounded-2xl ${getBackgroundClass()} 
-      flex items-center justify-center ${className}
-    `}>
-      <MessageSquare className={`${getIconColor()} w-3/4 h-3/4`} />
     </div>
   )
 
-  if (!showText) {
+  if (!showText || compact) {
     return logoElement
   }
 
@@ -93,11 +48,11 @@ export function Logo({
     <div className={`flex items-center space-x-3 ${className}`}>
       {logoElement}
       <h1 className={`
-        ${textSizeClasses[size]} font-bold 
+        ${textSizeClasses[size]} font-poppins font-semibold
         bg-gradient-to-r from-purple-600 to-purple-700 
         bg-clip-text text-transparent
       `}>
-        chat.space
+        chat models
       </h1>
     </div>
   )

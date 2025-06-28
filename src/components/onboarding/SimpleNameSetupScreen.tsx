@@ -1,4 +1,4 @@
-// Simple name setup for new users - mobile-first design
+// Simple name setup for new users with Chat Models branding
 import React, { useState } from 'react'
 import { User, ArrowRight, Sparkles, SkipForward } from 'lucide-react'
 import { Logo } from '../common/Logo'
@@ -72,7 +72,7 @@ export function SimpleNameSetupScreen({ onComplete }: SimpleNameSetupScreenProps
         <div className="flex items-center justify-center space-x-2 mb-4">
           <Sparkles className="w-5 h-5 text-purple-500" />
           <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
-            Welcome to chat.space!
+            Welcome to Chat Models!
           </h1>
         </div>
         <p className="text-gray-600 text-sm sm:text-base">

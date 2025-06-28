@@ -1,4 +1,4 @@
-// Mobile-first authentication layout component
+// Mobile-first authentication layout component with Chat Models branding
 import React, { useState } from 'react'
 import { Mail, Lock, User, ArrowRight } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'

@@ -1,4 +1,4 @@
-// Mobile-first sidebar component with responsive design
+// Mobile-first sidebar component with Chat Models branding and clean design
 import React from 'react'
 import { Plus, MessageSquare, ChevronLeft, Menu, User, Settings, CreditCard, ChevronDown, LogOut, Trash2, X } from 'lucide-react'
 import { Conversation } from '../../types/chat'
@@ -7,6 +7,7 @@ import { ConversationMenu } from './ConversationMenu'
 import { UsageDisplay } from '../usage/UsageDisplay'
 import { useUserProfile } from '../../hooks/useUserProfile'
 import { ProfileSettings } from '../settings/ProfileSettings'
+import { Logo } from '../common/Logo'
 
 import { useUsageStats } from '../../hooks/useUsageStats'
 
@@ -48,12 +49,12 @@ export function Sidebar({
       {/* Mobile backdrop */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 lg:hidden"
           onClick={onToggle}
         />
       )}
 
-      {/* Mobile toggle button - properly centered and positioned */}
+      {/* Mobile toggle button */}
       {!isOpen && (
         <button
           onClick={onToggle}
@@ -63,43 +64,48 @@ export function Sidebar({
         </button>
       )}
 
-      {/* Mobile-first sidebar */}
+      {/* Redesigned sidebar with subtle transparency */}
       <div className={`
-        fixed lg:relative top-0 left-0 h-full bg-white/95 backdrop-blur-sm border-r border-gray-200 z-40
+        fixed lg:relative top-0 left-0 h-full bg-white/60 backdrop-blur-xl border-r border-gray-200/50 z-40
         transform transition-transform duration-300 ease-in-out
         w-72 sm:w-80 lg:w-64
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         shadow-2xl lg:shadow-none
         flex flex-col
       `}>
-        {/* Sidebar header with close button and New Chat */}
-        <div className="flex-shrink-0 border-b border-gray-200 lg:border-b-0">
+        {/* Clean header with logo and branding */}
+        <div className="flex-shrink-0 border-b border-gray-200/30">
           {/* Mobile header with close button */}
-          <div className="flex items-center justify-between p-3 sm:p-4 lg:hidden">
-            <h2 className="text-lg font-semibold text-gray-800">Menu</h2>
+          <div className="flex items-center justify-between p-4 lg:hidden">
+            <Logo showText={true} size="md" />
             <button
               onClick={onToggle}
-              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+              className="p-2 hover:bg-gray-100/50 rounded-xl transition-colors"
             >
               <ChevronLeft className="w-5 h-5 text-gray-600" />
             </button>
           </div>
           
-          {/* New Chat Button - Aligned with chat.space icon */}
-          <div className="p-4 lg:px-6 lg:py-6 lg:pt-8">
+          {/* Desktop header with logo */}
+          <div className="hidden lg:block p-6 pt-8">
+            <Logo showText={true} size="lg" />
+          </div>
+          
+          {/* Start New Button with clean design */}
+          <div className="p-4 lg:px-6 lg:pb-6">
             <button
               onClick={onNewChat}
-              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 flex items-center text-sm shadow-lg hover:shadow-xl"
+              className="w-full bg-white/80 hover:bg-white border border-gray-200/50 hover:border-gray-300/50 text-gray-700 hover:text-gray-900 font-medium py-3 px-4 rounded-xl transition-all duration-200 flex items-center text-sm shadow-sm hover:shadow-md backdrop-blur-sm"
             >
-              <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform" />
-              New chat
+              <Plus className="w-4 h-4 mr-2 transition-transform group-hover:rotate-90" />
+              Start New
             </button>
           </div>
         </div>
 
-        {/* Mobile-optimized conversations list */}
+        {/* Clean conversations list */}
         <div className="flex-1 overflow-y-auto px-3 lg:px-6">
-          <div className="space-y-1 sm:space-y-2">
+          <div className="space-y-1 sm:space-y-1">
             {conversations.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <p className="text-sm">No conversations yet</p>
@@ -112,8 +118,8 @@ export function Sidebar({
                     className={`
                       group relative rounded-xl transition-all duration-200 cursor-pointer
                       ${activeConversationId === conversation.id
-                        ? 'bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 shadow-sm'
-                        : 'hover:bg-gray-50 border border-transparent'
+                        ? 'bg-white/70 backdrop-blur-sm border border-gray-200/50 shadow-sm'
+                        : 'hover:bg-white/40 hover:backdrop-blur-sm border border-transparent hover:border-gray-200/30'
                       }
                     `}
                     onClick={() => onSelectConversation(conversation.id)}
@@ -133,8 +139,8 @@ export function Sidebar({
                       </span>
                     </div>
 
-                    {/* Mobile-optimized conversation menu */}
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 lg:group-hover:opacity-100 transition-opacity z-10">
+                    {/* Conversation menu */}
+                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                       <ConversationMenu
                         conversation={conversation}
                         onRename={onRenameConversation}
@@ -149,21 +155,21 @@ export function Sidebar({
           </div>
         </div>
 
-        {/* Mobile-optimized usage stats display */}
+        {/* Usage stats with subtle background */}
         {usageStats && (
           <div className="p-3 sm:p-4 flex-shrink-0">
-            <div className="rounded-xl overflow-hidden">
+            <div className="rounded-xl overflow-hidden bg-white/50 backdrop-blur-sm border border-gray-200/30">
               <UsageDisplay usageStats={usageStats} />
             </div>
           </div>
         )}
 
-        {/* Mobile-optimized footer */}
-        <div className="p-3 sm:p-4 border-t border-gray-200 bg-gradient-to-r from-purple-50 to-white flex-shrink-0">
+        {/* Clean footer with profile menu */}
+        <div className="p-3 sm:p-4 border-t border-gray-200/30 bg-white/30 backdrop-blur-sm flex-shrink-0">
           <div className="relative">
             <button
               onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-              className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/70 transition-colors group"
+              className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/50 transition-colors group"
             >
               <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
                 {profile?.avatar_url ? (
@@ -189,11 +195,11 @@ export function Sidebar({
               <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ${profileMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
-            {/* Mobile-optimized profile menu */}
+            {/* Profile menu with clean design */}
             {profileMenuOpen && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden z-[9998]">
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-white/95 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-2xl overflow-hidden z-[9998]">
                 
-                {/* Mobile-optimized usage statistics in profile menu */}
+                {/* Usage statistics in profile menu */}
                 {usageStats && (
                   <div className="px-3 py-3 border-b border-gray-100">
                     <div className="text-xs text-gray-600 font-medium mb-2 flex items-center">
@@ -216,9 +222,6 @@ export function Sidebar({
                           </span>
                         </div>
                       )}
-                      <div className="text-xs text-gray-500 mt-1 truncate">
-                        📅 Resets monthly • Today: {usageStats.tokens_used_today.toLocaleString()} tokens
-                      </div>
                     </div>
                   </div>
                 )}
@@ -228,7 +231,7 @@ export function Sidebar({
                     setProfileMenuOpen(false)
                     setShowProfileSettings(true)
                   }}
-                  className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50/50 transition-colors"
                 >
                   <Settings className="w-4 h-4 text-gray-600 flex-shrink-0" />
                   <span className="text-sm text-gray-700">Profile Settings</span>
@@ -239,7 +242,7 @@ export function Sidebar({
                     onUpgrade()
                     setProfileMenuOpen(false)
                   }}
-                  className="w-full flex items-center space-x-3 p-3 hover:bg-purple-50 transition-colors"
+                  className="w-full flex items-center space-x-3 p-3 hover:bg-purple-50/50 transition-colors"
                 >
                   <CreditCard className="w-4 h-4 text-purple-600 flex-shrink-0" />
                   <span className="text-sm text-purple-600 font-medium">Upgrade plan</span>
@@ -251,7 +254,7 @@ export function Sidebar({
                       setShowClearConfirm(true)
                       setProfileMenuOpen(false)
                     }}
-                    className="w-full flex items-center space-x-3 p-3 hover:bg-red-50 transition-colors"
+                    className="w-full flex items-center space-x-3 p-3 hover:bg-red-50/50 transition-colors"
                   >
                     <Trash2 className="w-4 h-4 text-red-500 flex-shrink-0" />
                     <span className="text-sm text-red-600">Clear conversations</span>
@@ -264,7 +267,7 @@ export function Sidebar({
                       signOut()
                       setProfileMenuOpen(false)
                     }}
-                    className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50/50 transition-colors"
                   >
                     <LogOut className="w-4 h-4 text-gray-600 flex-shrink-0" />
                     <span className="text-sm text-gray-700">Log out</span>
@@ -276,7 +279,7 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Mobile-optimized clear conversations modal */}
+      {/* Clear conversations modal */}
       {showClearConfirm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4">

@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { Sidebar } from './Sidebar'
 import { ChatArea } from './ChatArea'
+import { ProfileSettingsPage } from './ProfileSettingsPage'
+import { PricingPlansPage } from './PricingPlansPage'
 import { LimitExceededModal, UsageLimitError } from '../usage/LimitExceededModal'
-import { PricingModal } from '../pricing/PricingModal'
 import { useAuth } from '../../hooks/useAuth'
 import { databaseService } from '../../lib/databaseService'
 import { AI_MODELS, AIModel, Message, StreamingState, TokenUsage, getDefaultModel } from '../../types/chat'
@@ -15,6 +16,9 @@ interface ConversationState {
   created_at: string
   updated_at: string
 }
+
+// ADDED: Page types for navigation
+type CurrentPage = 'chat' | 'profile' | 'pricing'
 
 export function ChatLayout() {
   const { user, clearInvalidSession } = useAuth()
@@ -32,17 +36,14 @@ export function ChatLayout() {
   const [error, setError] = useState<string | null>(null)
   const [isLoadingConversations, setIsLoadingConversations] = useState(false)
 
+  // NEW: Page navigation state
+  const [currentPage, setCurrentPage] = useState<CurrentPage>('chat')
+
   // USAGE LIMIT MODAL STATE
   const [limitExceededModal, setLimitExceededModal] = useState<{
     isOpen: boolean
     error: UsageLimitError | null
   }>({ isOpen: false, error: null })
-
-  // PRICING MODAL STATE
-  const [pricingModal, setPricingModal] = useState<{
-    isOpen: boolean
-    highlightTier?: string
-  }>({ isOpen: false })
 
   const abortControllerRef = useRef<AbortController | null>(null)
 
@@ -154,6 +155,7 @@ export function ChatLayout() {
     
     const newConversation = createNewConversation('New Chat')
     setActiveConversationId(newConversation.id)
+    setCurrentPage('chat') // NEW: Navigate to chat page
     setSidebarOpen(false)
     setError(null)
     setStreamingState({
@@ -216,6 +218,7 @@ export function ChatLayout() {
     }
     
     setActiveConversationId(id)
+    setCurrentPage('chat') // NEW: Navigate to chat page
     setSidebarOpen(false)
     setError(null)
     setStreamingState({
@@ -231,7 +234,23 @@ export function ChatLayout() {
 
   // Enhanced model change with upgrade prompts
   const handleUpgradePrompt = useCallback((requiredTier: string) => {
-    setPricingModal({ isOpen: true, highlightTier: requiredTier })
+    setCurrentPage('pricing') // NEW: Navigate to pricing page
+    setSidebarOpen(false)
+  }, [])
+
+  // NEW: Page navigation handlers
+  const handleProfileSettings = useCallback(() => {
+    setCurrentPage('profile')
+    setSidebarOpen(false)
+  }, [])
+
+  const handlePricingPlans = useCallback(() => {
+    setCurrentPage('pricing')
+    setSidebarOpen(false)
+  }, [])
+
+  const handleBackToChat = useCallback(() => {
+    setCurrentPage('chat')
   }, [])
 
   // CRITICAL: Updated handleSendMessage to send FULL conversation history
@@ -461,12 +480,13 @@ export function ChatLayout() {
 
   // Handle upgrade selections
   const handleUpgrade = useCallback((tier?: string) => {
-    setPricingModal({ isOpen: true, highlightTier: tier })
+    setCurrentPage('pricing')
+    setSidebarOpen(false)
   }, [])
 
   const handleSelectPlan = useCallback((tier: string) => {
     console.log('Selected plan:', tier)
-    setPricingModal({ isOpen: false })
+    setCurrentPage('chat')
     // TODO: Implement actual subscription logic
     alert(`Upgrading to ${tier} plan! (This would integrate with your payment processor)`)
   }, [])
@@ -474,7 +494,8 @@ export function ChatLayout() {
   // Handle limit exceeded modal actions
   const handleLimitExceededUpgrade = useCallback((tier: string) => {
     setLimitExceededModal({ isOpen: false, error: null })
-    setPricingModal({ isOpen: true, highlightTier: tier })
+    setCurrentPage('pricing')
+    setSidebarOpen(false)
   }, [])
 
   const handleTryTomorrow = useCallback(() => {
@@ -594,13 +615,44 @@ export function ChatLayout() {
     )
   }
 
+  // NEW: Render different pages based on currentPage state
+  const renderMainContent = () => {
+    switch (currentPage) {
+      case 'profile':
+        return <ProfileSettingsPage onBack={handleBackToChat} />
+      case 'pricing':
+        return <PricingPlansPage onBack={handleBackToChat} onSelectPlan={handleSelectPlan} />
+      case 'chat':
+      default:
+        return (
+          <ChatArea
+            conversation={activeConversation}
+            selectedModel={selectedModel}
+            onModelChange={handleModelChange}
+            onUpgradePrompt={handleUpgradePrompt}
+            onSendMessage={handleSendMessage}
+            streamingState={streamingState}
+            onCancelGeneration={handleCancelGeneration}
+            error={error}
+            onClearError={() => setError(null)}
+            onRenameConversation={handleRenameConversation}
+            onDeleteConversation={handleDeleteConversation}
+            onExportConversation={() => {}}
+          />
+        )
+    }
+  }
+
   return (
     <div className="h-screen flex bg-gray-50 overflow-hidden">
       <Sidebar
         conversations={conversations}
         activeConversationId={activeConversationId}
+        currentPage={currentPage} // NEW: Pass current page
         onNewChat={handleNewChat}
         onSelectConversation={handleSelectConversation}
+        onProfileSettings={handleProfileSettings} // NEW: Profile handler
+        onPricingPlans={handlePricingPlans} // NEW: Pricing handler
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         usageStats={null}
@@ -611,20 +663,7 @@ export function ChatLayout() {
       />
       
       <div className="flex-1 flex flex-col min-w-0 h-full">
-        <ChatArea
-          conversation={activeConversation}
-          selectedModel={selectedModel}
-          onModelChange={handleModelChange}
-          onUpgradePrompt={handleUpgradePrompt}
-          onSendMessage={handleSendMessage}
-          streamingState={streamingState}
-          onCancelGeneration={handleCancelGeneration}
-          error={error}
-          onClearError={() => setError(null)}
-          onRenameConversation={handleRenameConversation}
-          onDeleteConversation={handleDeleteConversation}
-          onExportConversation={() => {}}
-        />
+        {renderMainContent()}
       </div>
 
       {/* Usage Limit Exceeded Modal */}
@@ -634,16 +673,6 @@ export function ChatLayout() {
           onClose={() => setLimitExceededModal({ isOpen: false, error: null })}
           onUpgrade={handleLimitExceededUpgrade}
           onTryTomorrow={limitExceededModal.error.errorType === 'DAILY_MESSAGE_LIMIT_EXCEEDED' ? handleTryTomorrow : undefined}
-        />
-      )}
-
-      {/* Pricing Modal */}
-      {pricingModal.isOpen && (
-        <PricingModal
-          isOpen={pricingModal.isOpen}
-          onClose={() => setPricingModal({ isOpen: false })}
-          currentTier="free"
-          onSelectPlan={handleSelectPlan}
         />
       )}
     </div>

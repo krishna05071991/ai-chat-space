@@ -1,4 +1,4 @@
-// Mobile-first sidebar component with Chat Models branding and clean design
+// Mobile-first sidebar component with Chat Models branding and page navigation
 import React from 'react'
 import { Plus, MessageSquare, ChevronLeft, Menu, User, Settings, CreditCard, ChevronDown, LogOut, Trash2, X } from 'lucide-react'
 import { Conversation } from '../../types/chat'
@@ -6,7 +6,6 @@ import { useAuth } from '../../hooks/useAuth'
 import { ConversationMenu } from './ConversationMenu'
 import { UsageDisplay } from '../usage/UsageDisplay'
 import { useUserProfile } from '../../hooks/useUserProfile'
-import { ProfileSettings } from '../settings/ProfileSettings'
 import { Logo } from '../common/Logo'
 
 import { useUsageStats } from '../../hooks/useUsageStats'
@@ -14,8 +13,11 @@ import { useUsageStats } from '../../hooks/useUsageStats'
 interface SidebarProps {
   conversations: Conversation[]
   activeConversationId: string | null
+  currentPage: 'chat' | 'profile' | 'pricing' // NEW: Current page state
   onNewChat: () => void
   onSelectConversation: (id: string) => void
+  onProfileSettings: () => void // NEW: Profile settings handler
+  onPricingPlans: () => void // NEW: Pricing plans handler
   isOpen: boolean
   onToggle: () => void
   usageStats?: any
@@ -27,9 +29,12 @@ interface SidebarProps {
 
 export function Sidebar({ 
   conversations, 
-  activeConversationId, 
+  activeConversationId,
+  currentPage, // NEW: Current page prop
   onNewChat, 
   onSelectConversation,
+  onProfileSettings, // NEW: Profile settings handler
+  onPricingPlans, // NEW: Pricing plans handler
   isOpen,
   onToggle,
   onUpgrade,
@@ -42,7 +47,6 @@ export function Sidebar({
   const { profile, displayName, initials } = useUserProfile()
   const [profileMenuOpen, setProfileMenuOpen] = React.useState(false)
   const [showClearConfirm, setShowClearConfirm] = React.useState(false)
-  const [showProfileSettings, setShowProfileSettings] = React.useState(false)
 
   return (
     <>
@@ -103,60 +107,83 @@ export function Sidebar({
           </div>
         </div>
 
-        {/* Clean conversations list */}
-        <div className="flex-1 overflow-y-auto px-3 lg:px-6">
-          <div className="space-y-1 sm:space-y-1">
-            {conversations.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <p className="text-sm">No conversations yet</p>
-              </div>
-            ) : (
-              <>
-                {conversations.map((conversation) => (
-                  <div
-                    key={conversation.id}
-                    className={`
-                      group relative rounded-xl transition-all duration-200 cursor-pointer
-                      ${activeConversationId === conversation.id
-                        ? 'bg-white/70 backdrop-blur-sm border border-gray-200/50 shadow-sm'
-                        : 'hover:bg-white/40 hover:backdrop-blur-sm border border-transparent hover:border-gray-200/30'
-                      }
-                    `}
-                    onClick={() => onSelectConversation(conversation.id)}
-                  >
-                    <div className="flex items-center p-3 pr-10">
-                      <MessageSquare className={`w-4 h-4 mr-3 flex-shrink-0 ${
-                        activeConversationId === conversation.id 
-                          ? 'text-purple-600' 
-                          : 'text-gray-400'
-                      }`} />
-                      <span className={`text-sm truncate ${
-                        activeConversationId === conversation.id 
-                          ? 'text-purple-800 font-medium' 
-                          : 'text-gray-700'
-                      }`}>
-                        {conversation.title}
-                      </span>
-                    </div>
+        {/* Clean conversations list - only show on chat page */}
+        {currentPage === 'chat' && (
+          <div className="flex-1 overflow-y-auto px-3 lg:px-6">
+            <div className="space-y-1 sm:space-y-1">
+              {conversations.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p className="text-sm">No conversations yet</p>
+                </div>
+              ) : (
+                <>
+                  {conversations.map((conversation) => (
+                    <div
+                      key={conversation.id}
+                      className={`
+                        group relative rounded-xl transition-all duration-200 cursor-pointer
+                        ${activeConversationId === conversation.id
+                          ? 'bg-white/70 backdrop-blur-sm border border-gray-200/50 shadow-sm'
+                          : 'hover:bg-white/40 hover:backdrop-blur-sm border border-transparent hover:border-gray-200/30'
+                        }
+                      `}
+                      onClick={() => onSelectConversation(conversation.id)}
+                    >
+                      <div className="flex items-center p-3 pr-10">
+                        <MessageSquare className={`w-4 h-4 mr-3 flex-shrink-0 ${
+                          activeConversationId === conversation.id 
+                            ? 'text-purple-600' 
+                            : 'text-gray-400'
+                        }`} />
+                        <span className={`text-sm truncate ${
+                          activeConversationId === conversation.id 
+                            ? 'text-purple-800 font-medium' 
+                            : 'text-gray-700'
+                        }`}>
+                          {conversation.title}
+                        </span>
+                      </div>
 
-                    {/* Conversation menu */}
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                      <ConversationMenu
-                        conversation={conversation}
-                        onRename={onRenameConversation}
-                        onDelete={onDeleteConversation}
-                        isActive={activeConversationId === conversation.id}
-                      />
+                      {/* Conversation menu */}
+                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <ConversationMenu
+                          conversation={conversation}
+                          onRename={onRenameConversation}
+                          onDelete={onDeleteConversation}
+                          isActive={activeConversationId === conversation.id}
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </>
-            )}
+                  ))}
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Usage stats with subtle background */}
-        {usageStats && (
+        {/* NEW: Page indicator for non-chat pages */}
+        {currentPage !== 'chat' && (
+          <div className="flex-1 flex items-center justify-center p-6">
+            <div className="text-center text-gray-500">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                {currentPage === 'profile' ? (
+                  <User className="w-8 h-8 text-purple-600" />
+                ) : (
+                  <CreditCard className="w-8 h-8 text-purple-600" />
+                )}
+              </div>
+              <p className="text-sm font-medium text-gray-700">
+                {currentPage === 'profile' ? 'Profile Settings' : 'Pricing Plans'}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {currentPage === 'profile' ? 'Manage your account' : 'Choose your plan'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Usage stats with subtle background - only show on chat page */}
+        {usageStats && currentPage === 'chat' && (
           <div className="p-3 sm:p-4 flex-shrink-0">
             <div className="rounded-xl overflow-hidden bg-white/50 backdrop-blur-sm border border-gray-200/30">
               <UsageDisplay usageStats={usageStats} />
@@ -199,8 +226,8 @@ export function Sidebar({
             {profileMenuOpen && (
               <div className="absolute bottom-full left-0 right-0 mb-2 bg-white/95 backdrop-blur-sm border border-gray-200/50 rounded-xl shadow-2xl overflow-hidden z-[9998]">
                 
-                {/* Usage statistics in profile menu */}
-                {usageStats && (
+                {/* Usage statistics in profile menu - only show on chat page */}
+                {usageStats && currentPage === 'chat' && (
                   <div className="px-3 py-3 border-b border-gray-100">
                     <div className="text-xs text-gray-600 font-medium mb-2 flex items-center">
                       <span className="mr-1">📊</span>
@@ -226,29 +253,39 @@ export function Sidebar({
                   </div>
                 )}
 
+                {/* NEW: Profile Settings navigation */}
                 <button
                   onClick={() => {
                     setProfileMenuOpen(false)
-                    setShowProfileSettings(true)
+                    onProfileSettings()
                   }}
-                  className="w-full flex items-center space-x-3 p-3 hover:bg-gray-50/50 transition-colors"
+                  className={`w-full flex items-center space-x-3 p-3 transition-colors ${
+                    currentPage === 'profile' 
+                      ? 'bg-purple-50/50 text-purple-700' 
+                      : 'hover:bg-gray-50/50 text-gray-700'
+                  }`}
                 >
-                  <Settings className="w-4 h-4 text-gray-600 flex-shrink-0" />
-                  <span className="text-sm text-gray-700">Profile Settings</span>
+                  <Settings className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-sm">Profile Settings</span>
                 </button>
                 
+                {/* NEW: Pricing Plans navigation */}
                 <button
                   onClick={() => {
-                    onUpgrade()
                     setProfileMenuOpen(false)
+                    onPricingPlans()
                   }}
-                  className="w-full flex items-center space-x-3 p-3 hover:bg-purple-50/50 transition-colors"
+                  className={`w-full flex items-center space-x-3 p-3 transition-colors ${
+                    currentPage === 'pricing' 
+                      ? 'bg-purple-50/50 text-purple-700' 
+                      : 'hover:bg-purple-50/50 text-purple-600'
+                  }`}
                 >
-                  <CreditCard className="w-4 h-4 text-purple-600 flex-shrink-0" />
-                  <span className="text-sm text-purple-600 font-medium">Upgrade plan</span>
+                  <CreditCard className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-sm font-medium">Pricing Plans</span>
                 </button>
                 
-                {conversations.length > 1 && (
+                {conversations.length > 1 && currentPage === 'chat' && (
                   <button
                     onClick={() => {
                       setShowClearConfirm(true)
@@ -310,28 +347,6 @@ export function Sidebar({
                   Clear conversations
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Profile Settings Modal */}
-      {showProfileSettings && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl border border-gray-200 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-4 sm:p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-800">Profile Settings</h2>
-                <button
-                  onClick={() => setShowProfileSettings(false)}
-                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-            </div>
-            <div className="p-4 sm:p-6">
-              <ProfileSettings />
             </div>
           </div>
         </div>

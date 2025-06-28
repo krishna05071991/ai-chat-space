@@ -114,7 +114,7 @@ export function ChatArea({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
-      {/* Clean header with Chat Models branding */}
+      {/* Clean header with Chat Models branding - FIXED ALIGNMENT */}
       <div className="relative z-20 flex-shrink-0 pt-safe">
         <div className="flex items-center justify-center py-6 px-4 min-h-[80px]">
           {/* Mobile: Only centered logo, Desktop: Full header */}
@@ -146,8 +146,8 @@ export function ChatArea({
             </div>
           </div>
           
-          {/* Mobile model selector - floating */}
-          <div className="lg:hidden fixed top-4 right-4 z-30 pt-safe" style={{ paddingRight: 'max(env(safe-area-inset-right), 0.5rem)' }}>
+          {/* Mobile model selector - FIXED: Better aligned with header center */}
+          <div className="lg:hidden fixed top-6 right-4 z-30 pt-safe" style={{ paddingRight: 'max(env(safe-area-inset-right), 0.5rem)' }}>
             <ModelSelector 
               selectedModel={selectedModel}
               onModelChange={onModelChange}
@@ -273,7 +273,7 @@ function formatResetTime(resetTime?: string): string {
     // Less than 24 hours - show relative time
     const hours = Math.floor(diffMs / (60 * 60 * 1000))
     const minutes = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000))
-    return `in ${hours}h ${minutes}m`
+    return `Resets in ${hours}h ${minutes}m`
   } else {
     // More than 24 hours - show date
     return `on ${resetDate.toLocaleDateString('en-US', { 

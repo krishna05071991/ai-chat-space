@@ -1,4 +1,4 @@
-// UPDATED: Database service - Now works with backend-driven usage tracking
+// UPDATED: Database service with enhanced error handling for connection issues
 import { supabase } from './supabase'
 import { Conversation, Message } from '../types/chat'
 
@@ -44,6 +44,41 @@ class DatabaseService {
   private pendingOperations: (() => Promise<void>)[] = []
 
   /**
+   * Enhanced error handling for database operations
+   */
+  private handleDatabaseError(error: any, operation: string): Error {
+    console.error(`❌ Database error in ${operation}:`, error)
+
+    // Handle network connectivity errors
+    if (error.message?.includes('Failed to fetch') || error.name === 'TypeError') {
+      return new Error(
+        `Unable to connect to the database. Please check your internet connection and Supabase configuration. If the problem persists, the service may be temporarily unavailable.`
+      )
+    }
+
+    // Handle authentication errors
+    if (error.message?.includes('refresh_token_not_found') ||
+        error.message?.includes('Invalid Refresh Token') ||
+        error.message?.includes('JWT expired')) {
+      return new Error(`Your session has expired. Please sign in again.`)
+    }
+
+    // Handle RLS policy violations
+    if (error.message?.includes('Row Level Security policy violation') ||
+        error.message?.includes('permission denied')) {
+      return new Error(`You don't have permission to access this data. Please ensure you're properly authenticated.`)
+    }
+
+    // Handle connection timeouts
+    if (error.message?.includes('timeout') || error.message?.includes('ETIMEDOUT')) {
+      return new Error(`The request timed out. Please try again.`)
+    }
+
+    // Default error message with context
+    return new Error(`Database operation failed (${operation}): ${error.message || 'Unknown error'}`)
+  }
+
+  /**
    * Update user profile information
    */
   async updateUserProfile(profileData: {
@@ -69,7 +104,7 @@ class DatabaseService {
         }, { onConflict: 'id' })
 
       if (error) {
-        throw new Error(`Failed to update profile: ${error.message}`)
+        throw this.handleDatabaseError(error, 'updateUserProfile')
       }
 
     }, 'updateUserProfile')
@@ -102,7 +137,7 @@ class DatabaseService {
         .maybeSingle()
 
       if (error) {
-        throw new Error(`Failed to get user profile: ${error.message}`)
+        throw this.handleDatabaseError(error, 'getUserProfile')
       }
 
       return data
@@ -144,13 +179,13 @@ class DatabaseService {
       
       return true
     } catch (error) {
+      console.error('Authentication check failed:', error)
       return false
     }
   }
 
   /**
-   * FIXED: Wrapper for database operations that require authentication
-   * Now throws errors instead of returning null when authentication fails
+   * ENHANCED: Wrapper for database operations with better error handling
    */
   private async withAuth<T>(operation: () => Promise<T>, operationName: string): Promise<T> {
     try {
@@ -162,15 +197,8 @@ class DatabaseService {
       
       return await operation()
     } catch (error) {
-      // Handle specific auth errors
-      if (error.message?.includes('refresh_token_not_found') ||
-          error.message?.includes('Invalid Refresh Token') ||
-          error.message?.includes('JWT expired')) {
-        throw new Error(`Session expired during ${operationName}. Please sign in again.`)
-      }
-      
-      // Re-throw other errors (including our own authentication error above)
-      throw error
+      // Use enhanced error handling
+      throw this.handleDatabaseError(error, operationName)
     }
   }
 
@@ -212,8 +240,7 @@ class DatabaseService {
         .order('updated_at', { ascending: false })
 
       if (convError) {
-        console.error('❌ Failed to load conversations:', convError)
-        throw new Error(`Failed to load conversations: ${convError.message}`)
+        throw this.handleDatabaseError(convError, 'loadConversations')
       }
 
       console.log('📋 Found conversations:', {
@@ -308,7 +335,7 @@ class DatabaseService {
         }, { onConflict: 'id' })
 
       if (error) {
-        throw new Error(`Failed to save conversation: ${error.message}`)
+        throw this.handleDatabaseError(error, 'saveConversationMetadata')
       }
 
     }, 'saveConversationMetadata')
@@ -358,7 +385,7 @@ class DatabaseService {
         .eq('id', conversationId)
 
       if (error) {
-        throw new Error(`Failed to delete conversation: ${error.message}`)
+        throw this.handleDatabaseError(error, 'deleteConversation')
       }
 
     }, 'deleteConversation')
@@ -383,8 +410,7 @@ class DatabaseService {
         .eq('user_id', user.id)
       
       if (deleteError) {
-        console.error('❌ Delete error:', deleteError)
-        throw new Error(`Failed to delete conversations: ${deleteError.message}`)
+        throw this.handleDatabaseError(deleteError, 'deleteAllConversations')
       }
       
       console.log('✅ Deleted conversations:', deletedCount)
@@ -454,8 +480,7 @@ class DatabaseService {
   }
 
   /**
-   * UPDATED: Get usage statistics - Now primarily for frontend display
-   * NOTE: The Edge Function handles the real usage enforcement
+   * UPDATED: Get usage statistics with better error handling
    */
   async getUserUsageStats(): Promise<{
     tokensUsedToday: number
@@ -475,7 +500,7 @@ class DatabaseService {
         .eq('user_id', user.id)
 
       if (convError) {
-        throw new Error(`Failed to get conversations: ${convError.message}`)
+        throw this.handleDatabaseError(convError, 'getUserUsageStats')
       }
 
       if (!conversations || conversations.length === 0) {
@@ -539,134 +564,145 @@ class DatabaseService {
   }
 
   /**
-   * UPDATED: Get current user usage - Enhanced with backend compatibility
-   * NOTE: For frontend display only. Real usage is tracked by Edge Function.
+   * UPDATED: Get current user usage with enhanced error handling
    */
   async getCurrentUsage(): Promise<UserUsageData | null> {
-    const result = await this.withAuth(async () => {
-      const user = await this.getCurrentUser()
-      if (!user) {
-        throw new Error('No authenticated user found')
-      }
-
-      console.log('📊 Getting current usage for user:', user.id)
-
-      // Get user data with subscription tier information
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select(`
-          *,
-          subscription_tiers (
-            tier_name,
-            monthly_token_limit,
-            daily_message_limit,
-            allowed_models
-          )
-        `)
-        .eq('id', user.id)
-        .maybeSingle()
-
-      if (userError) {
-        console.error('❌ Error loading user data:', userError)
-        // Continue without user data - we'll use defaults
-      }
-
-      console.log('👤 User data loaded:', {
-        hasUserData: !!userData,
-        tierName: userData?.subscription_tiers?.tier_name || 'free',
-        monthlyLimit: userData?.subscription_tiers?.monthly_token_limit || 35000,
-        tokensUsed: userData?.monthly_tokens_used || 0,
-        messagesUsed: userData?.daily_messages_sent || 0
-      })
-
-      // Get fallback usage stats if user data is incomplete
-      let usage: any
-      if (userData?.monthly_tokens_used !== undefined && userData?.daily_messages_sent !== undefined) {
-        // Use data from users table (updated by Edge Function)
-        usage = {
-          tokensUsedToday: 0, // Not tracked separately in users table
-          tokensUsedMonth: userData.monthly_tokens_used,
-          messagesUsedToday: userData.daily_messages_sent
+    try {
+      const result = await this.withAuth(async () => {
+        const user = await this.getCurrentUser()
+        if (!user) {
+          throw new Error('No authenticated user found')
         }
-      } else {
-        // Fallback to message table calculation
-        usage = await this.getUserUsageStats()
-      }
-      
-      // Calculate billing period start (anniversary-based)
-      const now = new Date()
-      const userCreatedAt = userData?.created_at ? new Date(userData.created_at) : new Date(now.getFullYear(), now.getMonth(), 15)
-      const billingPeriodStart = userData?.billing_period_start ? 
-        new Date(userData.billing_period_start) : 
-        new Date(now.getFullYear(), now.getMonth(), userCreatedAt.getDate())
-      
-      // Calculate reset times
-      const nextDayReset = new Date(now)
-      nextDayReset.setDate(nextDayReset.getDate() + 1)
-      nextDayReset.setHours(0, 0, 0, 0)
-      
-      // Calculate next billing anniversary
-      const nextMonthReset = new Date(billingPeriodStart)
-      if (now.getDate() >= userCreatedAt.getDate()) {
-        // If we're past the anniversary date, next reset is next month's anniversary
-        nextMonthReset.setMonth(nextMonthReset.getMonth() + 1)
-      }
-      
-      return {
-        daily_messages_sent: usage.messagesUsedToday,
-        monthly_tokens_used: usage.tokensUsedMonth,
-        billing_period_start: billingPeriodStart.toISOString(),
-        last_daily_reset: nextDayReset.toISOString(),
-        last_monthly_reset: nextMonthReset.toISOString(),
-        subscription_tier: userData?.subscription_tiers ? {
-          tier_name: userData.subscription_tiers.tier_name,
-          monthly_token_limit: userData.subscription_tiers.monthly_token_limit,
-          daily_message_limit: userData.subscription_tiers.daily_message_limit
-        } : {
-          tier_name: 'free',
-          monthly_token_limit: 35000,
-          daily_message_limit: 25
+
+        console.log('📊 Getting current usage for user:', user.id)
+
+        // Get user data with subscription tier information
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select(`
+            *,
+            subscription_tiers (
+              tier_name,
+              monthly_token_limit,
+              daily_message_limit,
+              allowed_models
+            )
+          `)
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (userError) {
+          console.error('❌ Error loading user data:', userError)
+          // Continue without user data - we'll use defaults and fallback
         }
-      }
+
+        console.log('👤 User data loaded:', {
+          hasUserData: !!userData,
+          tierName: userData?.subscription_tiers?.tier_name || 'free',
+          monthlyLimit: userData?.subscription_tiers?.monthly_token_limit || 35000,
+          tokensUsed: userData?.monthly_tokens_used || 0,
+          messagesUsed: userData?.daily_messages_sent || 0
+        })
+
+        // Get fallback usage stats if user data is incomplete
+        let usage: any
+        if (userData?.monthly_tokens_used !== undefined && userData?.daily_messages_sent !== undefined) {
+          // Use data from users table (updated by Edge Function)
+          usage = {
+            tokensUsedToday: 0, // Not tracked separately in users table
+            tokensUsedMonth: userData.monthly_tokens_used,
+            messagesUsedToday: userData.daily_messages_sent
+          }
+        } else {
+          // Fallback to message table calculation
+          usage = await this.getUserUsageStats()
+        }
+        
+        // Calculate billing period start (anniversary-based)
+        const now = new Date()
+        const userCreatedAt = userData?.created_at ? new Date(userData.created_at) : new Date(now.getFullYear(), now.getMonth(), 15)
+        const billingPeriodStart = userData?.billing_period_start ? 
+          new Date(userData.billing_period_start) : 
+          new Date(now.getFullYear(), now.getMonth(), userCreatedAt.getDate())
+        
+        // Calculate reset times
+        const nextDayReset = new Date(now)
+        nextDayReset.setDate(nextDayReset.getDate() + 1)
+        nextDayReset.setHours(0, 0, 0, 0)
+        
+        // Calculate next billing anniversary
+        const nextMonthReset = new Date(billingPeriodStart)
+        if (now.getDate() >= userCreatedAt.getDate()) {
+          // If we're past the anniversary date, next reset is next month's anniversary
+          nextMonthReset.setMonth(nextMonthReset.getMonth() + 1)
+        }
+        
+        return {
+          daily_messages_sent: usage.messagesUsedToday,
+          monthly_tokens_used: usage.tokensUsedMonth,
+          billing_period_start: billingPeriodStart.toISOString(),
+          last_daily_reset: nextDayReset.toISOString(),
+          last_monthly_reset: nextMonthReset.toISOString(),
+          subscription_tier: userData?.subscription_tiers ? {
+            tier_name: userData.subscription_tiers.tier_name,
+            monthly_token_limit: userData.subscription_tiers.monthly_token_limit,
+            daily_message_limit: userData.subscription_tiers.daily_message_limit
+          } : {
+            tier_name: 'free',
+            monthly_token_limit: 35000,
+            daily_message_limit: 25
+          }
+        }
+        
+      }, 'getCurrentUsage')
       
-    }, 'getCurrentUsage')
-    
-    return result
+      return result
+    } catch (error) {
+      console.error('❌ Failed to get current usage:', error)
+      
+      // Return null instead of throwing to allow graceful degradation
+      return null
+    }
   }
 
   /**
    * Sync local conversations with database (merge strategy)
    */
   async syncWithDatabase(localConversations: Conversation[]): Promise<Conversation[]> {
-    const result = await this.withAuth(async () => {
-      // Load remote conversations
-      const remoteConversations = await this.loadConversations()
+    try {
+      const result = await this.withAuth(async () => {
+        // Load remote conversations
+        const remoteConversations = await this.loadConversations()
 
-      // Simple merge strategy: use the most recently updated version
-      const mergedConversations = new Map<string, Conversation>()
+        // Simple merge strategy: use the most recently updated version
+        const mergedConversations = new Map<string, Conversation>()
 
-      // Add all remote conversations
-      (remoteConversations || []).forEach(conv => {
-        mergedConversations.set(conv.id, conv)
-      })
+        // Add all remote conversations
+        (remoteConversations || []).forEach(conv => {
+          mergedConversations.set(conv.id, conv)
+        })
 
-      // Override with local if newer
-      localConversations.forEach(localConv => {
-        const remoteConv = mergedConversations.get(localConv.id)
-        if (!remoteConv || new Date(localConv.updated_at) > new Date(remoteConv.updated_at)) {
-          mergedConversations.set(localConv.id, localConv)
-        }
-      })
+        // Override with local if newer
+        localConversations.forEach(localConv => {
+          const remoteConv = mergedConversations.get(localConv.id)
+          if (!remoteConv || new Date(localConv.updated_at) > new Date(remoteConv.updated_at)) {
+            mergedConversations.set(localConv.id, localConv)
+          }
+        })
 
-      const result = Array.from(mergedConversations.values())
-        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+        const result = Array.from(mergedConversations.values())
+          .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
 
+        return result
+
+      }, 'syncWithDatabase')
+      
       return result
-
-    }, 'syncWithDatabase')
-    
-    // Return local conversations if sync fails or user not authenticated
-    return result || localConversations
+    } catch (error) {
+      console.error('❌ Database sync failed:', error)
+      // Return local conversations if sync fails
+      return localConversations
+    }
   }
 }
 

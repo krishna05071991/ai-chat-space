@@ -17,8 +17,26 @@ interface ConversationState {
   updated_at: string
 }
 
-// ADDED: Page types for navigation
+// CLEAR ROUTING: Define all possible page types for the application
 type CurrentPage = 'chat' | 'profile' | 'pricing'
+
+/**
+ * ROUTING DOCUMENTATION:
+ * 
+ * Chat Models uses client-side state-based routing with these pages:
+ * 
+ * 1. 'chat' (default) - Main chat interface with conversations
+ * 2. 'profile' - Profile settings page (full page, not modal)
+ * 3. 'pricing' - Pricing plans page (full page, not modal)
+ * 
+ * Navigation is handled through:
+ * - Sidebar menu items (Profile Settings, Pricing Plans)
+ * - Back buttons on each page
+ * - Programmatic navigation (upgrade prompts → pricing page)
+ * 
+ * All routing is contained within this ChatLayout component using useState.
+ * No external routing library is used to keep the app simple and focused.
+ */
 
 export function ChatLayout() {
   const { user, clearInvalidSession } = useAuth()
@@ -36,7 +54,7 @@ export function ChatLayout() {
   const [error, setError] = useState<string | null>(null)
   const [isLoadingConversations, setIsLoadingConversations] = useState(false)
 
-  // NEW: Page navigation state
+  // ROUTING STATE: Current page management
   const [currentPage, setCurrentPage] = useState<CurrentPage>('chat')
 
   // USAGE LIMIT MODAL STATE
@@ -150,12 +168,13 @@ export function ChatLayout() {
     )
   }, [])
 
+  // ROUTING: Navigation handlers
   const handleNewChat = useCallback(() => {
     if (!user) return
     
     const newConversation = createNewConversation('New Chat')
     setActiveConversationId(newConversation.id)
-    setCurrentPage('chat') // NEW: Navigate to chat page
+    setCurrentPage('chat') // Navigate to chat page
     setSidebarOpen(false)
     setError(null)
     setStreamingState({
@@ -165,7 +184,7 @@ export function ChatLayout() {
     })
   }, [user, createNewConversation])
 
-  // CRITICAL: Fixed conversation selection to properly load messages
+  // ROUTING: Conversation selection navigation
   const handleSelectConversation = useCallback(async (id: string) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -218,7 +237,7 @@ export function ChatLayout() {
     }
     
     setActiveConversationId(id)
-    setCurrentPage('chat') // NEW: Navigate to chat page
+    setCurrentPage('chat') // Navigate to chat page
     setSidebarOpen(false)
     setError(null)
     setStreamingState({
@@ -232,13 +251,13 @@ export function ChatLayout() {
     setSelectedModel(model)
   }, [])
 
-  // Enhanced model change with upgrade prompts
+  // ROUTING: Enhanced model change with upgrade prompts
   const handleUpgradePrompt = useCallback((requiredTier: string) => {
-    setCurrentPage('pricing') // NEW: Navigate to pricing page
+    setCurrentPage('pricing') // Navigate to pricing page
     setSidebarOpen(false)
   }, [])
 
-  // NEW: Page navigation handlers
+  // ROUTING: Page navigation handlers
   const handleProfileSettings = useCallback(() => {
     setCurrentPage('profile')
     setSidebarOpen(false)
@@ -615,7 +634,7 @@ export function ChatLayout() {
     )
   }
 
-  // NEW: Render different pages based on currentPage state
+  // ROUTING: Render different pages based on currentPage state
   const renderMainContent = () => {
     switch (currentPage) {
       case 'profile':
@@ -648,11 +667,11 @@ export function ChatLayout() {
       <Sidebar
         conversations={conversations}
         activeConversationId={activeConversationId}
-        currentPage={currentPage} // NEW: Pass current page
+        currentPage={currentPage} // Pass current page
         onNewChat={handleNewChat}
         onSelectConversation={handleSelectConversation}
-        onProfileSettings={handleProfileSettings} // NEW: Profile handler
-        onPricingPlans={handlePricingPlans} // NEW: Pricing handler
+        onProfileSettings={handleProfileSettings} // Profile handler
+        onPricingPlans={handlePricingPlans} // Pricing handler
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         usageStats={null}

@@ -1,7 +1,7 @@
 # Netlify deployment configuration for Chat Models
 [build]
-  # Build command
-  command = "npm run build"
+  # Build command with explicit npm install
+  command = "npm ci && npm run build"
   
   # Output directory
   publish = "dist"
@@ -9,6 +9,7 @@
   # Environment variables for build
   [build.environment]
     NODE_VERSION = "18"
+    NPM_FLAGS = "--prefer-offline --no-audit"
 
 # SPA routing - redirect all routes to index.html for client-side routing
 [[redirects]]

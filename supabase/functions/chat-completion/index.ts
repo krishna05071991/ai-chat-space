@@ -1,4 +1,4 @@
-// ENHANCED: Edge Function with proper Gemini API implementation
+// ENHANCED: Edge Function with proper Gemini API implementation and rate limit handling
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -824,7 +824,7 @@ async function callAnthropicStreamingAPI(requestBody, controller) {
   }
 }
 
-// COMPLETELY FIXED: Gemini API with proper streaming implementation
+// FIXED: Gemini API with proper rate limit handling
 async function callGeminiStreamingAPI(requestBody, controller) {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
   if (!geminiApiKey) {
@@ -873,14 +873,26 @@ async function callGeminiStreamingAPI(requestBody, controller) {
     const errorData = await response.text();
     console.error('❌ Gemini API error:', response.status, errorData);
     
-    // ENHANCED: Better error messages for Gemini API issues
-    if (response.status === 404) {
-      throw new Error(`Gemini model ${requestBody.model} not available. Check model name and API access. Try using 'gemini-2.0-flash-exp' instead.`);
-    } else if (response.status === 400) {
-      const errorDetail = errorData.includes('does not exist') ? ' Model may not exist or be accessible.' : '';
-      throw new Error(`Gemini model ${requestBody.model} parameter error.${errorDetail} Check request format and model availability.`);
+    // CRITICAL: Enhanced rate limit handling with user-friendly messages
+    if (response.status === 429) {
+      throw new Error(`We've hit Gemini API rate limits! Please try again in a few minutes, or use a different model like GPT-4o-mini or Claude 3.5 Haiku.`);
     } else if (response.status === 403) {
-      throw new Error(`Gemini API access denied. Check API key permissions and quota limits.`);
+      // Check if it's a quota/rate limit issue
+      if (errorData.includes('quota') || errorData.includes('rate limit') || errorData.includes('FreeTier')) {
+        throw new Error(`Gemini API quota exceeded. We've hit the daily limits for this model. Let's try using OpenAI or Claude models instead!`);
+      } else {
+        throw new Error(`Gemini API access denied. Check API key permissions.`);
+      }
+    } else if (response.status === 400) {
+      // Check for quota/rate limit in error message
+      if (errorData.includes('quota') || errorData.includes('rate limit') || errorData.includes('FreeTier')) {
+        throw new Error(`Gemini model quota exceeded. Let's try again later or use a different model like GPT-4o or Claude 3.5.`);
+      } else {
+        const errorDetail = errorData.includes('does not exist') ? ' Model may not exist or be accessible.' : '';
+        throw new Error(`Gemini model ${requestBody.model} parameter error.${errorDetail} Check request format and model availability.`);
+      }
+    } else if (response.status === 404) {
+      throw new Error(`Gemini model ${requestBody.model} not available. Try using 'gemini-2.0-flash-exp' or switch to OpenAI/Claude models.`);
     } else {
       throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
     }
@@ -1037,39 +1049,52 @@ Just provide the example content directly, no explanations or meta-text.`;
   // FIXED: Use non-streaming endpoint for example generation
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(geminiPayload)
-  });
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(geminiPayload)
+    });
 
-  if (!response.ok) {
-    const errorData = await response.text();
-    console.error('❌ Gemini example generation error:', response.status, errorData);
-    throw new Error(`Failed to generate example: ${response.status} - ${errorData}`);
-  }
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('❌ Gemini example generation error:', response.status, errorData);
+      
+      // CRITICAL: Handle rate limits in example generation
+      if (response.status === 429) {
+        throw new Error(`Gemini rate limits reached. Please try again in a few minutes.`);
+      } else if (response.status === 403 && (errorData.includes('quota') || errorData.includes('FreeTier'))) {
+        throw new Error(`Gemini quota exceeded. Please try again later or upgrade your API plan.`);
+      } else {
+        throw new Error(`Failed to generate example: ${response.status} - ${errorData}`);
+      }
+    }
 
-  const data = await response.json();
-  
-  if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-    const content = data.candidates[0].content.parts[0].text;
-    const usage = {
-      prompt_tokens: data.usageMetadata?.promptTokenCount || 0,
-      completion_tokens: data.usageMetadata?.candidatesTokenCount || 0,
-      total_tokens: (data.usageMetadata?.promptTokenCount || 0) + (data.usageMetadata?.candidatesTokenCount || 0)
-    };
+    const data = await response.json();
+    
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      const content = data.candidates[0].content.parts[0].text;
+      const usage = {
+        prompt_tokens: data.usageMetadata?.promptTokenCount || 0,
+        completion_tokens: data.usageMetadata?.candidatesTokenCount || 0,
+        total_tokens: (data.usageMetadata?.promptTokenCount || 0) + (data.usageMetadata?.candidatesTokenCount || 0)
+      };
 
-    console.log('✅ Example generated successfully:', { contentLength: content.length, usage });
+      console.log('✅ Example generated successfully:', { contentLength: content.length, usage });
 
-    return {
-      content: content.trim(),
-      usage,
-      model
-    };
-  } else {
-    throw new Error('Invalid response format from Gemini API');
+      return {
+        content: content.trim(),
+        usage,
+        model
+      };
+    } else {
+      throw new Error('Invalid response format from Gemini API');
+    }
+  } catch (error) {
+    console.error('❌ Example generation failed:', error);
+    throw error;
   }
 }
 
@@ -1376,12 +1401,22 @@ serve(async (req) => {
             console.error('❌ Streaming error:', error);
             const encoder = new TextEncoder();
             
-            // ENHANCED: Better error type classification
+            // ENHANCED: Better error type classification with Gemini rate limit handling
             let errorType = 'INTERNAL_ERROR';
+            let userMessage = error.message;
+            
             if (error.message.includes('API key') || error.message.includes('not configured')) {
               errorType = 'API_CONFIGURATION_ERROR';
             } else if (error.message.includes('Failed to save') || error.message.includes('Failed to create conversation')) {
               errorType = 'DATABASE_OPERATION_FAILED';
+            } else if (error.message.includes('rate limit') || error.message.includes('quota exceeded') || error.message.includes('FreeTier')) {
+              // CRITICAL: Rate limit specific handling
+              errorType = 'RATE_LIMIT_EXCEEDED';
+              if (error.message.includes('Gemini')) {
+                userMessage = 'Gemini API rate limits reached. Please try again in a few minutes or use a different model like GPT-4o-mini or Claude 3.5 Haiku.';
+              } else {
+                userMessage = 'API rate limits reached. Please try again in a few minutes.';
+              }
             } else if (error.message.includes('OpenAI') || error.message.includes('Anthropic') || error.message.includes('Gemini') || error.message.includes('reasoning model') || error.message.includes('Claude model')) {
               errorType = 'AI_SERVICE_ERROR';
             }
@@ -1389,7 +1424,7 @@ serve(async (req) => {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'error',
               error: errorType,
-              message: error.message
+              message: userMessage
             })}\n\n`));
             controller.close();
           }
@@ -1419,9 +1454,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('💥 Edge function error:', error);
     
-    // ENHANCED: Better error classification
+    // ENHANCED: Better error classification with rate limit handling
     let errorType = 'INTERNAL_ERROR';
     let statusCode = 500;
+    let userMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     
     if (error.message.includes('Authentication') || error.message.includes('User not found')) {
       errorType = 'AUTHENTICATION_FAILED';
@@ -1429,12 +1465,16 @@ serve(async (req) => {
     } else if (error.message.includes('Failed to fetch user data') || error.message.includes('database')) {
       errorType = 'DATABASE_OPERATION_FAILED';
       statusCode = 503;
+    } else if (error.message.includes('rate limit') || error.message.includes('quota exceeded')) {
+      errorType = 'RATE_LIMIT_EXCEEDED';
+      statusCode = 429;
+      userMessage = 'API rate limits reached. Please try again in a few minutes or use a different model.';
     }
 
     return new Response(JSON.stringify({
       error: errorType,
       type: errorType,
-      message: error instanceof Error ? error.message : 'An unexpected error occurred'
+      message: userMessage
     }), {
       status: statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

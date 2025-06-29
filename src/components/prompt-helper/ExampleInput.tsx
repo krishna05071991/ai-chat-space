@@ -1,11 +1,12 @@
-// Example Input screen - Second step of prompt helper wizard
+// Example Input screen - Collect style examples (Step 3)
 import React, { useState } from 'react'
 import { ArrowLeft, ArrowRight, SkipForward } from 'lucide-react'
-import { TaskType } from './PromptHelper'
+import { TaskType, UserExamples } from './PromptHelper'
 
 interface ExampleInputProps {
   taskType: TaskType
-  onComplete: (examples: { example1: string; example2: string }, skip?: boolean) => void
+  initialExamples: UserExamples
+  onComplete: (examples: UserExamples, skip?: boolean) => void
   onBack: () => void
 }
 
@@ -36,9 +37,9 @@ const TASK_PLACEHOLDERS = {
   }
 }
 
-export function ExampleInput({ taskType, onComplete, onBack }: ExampleInputProps) {
-  const [example1, setExample1] = useState('')
-  const [example2, setExample2] = useState('')
+export function ExampleInput({ taskType, initialExamples, onComplete, onBack }: ExampleInputProps) {
+  const [example1, setExample1] = useState(initialExamples.example1)
+  const [example2, setExample2] = useState(initialExamples.example2)
   
   const config = TASK_PLACEHOLDERS[taskType]
   const maxLength = 500
@@ -157,6 +158,7 @@ export function ExampleInput({ taskType, onComplete, onBack }: ExampleInputProps
       {/* Progress Indicator */}
       <div className="mt-8 flex justify-center">
         <div className="flex space-x-2">
+          <div className="w-3 h-3 rounded-full bg-purple-500" />
           <div className="w-3 h-3 rounded-full bg-purple-500" />
           <div className="w-3 h-3 rounded-full bg-purple-500" />
           <div className="w-3 h-3 rounded-full bg-gray-300" />

@@ -1,13 +1,11 @@
-// FIXED: Better state persistence and cleaner flow
+// COMPLETELY REWRITTEN: Minimal state machine with proper persistence
 import React, { useState, useEffect } from 'react'
 import { Introduction } from './Introduction'
 import { RequestInput } from './RequestInput'
 import { TaskSelection } from './TaskSelection'
 import { ExampleInput } from './ExampleInput'
 import { FinalPreview } from './FinalPreview'
-import { UpgradeModal } from './UpgradeModal'
 import { AIModel } from '../../types/chat'
-import { useUsageStats } from '../../hooks/useUsageStats'
 import { X } from 'lucide-react'
 
 interface PromptHelperProps {
@@ -25,24 +23,17 @@ export interface UserExamples {
   example2: string
 }
 
-type PromptHelperStep = 'introduction' | 'request-input' | 'task-selection' | 'example-input' | 'final-preview'
+type Step = 'intro' | 'request' | 'task' | 'examples' | 'preview'
 
-const TASK_MODEL_MAPPING: Record<TaskType, string> = {
-  creative: 'gpt-4.1',
-  coding: 'claude-3-7-sonnet-20250219',
-  analysis: 'o3',
-  general: 'claude-sonnet-4-20250514'
-}
-
-const PROMPT_HELPER_STATE_KEY = 'prompt-helper-state'
-
-interface PromptHelperState {
-  currentStep: PromptHelperStep
-  userRequest: string
-  selectedTask: TaskType | null
-  userExamples: UserExamples
+interface State {
+  step: Step
+  request: string
+  task: TaskType | null
+  examples: UserExamples
   hasStarted: boolean
 }
+
+const STORAGE_KEY = 'prompt-helper'
 
 export function PromptHelper({ 
   onSendMessage, 
@@ -51,210 +42,174 @@ export function PromptHelper({
   onModelChange,
   availableModels 
 }: PromptHelperProps) {
-  const { usageStats } = useUsageStats()
-  
-  // FIXED: Better state initialization with persistence
-  const [state, setState] = useState<PromptHelperState>(() => {
+  // FIXED: Simple state loading
+  const [state, setState] = useState<State>(() => {
     try {
-      const savedState = localStorage.getItem(PROMPT_HELPER_STATE_KEY)
-      if (savedState) {
-        const parsed = JSON.parse(savedState)
-        // If user has started before, skip introduction
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        // If user has started before, skip intro
         if (parsed.hasStarted) {
-          return {
-            ...parsed,
-            currentStep: parsed.currentStep || 'request-input'
-          }
+          return { ...parsed, step: parsed.step || 'request' }
         }
       }
-    } catch (error) {
-      console.warn('Failed to load prompt helper state:', error)
+    } catch (e) {
+      // Ignore loading errors
     }
     
     return {
-      currentStep: 'introduction' as PromptHelperStep,
-      userRequest: '',
-      selectedTask: null,
-      userExamples: { example1: '', example2: '' },
+      step: 'intro' as Step,
+      request: '',
+      task: null,
+      examples: { example1: '', example2: '' },
       hasStarted: false
     }
   })
 
-  // FIXED: Save state on every change for better persistence
+  // FIXED: Save state on every change
   useEffect(() => {
     try {
-      localStorage.setItem(PROMPT_HELPER_STATE_KEY, JSON.stringify(state))
-    } catch (error) {
-      console.warn('Failed to save prompt helper state:', error)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    } catch (e) {
+      // Ignore save errors
     }
   }, [state])
 
-  // FIXED: Listen for page visibility to persist state across tabs
+  // FIXED: Persist across tab switches
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        // Page became visible again - ensure state is saved
+    const handleVisibility = () => {
+      if (document.hidden) {
         try {
-          localStorage.setItem(PROMPT_HELPER_STATE_KEY, JSON.stringify(state))
-        } catch (error) {
-          console.warn('Failed to save state on visibility change:', error)
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+        } catch (e) {
+          // Ignore save errors
         }
       }
     }
 
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [state])
 
-  const isProUser = usageStats?.tier?.tier === 'pro'
-
-  const updateState = (updates: Partial<PromptHelperState>) => {
+  const updateState = (updates: Partial<State>) => {
     setState(prev => ({ ...prev, ...updates }))
   }
 
-  const handleIntroductionComplete = () => {
-    updateState({ 
-      currentStep: 'request-input',
-      hasStarted: true 
-    })
+  // FIXED: Proper flow progression
+  const handleIntroComplete = () => {
+    updateState({ step: 'request', hasStarted: true })
   }
 
-  const handleRequestInput = (request: string) => {
-    updateState({ 
-      currentStep: 'task-selection',
-      userRequest: request 
-    })
+  const handleRequestComplete = (request: string) => {
+    updateState({ step: 'task', request })
   }
 
-  const handleTaskSelection = (taskType: TaskType) => {
-    updateState({ 
-      currentStep: 'example-input',
-      selectedTask: taskType 
-    })
+  const handleTaskComplete = (task: TaskType) => {
+    updateState({ step: 'examples', task })
     
     // Auto-select optimal model
-    const optimalModelId = TASK_MODEL_MAPPING[taskType]
-    const optimalModel = availableModels.find(m => m.id === optimalModelId)
+    const taskModelMap: Record<TaskType, string> = {
+      creative: 'gpt-4.1',
+      coding: 'claude-3-7-sonnet-20250219',
+      analysis: 'o3',
+      general: 'claude-sonnet-4-20250514'
+    }
     
+    const optimalModel = availableModels.find(m => m.id === taskModelMap[task])
     if (optimalModel) {
       onModelChange(optimalModel)
     }
   }
 
-  const handleExampleInput = (examples: UserExamples) => {
-    updateState({ 
-      currentStep: 'final-preview',
-      userExamples: examples 
-    })
+  const handleExamplesComplete = (examples: UserExamples) => {
+    updateState({ step: 'preview', examples })
   }
 
-  const handlePromptSubmission = (enhancedPrompt: string, finalModel: AIModel) => {
+  const handleSubmit = (prompt: string, model: AIModel) => {
     // Clear state since we're done
     try {
-      localStorage.removeItem(PROMPT_HELPER_STATE_KEY)
-    } catch (error) {
-      console.warn('Failed to clear prompt helper state:', error)
+      localStorage.removeItem(STORAGE_KEY)
+    } catch (e) {
+      // Ignore cleanup errors
     }
     
-    onSendMessage(enhancedPrompt, finalModel)
-    onExit()
-  }
-
-  const handleExit = () => {
-    // Keep state for next time unless user confirms clear
+    onSendMessage(prompt, model)
     onExit()
   }
 
   const handleBack = () => {
-    switch (state.currentStep) {
-      case 'request-input':
-        updateState({ currentStep: 'introduction' })
-        break
-      case 'task-selection':
-        updateState({ currentStep: 'request-input' })
-        break
-      case 'example-input':
-        updateState({ currentStep: 'task-selection' })
-        break
-      case 'final-preview':
-        updateState({ currentStep: 'example-input' })
-        break
+    const backMap: Record<Step, Step> = {
+      intro: 'intro',
+      request: 'intro',
+      task: 'request', 
+      examples: 'task',
+      preview: 'examples'
     }
+    updateState({ step: backMap[state.step] })
   }
 
-  if (!isProUser) {
-    return (
-      <UpgradeModal 
-        isOpen={true}
-        onClose={onExit}
-        onUpgrade={() => {}}
-      />
-    )
+  const handleExit = () => {
+    // Keep state for next time
+    onExit()
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
-      {/* FIXED: Clean, minimal header */}
-      <div className="flex-shrink-0 border-b border-gray-200">
-        <div className="flex items-center justify-between py-4 px-6">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center">
-              <span className="text-white text-sm">✨</span>
+    <div className="flex-1 flex flex-col h-full bg-white">
+      {/* MINIMAL: Clean header */}
+      <div className="flex-shrink-0 border-b border-gray-200 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs">✨</span>
             </div>
-            <div>
-              <h1 className="text-lg font-medium text-gray-800">Smart Prompt Mode</h1>
-            </div>
+            <span className="font-medium text-gray-800">Smart Prompt Mode</span>
           </div>
-          
-          <button
-            onClick={handleExit}
-            className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-500" />
+          <button onClick={handleExit} className="p-1 hover:bg-gray-100 rounded">
+            <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
       </div>
 
-      {/* FIXED: Clean content area without extra padding */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {state.currentStep === 'introduction' && (
-          <Introduction onContinue={handleIntroductionComplete} />
+      {/* MINIMAL: Content area */}
+      <div className="flex-1 p-4">
+        {state.step === 'intro' && (
+          <Introduction onContinue={handleIntroComplete} />
         )}
         
-        {state.currentStep === 'request-input' && (
+        {state.step === 'request' && (
           <RequestInput 
-            initialValue={state.userRequest}
-            onComplete={handleRequestInput}
+            initialValue={state.request}
+            onComplete={handleRequestComplete}
             onBack={handleBack}
           />
         )}
         
-        {state.currentStep === 'task-selection' && (
+        {state.step === 'task' && (
           <TaskSelection 
-            userRequest={state.userRequest}
-            onSelectTask={handleTaskSelection} 
+            userRequest={state.request}
+            onSelectTask={handleTaskComplete} 
             onBack={handleBack}
           />
         )}
         
-        {state.currentStep === 'example-input' && state.selectedTask && (
+        {state.step === 'examples' && state.task && (
           <ExampleInput 
-            taskType={state.selectedTask}
-            initialExamples={state.userExamples}
-            onComplete={handleExampleInput}
+            taskType={state.task}
+            initialExamples={state.examples}
+            onComplete={handleExamplesComplete}
             onBack={handleBack}
           />
         )}
         
-        {state.currentStep === 'final-preview' && state.selectedTask && (
+        {state.step === 'preview' && state.task && (
           <FinalPreview
-            userRequest={state.userRequest}
-            taskType={state.selectedTask}
-            userExamples={state.userExamples}
+            userRequest={state.request}
+            taskType={state.task}
+            userExamples={state.examples}
             selectedModel={selectedModel}
             availableModels={availableModels}
             onModelChange={onModelChange}
-            onSubmit={handlePromptSubmission}
+            onSubmit={handleSubmit}
             onBack={handleBack}
           />
         )}

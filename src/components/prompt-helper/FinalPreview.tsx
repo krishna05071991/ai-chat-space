@@ -1,6 +1,6 @@
-// FIXED: Clean final preview screen
+// MINIMAL: Clean final preview
 import React, { useState, useEffect } from 'react'
-import { ArrowLeft, Send, ChevronDown, Edit3 } from 'lucide-react'
+import { ArrowLeft, Send, ChevronDown } from 'lucide-react'
 import { TaskType, UserExamples } from './PromptHelper'
 import { AIModel } from '../../types/chat'
 
@@ -15,7 +15,7 @@ interface FinalPreviewProps {
   onBack: () => void
 }
 
-const ROLE_INSTRUCTIONS = {
+const ROLES = {
   creative: 'You are a creative writer with exceptional imagination and natural style.',
   coding: 'You are an expert software engineer with deep technical knowledge.',
   analysis: 'You are a meticulous analyst with strong logical reasoning.',
@@ -32,95 +32,78 @@ export function FinalPreview({
   onSubmit, 
   onBack 
 }: FinalPreviewProps) {
-  const [enhancedPrompt, setEnhancedPrompt] = useState('')
+  const [prompt, setPrompt] = useState('')
   const [showModelDropdown, setShowModelDropdown] = useState(false)
 
-  const buildEnhancedPrompt = () => {
-    let prompt = ROLE_INSTRUCTIONS[taskType] + "\n\n"
+  const buildPrompt = () => {
+    let result = ROLES[taskType] + "\n\n"
     
     const hasExamples = userExamples.example1.trim() || userExamples.example2.trim()
     if (hasExamples) {
-      prompt += "Here are examples of the style/approach I want:\n\n"
+      result += "Examples of the style I want:\n\n"
       
       if (userExamples.example1.trim()) {
-        prompt += `Example 1: ${userExamples.example1.trim()}\n\n`
+        result += `Example 1: ${userExamples.example1.trim()}\n\n`
       }
       
       if (userExamples.example2.trim()) {
-        prompt += `Example 2: ${userExamples.example2.trim()}\n\n`
+        result += `Example 2: ${userExamples.example2.trim()}\n\n`
       }
-      
-      prompt += "Please match this style and approach.\n\n"
     }
     
-    prompt += `Now, please help with: ${userRequest.trim()}`
-    return prompt
+    result += `Please help with: ${userRequest.trim()}`
+    return result
   }
 
   useEffect(() => {
-    setEnhancedPrompt(buildEnhancedPrompt())
+    setPrompt(buildPrompt())
   }, [userRequest, userExamples, taskType])
 
   const handleSend = () => {
-    if (enhancedPrompt.trim()) {
-      onSubmit(enhancedPrompt, selectedModel)
+    if (prompt.trim()) {
+      onSubmit(prompt, selectedModel)
     }
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Clean header */}
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">
-          Review & Send
-        </h2>
-        <p className="text-gray-600">
-          Your enhanced prompt is ready. Make any final adjustments and send.
-        </p>
-      </div>
+    <div className="max-w-lg mx-auto py-4">
+      <h2 className="text-lg font-bold text-gray-800 mb-3 text-center">
+        Review & Send
+      </h2>
 
-      {/* Clean prompt preview */}
-      <div className="mb-8">
-        <div className="flex items-center space-x-2 mb-3">
-          <Edit3 className="w-4 h-4 text-purple-600" />
-          <span className="text-sm font-medium text-gray-700">Enhanced Prompt</span>
-        </div>
-        
+      {/* Prompt preview */}
+      <div className="mb-4">
         <textarea
-          value={enhancedPrompt}
-          onChange={(e) => setEnhancedPrompt(e.target.value)}
-          className="w-full min-h-[200px] p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-y text-sm bg-white"
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          className="w-full h-40 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-xs bg-white"
         />
       </div>
 
-      {/* Clean navigation */}
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-colors"
+          className="flex items-center space-x-1 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-xl text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back</span>
         </button>
 
-        <div className="flex items-center space-x-4">
-          {/* Simple model selector */}
+        <div className="flex items-center space-x-2">
+          {/* Model selector */}
           <div className="relative">
             <button
               onClick={() => setShowModelDropdown(!showModelDropdown)}
-              className="flex items-center space-x-2 px-3 py-2 bg-white border border-gray-200 rounded-xl hover:border-gray-300 transition-colors text-sm"
+              className="flex items-center space-x-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm"
             >
               <span>{selectedModel.displayName}</span>
-              <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showModelDropdown ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-3 h-3 ${showModelDropdown ? 'rotate-180' : ''}`} />
             </button>
 
             {showModelDropdown && (
               <>
-                <div 
-                  className="fixed inset-0 z-10" 
-                  onClick={() => setShowModelDropdown(false)}
-                />
-                <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-20 min-w-[200px] max-h-[200px] overflow-y-auto">
+                <div className="fixed inset-0 z-10" onClick={() => setShowModelDropdown(false)} />
+                <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 min-w-[160px] max-h-[150px] overflow-y-auto">
                   {availableModels.map((model) => (
                     <button
                       key={model.id}
@@ -128,7 +111,7 @@ export function FinalPreview({
                         onModelChange(model)
                         setShowModelDropdown(false)
                       }}
-                      className={`w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors text-sm ${
+                      className={`w-full px-3 py-2 text-left hover:bg-gray-50 text-xs ${
                         selectedModel.id === model.id ? 'bg-purple-50 text-purple-700' : 'text-gray-700'
                       }`}
                     >
@@ -142,7 +125,7 @@ export function FinalPreview({
 
           <button
             onClick={handleSend}
-            className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium px-6 py-2 rounded-xl transition-all duration-200"
+            className="flex items-center space-x-1 bg-purple-600 text-white font-medium px-4 py-2 rounded-xl text-sm"
           >
             <Send className="w-4 h-4" />
             <span>Send</span>
@@ -150,13 +133,13 @@ export function FinalPreview({
         </div>
       </div>
 
-      {/* Simple progress */}
-      <div className="mt-6 flex justify-center">
-        <div className="flex space-x-2">
-          <div className="w-2 h-2 rounded-full bg-purple-500" />
-          <div className="w-2 h-2 rounded-full bg-purple-500" />
-          <div className="w-2 h-2 rounded-full bg-purple-500" />
-          <div className="w-2 h-2 rounded-full bg-purple-500" />
+      {/* Progress */}
+      <div className="flex justify-center mt-4">
+        <div className="flex space-x-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
         </div>
       </div>
     </div>

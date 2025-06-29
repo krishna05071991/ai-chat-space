@@ -1,4 +1,4 @@
-// FIXED: Clean request input screen - first step
+// MINIMAL: Clean request input
 import React, { useState } from 'react'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 
@@ -9,49 +9,32 @@ interface RequestInputProps {
 }
 
 export function RequestInput({ initialValue, onComplete, onBack }: RequestInputProps) {
-  const [userRequest, setUserRequest] = useState(initialValue)
+  const [request, setRequest] = useState(initialValue)
 
   const handleContinue = () => {
-    if (userRequest.trim()) {
-      onComplete(userRequest.trim())
+    if (request.trim()) {
+      onComplete(request.trim())
     }
   }
 
-  const canContinue = userRequest.trim().length > 0
-
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Clean header */}
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">
-          What do you want AI to help you with?
-        </h2>
-        <p className="text-gray-600">
-          Describe your request clearly. We'll optimize it for the best results.
-        </p>
-      </div>
+    <div className="max-w-lg mx-auto py-4">
+      <h2 className="text-lg font-bold text-gray-800 mb-3 text-center">
+        What do you need help with?
+      </h2>
+      
+      <textarea
+        value={request}
+        onChange={(e) => setRequest(e.target.value)}
+        placeholder="Describe your request..."
+        className="w-full h-32 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm"
+        autoFocus
+      />
 
-      {/* Simple input */}
-      <div className="mb-8">
-        <textarea
-          value={userRequest}
-          onChange={(e) => setUserRequest(e.target.value)}
-          placeholder="Describe what you want help with..."
-          className="w-full min-h-[150px] p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-y"
-          autoFocus
-        />
-        <div className="text-right mt-2">
-          <span className="text-xs text-gray-500">
-            {userRequest.length} characters
-          </span>
-        </div>
-      </div>
-
-      {/* Clean navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mt-4">
         <button
           onClick={onBack}
-          className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-colors"
+          className="flex items-center space-x-1 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-xl text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back</span>
@@ -59,10 +42,10 @@ export function RequestInput({ initialValue, onComplete, onBack }: RequestInputP
 
         <button
           onClick={handleContinue}
-          disabled={!canContinue}
-          className={`flex items-center space-x-2 font-medium px-6 py-2 rounded-xl transition-all ${
-            canContinue
-              ? 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white'
+          disabled={!request.trim()}
+          className={`flex items-center space-x-1 px-4 py-2 rounded-xl text-sm font-medium ${
+            request.trim()
+              ? 'bg-purple-600 text-white'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
@@ -71,13 +54,13 @@ export function RequestInput({ initialValue, onComplete, onBack }: RequestInputP
         </button>
       </div>
 
-      {/* Simple progress */}
-      <div className="mt-6 flex justify-center">
-        <div className="flex space-x-2">
-          <div className="w-2 h-2 rounded-full bg-purple-500" />
-          <div className="w-2 h-2 rounded-full bg-gray-300" />
-          <div className="w-2 h-2 rounded-full bg-gray-300" />
-          <div className="w-2 h-2 rounded-full bg-gray-300" />
+      {/* Progress */}
+      <div className="flex justify-center mt-4">
+        <div className="flex space-x-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+          <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+          <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+          <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
         </div>
       </div>
     </div>

@@ -59,7 +59,8 @@ export function ChatArea({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
   
-  // NEW: Prompt Helper Mode state
+  // FIXED: Check Pro status first, then manage mode
+  const isProUser = usageStats?.tier?.tier === 'pro'
   const [isPromptHelperMode, setIsPromptHelperMode] = useState(false)
 
   // Enhanced auto-scroll for real-time streaming
@@ -70,9 +71,6 @@ export function ChatArea({
   }, [conversation?.messages, streamingState.currentMessage])
 
   const isLatest2025Model = selectedModel.id.includes('4.1') || selectedModel.id.includes('o3') || selectedModel.id.includes('o4')
-
-  // Check if user has Pro access for Prompt Helper Mode
-  const isProUser = usageStats?.tier?.tier === 'pro'
 
   // Get available models for Pro users
   const getAvailableModels = () => {
@@ -96,8 +94,9 @@ export function ChatArea({
     setIsPromptHelperMode(false)
   }
 
-  // Handle prompt helper mode toggle
+  // FIXED: Handle prompt helper mode toggle with Pro check FIRST
   const handlePromptHelperToggle = () => {
+    // Check Pro status BEFORE activating mode to prevent flash
     if (!isProUser) {
       onUpgradePrompt?.('pro')
       return
@@ -107,7 +106,7 @@ export function ChatArea({
   }
 
   // If in prompt helper mode, show the prompt helper interface
-  if (isPromptHelperMode) {
+  if (isPromptHelperMode && isProUser) {
     return (
       <PromptHelper
         onSendMessage={handleEnhancedPromptSubmission}
@@ -149,29 +148,19 @@ export function ChatArea({
           </p>
         </div>
         
-        {/* NEW: Prompt Helper Mode CTA */}
+        {/* MINIMAL: Pro feature hint (only for Pro users) */}
         {isProUser && (
           <div className="mb-8">
-            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-6">
-              <div className="flex items-center justify-center space-x-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-indigo-600 flex items-center justify-center">
-                  <Wand2 className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-800">Try Smart Prompt Mode</h3>
-                  <p className="text-sm text-purple-600 font-medium">Pro Feature</p>
-                </div>
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+              <div className="flex items-center justify-center space-x-2 mb-3">
+                <Wand2 className="w-4 h-4 text-purple-600" />
+                <span className="text-sm font-medium text-purple-800">Try Smart Prompt Mode</span>
               </div>
-              <p className="text-gray-600 text-sm mb-4">
-                Let our AI wizard guide you through creating the perfect prompt with optimal model selection
-              </p>
               <button
                 onClick={() => setIsPromptHelperMode(true)}
-                className="inline-flex items-center bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="text-xs text-purple-600 hover:text-purple-700 transition-colors"
               >
-                <Wand2 className="w-4 h-4 mr-2" />
-                <span>Launch Prompt Helper</span>
-                <ArrowRight className="ml-2 h-3 w-3" />
+                Get better AI results with guided prompts →
               </button>
             </div>
           </div>
@@ -194,12 +183,57 @@ export function ChatArea({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
-      {/* ENHANCED: Header with Prompt Helper toggle */}
+      {/* FIXED: Clean header without interference */}
       <div className="relative z-20 flex-shrink-0 pt-safe">
-        <div className="flex items-center justify-center py-6 px-4 min-h-[80px]">
+        <div className="flex items-center justify-center py-4 px-4">
           {/* Desktop header */}
           <div className="hidden lg:flex items-center justify-between w-full max-w-6xl">
-            <div className="flex items-center">
+            <div className="flex items-center space-x-4">
+              <ModelSelector 
+                selectedModel={selectedModel}
+                onModelChange={onModelChange}
+                onUpgradePrompt={onUpgradePrompt}
+                compact={true}
+              />
+              
+              {/* MINIMAL: Desktop prompt helper toggle */}
+              {isProUser && (
+                <button
+                  onClick={handlePromptHelperToggle}
+                  className="flex items-center space-x-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl transition-colors text-sm"
+                >
+                  <Wand2 className="w-4 h-4" />
+                  <span>Smart Mode</span>
+                </button>
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-4 text-xs text-gray-500 font-medium">
+              {conversation && (
+                <span>{conversation.messages?.length || 0} messages</span>
+              )}
+              {usageStats && (
+                <span className="capitalize">{usageStats.tier.tier.replace('_', ' ')} Plan</span>
+              )}
+            </div>
+          </div>
+          
+          {/* FIXED: Mobile header without interference */}
+          <div className="lg:hidden flex items-center justify-between w-full">
+            {/* Empty left space to avoid hamburger interference */}
+            <div className="w-12"></div>
+            
+            <div className="flex items-center space-x-2">
+              {/* MINIMAL: Mobile prompt helper toggle */}
+              {isProUser && (
+                <button
+                  onClick={handlePromptHelperToggle}
+                  className="p-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-xl"
+                >
+                  <Wand2 className="w-4 h-4" />
+                </button>
+              )}
+              
               <ModelSelector 
                 selectedModel={selectedModel}
                 onModelChange={onModelChange}
@@ -207,64 +241,6 @@ export function ChatArea({
                 compact={true}
               />
             </div>
-            
-            {/* NEW: Prompt Helper Mode Toggle */}
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={handlePromptHelperToggle}
-                className={`flex items-center space-x-3 px-4 py-2 rounded-xl transition-all duration-200 ${
-                  isPromptHelperMode
-                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg'
-                    : isProUser
-                      ? 'bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200'
-                      : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200'
-                }`}
-              >
-                <Wand2 className="w-4 h-4" />
-                <span className="font-medium text-sm">Smart Prompt Mode</span>
-                {isProUser ? (
-                  isPromptHelperMode ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />
-                ) : (
-                  <Crown className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-            
-            <div className="flex items-center space-x-4 text-xs text-gray-500 font-medium">
-              {conversation && (
-                <span>{conversation.messages?.length || 0} message{(conversation.messages?.length || 0) !== 1 ? 's' : ''}</span>
-              )}
-              {usageStats && (
-                <div className="flex items-center space-x-1">
-                  <span>•</span>
-                  <span className="capitalize">{usageStats.tier.tier.replace('_', ' ')} Plan</span>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Mobile model selector and prompt helper toggle */}
-          <div className="lg:hidden fixed top-6 right-4 z-30 pt-safe flex items-center space-x-2" style={{ paddingRight: 'max(env(safe-area-inset-right), 0.5rem)' }}>
-            {/* Prompt Helper Toggle for Mobile */}
-            <button
-              onClick={handlePromptHelperToggle}
-              className={`p-2 rounded-xl transition-all duration-200 ${
-                isPromptHelperMode
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg'
-                  : isProUser
-                    ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                    : 'bg-gray-50 text-gray-600 border border-gray-200'
-              }`}
-            >
-              <Wand2 className="w-4 h-4" />
-            </button>
-            
-            <ModelSelector 
-              selectedModel={selectedModel}
-              onModelChange={onModelChange}
-              onUpgradePrompt={onUpgradePrompt}
-              compact={true}
-            />
           </div>
         </div>
       </div>
@@ -371,32 +347,4 @@ export function ChatArea({
       </div>
     </div>
   )
-}
-
-// Helper function to format reset time
-function formatResetTime(resetTime?: string, billingPeriodStart?: string, isMonthly = false): string {
-  if (!resetTime) return 'soon'
-  
-  const resetDate = new Date(resetTime)
-  const now = new Date()
-  const diffMs = resetDate.getTime() - now.getTime()
-  
-  if (diffMs < 24 * 60 * 60 * 1000) {
-    const hours = Math.floor(diffMs / (60 * 60 * 1000))
-    const minutes = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000))
-    return `Resets in ${hours}h ${minutes}m`
-  } else if (isMonthly && billingPeriodStart) {
-    const day = new Date(billingPeriodStart).getDate()
-    return `Resets on the ${day}${getOrdinalSuffix(day)} (your billing anniversary)`
-  }
-}
-
-function getOrdinalSuffix(day: number): string {
-  if (day >= 11 && day <= 13) return 'th'
-  switch (day % 10) {
-    case 1: return 'st'
-    case 2: return 'nd'
-    case 3: return 'rd'
-    default: return 'th'
-  }
 }

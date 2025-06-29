@@ -1,4 +1,4 @@
-// ENHANCED: Edge Function with Gemini support and example generation
+// ENHANCED: Edge Function with proper Gemini API implementation
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -35,13 +35,12 @@ const VALID_CLAUDE_MODELS = [
   'claude-3-opus-20240229'
 ];
 
-// NEW: Valid Gemini models
+// FIXED: Valid Gemini models with correct naming
 const VALID_GEMINI_MODELS = [
-  'gemini-2.5-pro',
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
+  'gemini-2.0-flash-exp',
   'gemini-1.5-flash',
-  'gemini-1.5-pro'
+  'gemini-1.5-pro',
+  'gemini-1.5-flash-8b'
 ];
 
 // UPDATED: Pricing tier definitions matching frontend with Gemini models
@@ -52,7 +51,7 @@ const PRICING_TIERS = {
     allowed_models: [
       'gpt-4o-mini',
       'claude-3-5-haiku-20241022',
-      'gemini-2.0-flash'
+      'gemini-2.0-flash-exp'
     ]
   },
   basic: {
@@ -61,7 +60,7 @@ const PRICING_TIERS = {
     allowed_models: [
       'gpt-4o-mini',
       'claude-3-5-haiku-20241022',
-      'gemini-2.0-flash',
+      'gemini-2.0-flash-exp',
       'gpt-4o',
       'gpt-4.1',
       'gpt-4.1-mini',
@@ -69,8 +68,7 @@ const PRICING_TIERS = {
       'claude-3-7-sonnet-20250219',
       'claude-sonnet-4-20250514',
       'gemini-1.5-flash',
-      'gemini-1.5-pro',
-      'gemini-2.5-flash'
+      'gemini-1.5-pro'
     ]
   },
   pro: {
@@ -826,7 +824,7 @@ async function callAnthropicStreamingAPI(requestBody, controller) {
   }
 }
 
-// FIXED: Gemini API with streaming support
+// COMPLETELY FIXED: Gemini API with proper streaming implementation
 async function callGeminiStreamingAPI(requestBody, controller) {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
   if (!geminiApiKey) {
@@ -835,7 +833,7 @@ async function callGeminiStreamingAPI(requestBody, controller) {
 
   console.log('🌊 Streaming Gemini API with model:', requestBody.model);
 
-  // FIXED: Convert messages to Gemini format correctly
+  // FIXED: Convert messages to proper Gemini format
   const geminiContents = [];
   for (const msg of requestBody.messages) {
     geminiContents.push({
@@ -852,14 +850,15 @@ async function callGeminiStreamingAPI(requestBody, controller) {
     }
   };
 
-  // FIXED: Use correct Gemini API endpoint format
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${requestBody.model}:streamGenerateContent?key=${geminiApiKey}`;
+  // CRITICAL FIX: Use correct Gemini API endpoint with alt=sse for proper streaming
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${requestBody.model}:streamGenerateContent?alt=sse&key=${geminiApiKey}`;
 
   console.log('📤 Gemini API request:', {
     url,
     model: requestBody.model,
     messageCount: geminiContents.length,
-    maxTokens: geminiPayload.generationConfig.maxOutputTokens
+    maxTokens: geminiPayload.generationConfig.maxOutputTokens,
+    hasAltSSE: url.includes('alt=sse')
   });
 
   const response = await fetch(url, {
@@ -874,12 +873,14 @@ async function callGeminiStreamingAPI(requestBody, controller) {
     const errorData = await response.text();
     console.error('❌ Gemini API error:', response.status, errorData);
     
+    // ENHANCED: Better error messages for Gemini API issues
     if (response.status === 404) {
-      throw new Error(`Gemini model ${requestBody.model} not available. Check model name and API access.`);
+      throw new Error(`Gemini model ${requestBody.model} not available. Check model name and API access. Try using 'gemini-2.0-flash-exp' instead.`);
     } else if (response.status === 400) {
-      throw new Error(`Gemini model ${requestBody.model} parameter error. Check request format.`);
+      const errorDetail = errorData.includes('does not exist') ? ' Model may not exist or be accessible.' : '';
+      throw new Error(`Gemini model ${requestBody.model} parameter error.${errorDetail} Check request format and model availability.`);
     } else if (response.status === 403) {
-      throw new Error(`Gemini API access denied. Check API key permissions.`);
+      throw new Error(`Gemini API access denied. Check API key permissions and quota limits.`);
     } else {
       throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
     }
@@ -897,6 +898,8 @@ async function callGeminiStreamingAPI(requestBody, controller) {
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
 
+  console.log('📥 Starting to process Gemini streaming response...');
+
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -904,28 +907,49 @@ async function callGeminiStreamingAPI(requestBody, controller) {
 
       buffer += decoder.decode(value, { stream: true });
       
-      // FIXED: Handle Gemini's streaming format
+      // FIXED: Handle both SSE format and raw JSON format
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
       for (const line of lines) {
         if (line.trim() === '') continue;
 
+        let jsonData = null;
+
+        // FIXED: Handle SSE format with data: prefix
+        if (line.startsWith('data: ')) {
+          jsonData = line.slice(6).trim();
+        } else {
+          // FIXED: Handle raw JSON format (fallback)
+          jsonData = line.trim();
+        }
+
+        if (!jsonData || jsonData === '[DONE]') continue;
+
         try {
-          const parsed = JSON.parse(line);
+          const parsed = JSON.parse(jsonData);
+          console.log('📄 Parsed Gemini response chunk:', JSON.stringify(parsed).substring(0, 200));
           
           // FIXED: Extract content from Gemini response structure
-          if (parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content) {
-            const parts = parsed.candidates[0].content.parts;
-            if (parts && parts[0] && parts[0].text) {
-              const content = parts[0].text;
-              totalContent += content;
-              
-              // Stream content to client
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                type: 'content',
-                content: content
-              })}\n\n`));
+          if (parsed.candidates && parsed.candidates[0]) {
+            const candidate = parsed.candidates[0];
+            
+            // Extract text content
+            if (candidate.content && candidate.content.parts) {
+              for (const part of candidate.content.parts) {
+                if (part.text) {
+                  const content = part.text;
+                  totalContent += content;
+                  
+                  // Stream content to client in our standardized format
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                    type: 'content',
+                    content: content
+                  })}\n\n`));
+                  
+                  console.log('✅ Streaming content chunk:', content.substring(0, 50) + '...');
+                }
+              }
             }
           }
 
@@ -933,10 +957,11 @@ async function callGeminiStreamingAPI(requestBody, controller) {
           if (parsed.usageMetadata) {
             totalInputTokens = parsed.usageMetadata.promptTokenCount || 0;
             totalOutputTokens = parsed.usageMetadata.candidatesTokenCount || 0;
+            console.log('📊 Gemini usage metadata:', parsed.usageMetadata);
           }
-        } catch (e) {
-          // Skip malformed JSON lines
-          console.warn('⚠️ Failed to parse Gemini response line:', line.substring(0, 100));
+        } catch (parseError) {
+          // Skip malformed JSON lines but log for debugging
+          console.warn('⚠️ Failed to parse Gemini response line:', jsonData.substring(0, 100), 'Error:', parseError.message);
         }
       }
     }
@@ -945,6 +970,7 @@ async function callGeminiStreamingAPI(requestBody, controller) {
     if (totalInputTokens === 0 && totalOutputTokens === 0) {
       totalInputTokens = Math.ceil(JSON.stringify(requestBody.messages).length / 4);
       totalOutputTokens = Math.ceil(totalContent.length / 4);
+      console.log('📊 Estimated Gemini usage (no metadata provided):', { totalInputTokens, totalOutputTokens });
     }
 
     const usage = {
@@ -953,9 +979,10 @@ async function callGeminiStreamingAPI(requestBody, controller) {
       total_tokens: totalInputTokens + totalOutputTokens
     };
 
-    console.log('✅ Gemini streaming completed:', {
+    console.log('✅ Gemini streaming completed successfully:', {
       contentLength: totalContent.length,
-      usage
+      usage,
+      model: requestBody.model
     });
 
     return {
@@ -968,15 +995,15 @@ async function callGeminiStreamingAPI(requestBody, controller) {
   }
 }
 
-// NEW: Generate example for Smart Prompt Mode
+// ENHANCED: Generate example using Gemini API with proper model selection
 async function generateExample(userRequest, taskType, userTier) {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
   if (!geminiApiKey) {
     throw new Error('GEMINI_API_KEY not configured for example generation');
   }
 
-  // Select appropriate model based on user tier
-  let model = 'gemini-2.0-flash'; // Free tier default
+  // FIXED: Use available models based on user tier
+  let model = 'gemini-2.0-flash-exp'; // Free tier default (most reliable)
   if (userTier === 'basic' || userTier === 'pro') {
     model = 'gemini-1.5-pro'; // Better model for paid tiers
   }
@@ -1007,6 +1034,7 @@ Just provide the example content directly, no explanations or meta-text.`;
     }
   };
 
+  // FIXED: Use non-streaming endpoint for example generation
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
 
   const response = await fetch(url, {
@@ -1224,7 +1252,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         error: 'INVALID_MODEL',
         type: 'INVALID_MODEL',
-        message: `Model ${requestBody.model} is not supported`
+        message: `Model ${requestBody.model} is not supported. Available models: ${validModels.join(', ')}`
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

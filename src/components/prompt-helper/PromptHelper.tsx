@@ -45,40 +45,6 @@ export function PromptHelper({
   onModelChange,
   availableModels 
 }: PromptHelperProps) {
-  // FIXED: Simple state loading
-  const [state, setState] = useState<State>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        // FIXED: Validate parsed state and reset if corrupted
-        if (parsed && typeof parsed === 'object' && parsed.hasStarted) {
-          // Ensure all required fields exist with defaults
-          return {
-            step: parsed.step || 'request',
-            request: parsed.request || '',
-            task: parsed.task || null,
-            role: parsed.role || '',
-            examples: parsed.examples || { example1: '', example2: '' },
-            hasStarted: true
-          }
-        }
-      }
-    } catch (e) {
-      // Clear corrupted state
-      localStorage.removeItem(STORAGE_KEY)
-    }
-    
-    return {
-      step: 'intro' as Step,
-      request: '',
-      task: null,
-      role: '',
-      examples: { example1: '', example2: '' },
-      hasStarted: false
-    }
-  })
-
   // FIXED: State loading with better validation
   const [state, setState] = useState<State>(() => {
     try {

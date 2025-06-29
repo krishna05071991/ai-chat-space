@@ -1,4 +1,4 @@
-// UPDATED: Mobile-first model selector with enhanced tier-based restrictions
+// UPDATED: Mobile-first model selector with Google/Gemini provider support
 import React, { useState } from 'react'
 import { ChevronDown, Check, Lock, Crown, Sparkles } from 'lucide-react'
 import { AIModel, getModelsByCategory, MODEL_CATEGORIES, PRICING_TIERS } from '../../types/chat'
@@ -94,14 +94,22 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
 
   const is2025Model = (model: AIModel): boolean => {
     return model.id.includes('4.1') || model.id.includes('o3') || model.id.includes('o4') || 
-           model.id.includes('3-7') || model.id.includes('4-20250514')
+           model.id.includes('3-7') || model.id.includes('4-20250514') || model.id.includes('2.5')
   }
 
-  const renderCategoryGroup = (categoryKey: string, categoryInfo: any, models: AIModel[], provider: 'openai' | 'anthropic') => {
+  const renderCategoryGroup = (categoryKey: string, categoryInfo: any, models: AIModel[], provider: 'openai' | 'anthropic' | 'google') => {
     if (models.length === 0) return null
 
-    const providerColor = provider === 'openai' ? 'text-blue-600' : 'text-orange-600'
-    const providerBg = provider === 'openai' ? 'bg-blue-50' : 'bg-orange-50'
+    const getProviderColors = (provider: string) => {
+      switch (provider) {
+        case 'openai': return { color: 'text-blue-600', bg: 'bg-blue-50' }
+        case 'anthropic': return { color: 'text-orange-600', bg: 'bg-orange-50' }
+        case 'google': return { color: 'text-green-600', bg: 'bg-green-50' }
+        default: return { color: 'text-gray-600', bg: 'bg-gray-50' }
+      }
+    }
+
+    const { color: providerColor, bg: providerBg } = getProviderColors(provider)
 
     return (
       <div key={`${provider}-${categoryKey}`} className="mb-2 sm:mb-3 last:mb-0">
@@ -128,7 +136,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
                 onClick={() => handleModelSelect(model)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 transition-colors text-left relative ${
                   isSelected 
-                    ? provider === 'openai' ? 'bg-blue-50' : 'bg-orange-50'
+                    ? providerBg
                     : isAllowed ? 'hover:bg-gray-50' : 'hover:bg-gray-25 opacity-75'
                 }`}
                 disabled={!isAllowed}
@@ -228,12 +236,22 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
               </div>
 
               {/* Mobile-optimized Anthropic models section */}
-              <div>
+              <div className="border-b border-gray-200">
                 <div className="px-3 py-2 bg-orange-50 border-b border-gray-200">
                   <span className="text-xs font-semibold text-orange-800">Anthropic Claude</span>
                 </div>
                 {getModelsByCategory('anthropic').map(({ category, categoryInfo, models }) =>
                   renderCategoryGroup(category, categoryInfo, models, 'anthropic')
+                )}
+              </div>
+
+              {/* NEW: Mobile-optimized Google/Gemini models section */}
+              <div className="border-b border-gray-200">
+                <div className="px-3 py-2 bg-green-50 border-b border-gray-200">
+                  <span className="text-xs font-semibold text-green-800">Google Gemini</span>
+                </div>
+                {getModelsByCategory('google').map(({ category, categoryInfo, models }) =>
+                  renderCategoryGroup(category, categoryInfo, models, 'google')
                 )}
               </div>
 
@@ -247,8 +265,8 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
                     </p>
                     <p className="text-xs text-purple-600 mb-3 hidden sm:block">
                       {currentTier === 'free' 
-                        ? 'Upgrade to access GPT-4o, Claude 3.5 Sonnet, and more'
-                        : 'Upgrade to Pro for latest AI models including GPT-4.1 and Claude 4'
+                        ? 'Upgrade to access GPT-4o, Claude 3.5 Sonnet, Gemini and more'
+                        : 'Upgrade to Pro for latest AI models including GPT-4.1, Claude 4, and Gemini 2.5'
                       }
                     </p>
                     <button
@@ -293,7 +311,8 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
           </div>
           <div className="flex items-center space-x-2 mt-1">
             <span className="text-xs text-gray-500 truncate">
-              {selectedModel.provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} • {MODEL_CATEGORIES[selectedModel.category]?.name || selectedModel.category}
+              {selectedModel.provider === 'anthropic' ? 'Anthropic' : 
+               selectedModel.provider === 'google' ? 'Google' : 'OpenAI'} • {MODEL_CATEGORIES[selectedModel.category]?.name || selectedModel.category}
             </span>
             {getTierBadge(selectedModel)}
           </div>

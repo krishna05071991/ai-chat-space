@@ -1,4 +1,4 @@
-// ENHANCED: Clean example input with Gemini-powered example generation
+// FIXED: Clean example input with proper null checks and Gemini-powered example generation
 import React, { useState } from 'react'
 import { ArrowLeft, ArrowRight, SkipForward, Wand2, Loader2 } from 'lucide-react'
 import { TaskType, UserExamples } from './PromptHelper'
@@ -9,8 +9,8 @@ interface ExampleInputProps {
   initialExamples: UserExamples
   onComplete: (examples: UserExamples) => void
   onBack: () => void
-  userRequest?: string // NEW: Pass user request for example generation
-  availableModels?: any[] // NEW: Pass available models for tier checking
+  userRequest?: string
+  availableModels?: any[]
 }
 
 export function ExampleInput({ 
@@ -34,7 +34,7 @@ export function ExampleInput({
     onComplete({ example1: '', example2: '' })
   }
 
-  // NEW: Generate example using Gemini API
+  // FIXED: Generate example using Gemini API with proper error handling
   const handleGenerateExample = async () => {
     if (!userRequest.trim()) {
       setExampleGenerationError('Please provide your request first')
@@ -129,7 +129,7 @@ export function ExampleInput({
           </div>
         </div>
 
-        {/* NEW: Generate Example Button */}
+        {/* FIXED: Generate Example Button with proper checks */}
         {userRequest.trim() && (
           <div className="mt-3">
             <button

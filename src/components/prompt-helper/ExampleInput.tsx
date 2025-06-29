@@ -1,4 +1,4 @@
-// FIXED: Clean example input with proper null checks and Gemini-powered example generation
+// FIXED: Individual example generation with proper null checks
 import React, { useState } from 'react'
 import { ArrowLeft, ArrowRight, SkipForward, Wand2, Loader2 } from 'lucide-react'
 import { TaskType, UserExamples } from './PromptHelper'
@@ -23,26 +23,34 @@ export function ExampleInput({
 }: ExampleInputProps) {
   const [example1, setExample1] = useState(initialExamples.example1)
   const [example2, setExample2] = useState(initialExamples.example2)
-  const [isGeneratingExample, setIsGeneratingExample] = useState(false)
-  const [exampleGenerationError, setExampleGenerationError] = useState<string | null>(null)
+  const [isGenerating1, setIsGenerating1] = useState(false)
+  const [isGenerating2, setIsGenerating2] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleContinue = () => {
-    onComplete({ example1: example1.trim(), example2: example2.trim() })
+    onComplete({ 
+      example1: example1?.trim() || '', 
+      example2: example2?.trim() || '' 
+    })
   }
 
   const handleSkip = () => {
     onComplete({ example1: '', example2: '' })
   }
 
-  // FIXED: Generate example using Gemini API with proper error handling
-  const handleGenerateExample = async () => {
-    if (!userRequest.trim()) {
-      setExampleGenerationError('Please provide your request first')
+  // FIXED: Generate example for specific box with proper error handling
+  const handleGenerateExample = async (exampleNumber: 1 | 2) => {
+    // FIXED: Proper null/undefined checks
+    if (!userRequest || typeof userRequest !== 'string' || !userRequest.trim()) {
+      setError('Please provide your request first')
       return
     }
 
-    setIsGeneratingExample(true)
-    setExampleGenerationError(null)
+    const setLoading = exampleNumber === 1 ? setIsGenerating1 : setIsGenerating2
+    const setExample = exampleNumber === 1 ? setExample1 : setExample2
+
+    setLoading(true)
+    setError(null)
 
     try {
       // Get user session
@@ -50,6 +58,12 @@ export function ExampleInput({
       if (!session) {
         throw new Error('Authentication required')
       }
+
+      console.log(`🎯 Generating example ${exampleNumber} for:`, {
+        userRequest: userRequest.substring(0, 50) + '...',
+        taskType,
+        exampleNumber
+      })
 
       // Call Edge Function for example generation
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-completion`, {
@@ -62,7 +76,8 @@ export function ExampleInput({
         body: JSON.stringify({
           purpose: 'generate_example',
           userRequest: userRequest.trim(),
-          taskType: taskType
+          taskType: taskType,
+          exampleNumber: exampleNumber // Pass which example we're generating
         })
       })
 
@@ -74,9 +89,8 @@ export function ExampleInput({
       const data = await response.json()
       
       if (data.example) {
-        // Set the generated example in the first example field
-        setExample1(data.example)
-        console.log('✅ Example generated successfully:', {
+        setExample(data.example)
+        console.log(`✅ Example ${exampleNumber} generated successfully:`, {
           contentLength: data.example.length,
           model: data.model,
           usage: data.usage
@@ -86,10 +100,10 @@ export function ExampleInput({
       }
 
     } catch (error) {
-      console.error('❌ Example generation failed:', error)
-      setExampleGenerationError(error.message || 'Failed to generate example')
+      console.error(`❌ Example ${exampleNumber} generation failed:`, error)
+      setError(error.message || 'Failed to generate example')
     } finally {
-      setIsGeneratingExample(false)
+      setLoading(false)
     }
   }
 
@@ -102,8 +116,31 @@ export function ExampleInput({
         Show your preferred style or approach
       </p>
 
-      <div className="space-y-3 mb-4">
+      <div className="space-y-4 mb-4">
+        {/* Example 1 */}
         <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium text-gray-700">Example 1</label>
+            {userRequest && userRequest.trim() && (
+              <button
+                onClick={() => handleGenerateExample(1)}
+                disabled={isGenerating1}
+                className="flex items-center space-x-1 text-xs px-2 py-1 bg-green-100 hover:bg-green-200 disabled:bg-gray-100 text-green-700 disabled:text-gray-500 rounded-md transition-colors disabled:cursor-not-allowed"
+              >
+                {isGenerating1 ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="w-3 h-3" />
+                    <span>Generate</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
           <textarea
             value={example1}
             onChange={(e) => setExample1(e.target.value)}
@@ -112,11 +149,34 @@ export function ExampleInput({
             maxLength={1000}
           />
           <div className="text-right text-xs text-gray-500 mt-1">
-            {example1.length}/1000
+            {example1?.length || 0}/1000
           </div>
         </div>
 
+        {/* Example 2 */}
         <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium text-gray-700">Example 2</label>
+            {userRequest && userRequest.trim() && (
+              <button
+                onClick={() => handleGenerateExample(2)}
+                disabled={isGenerating2}
+                className="flex items-center space-x-1 text-xs px-2 py-1 bg-green-100 hover:bg-green-200 disabled:bg-gray-100 text-green-700 disabled:text-gray-500 rounded-md transition-colors disabled:cursor-not-allowed"
+              >
+                {isGenerating2 ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="w-3 h-3" />
+                    <span>Generate</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
           <textarea
             value={example2}
             onChange={(e) => setExample2(e.target.value)}
@@ -125,41 +185,22 @@ export function ExampleInput({
             maxLength={1000}
           />
           <div className="text-right text-xs text-gray-500 mt-1">
-            {example2.length}/1000
+            {example2?.length || 0}/1000
           </div>
         </div>
 
-        {/* FIXED: Generate Example Button with proper checks */}
-        {userRequest.trim() && (
-          <div className="mt-3">
-            <button
-              onClick={handleGenerateExample}
-              disabled={isGeneratingExample}
-              className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 text-white text-sm font-medium rounded-xl transition-all duration-200 disabled:cursor-not-allowed"
-            >
-              {isGeneratingExample ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Generating...</span>
-                </>
-              ) : (
-                <>
-                  <Wand2 className="w-4 h-4" />
-                  <span>Generate Example</span>
-                </>
-              )}
-            </button>
-            
-            {exampleGenerationError && (
-              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-xl">
-                <p className="text-xs text-red-600">{exampleGenerationError}</p>
-              </div>
-            )}
-            
-            <p className="text-xs text-gray-500 mt-1 text-center">
-              AI-powered example based on your request
-            </p>
+        {/* Error display */}
+        {error && (
+          <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-xs text-red-600">{error}</p>
           </div>
+        )}
+
+        {/* Help text */}
+        {userRequest && userRequest.trim() && (
+          <p className="text-xs text-gray-500 text-center">
+            💡 Click "Generate" to create AI-powered examples based on your request
+          </p>
         )}
       </div>
 

@@ -1,4 +1,4 @@
-// UPDATED: Edge Function with example generation support using GPT-4o
+// ENHANCED: Edge Function with example and prompt enhancement support
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -576,28 +576,53 @@ async function getNextSequenceNumber(supabase, conversationId) {
   }
 }
 
-// NEW: Generate example using GPT-4o for Prompt Helper
-async function generateExample(userRequest, taskType) {
+// ENHANCED: Generate example using GPT-4o for Prompt Helper with better prompts
+async function generateExample(userRequest, taskType, exampleNumber = 1) {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiApiKey) {
     throw new Error('OPENAI_API_KEY not configured');
   }
 
-  console.log('🎯 Generating example with GPT-4o for:', { userRequest, taskType });
+  console.log('🎯 Generating example with GPT-4o for:', { userRequest, taskType, exampleNumber });
 
-  // Build example generation prompt based on task type
+  // ENHANCED: Better example generation prompts based on task type
   const taskPrompts = {
-    creative: 'Generate a creative writing example that demonstrates high-quality style, vivid imagery, and engaging storytelling.',
-    coding: 'Generate a clean, well-commented code example that demonstrates best practices and clear structure.',
-    analysis: 'Generate an analytical example that demonstrates logical reasoning, clear structure, and data-driven insights.',
-    general: 'Generate a helpful, well-structured example that demonstrates clear communication and comprehensive coverage.'
+    creative: `Generate a compelling creative writing example that demonstrates:
+- Rich, vivid imagery and sensory details
+- Engaging narrative voice and style
+- Emotional depth and resonance
+- Clear structure and pacing`,
+    
+    coding: `Generate a clean, professional code example that demonstrates:
+- Best practices and clear structure
+- Proper commenting and documentation
+- Efficient, readable implementation
+- Modern coding standards`,
+    
+    analysis: `Generate a structured analytical example that demonstrates:
+- Logical reasoning and clear methodology
+- Data-driven insights and evidence
+- Systematic problem-solving approach
+- Clear conclusions and recommendations`,
+    
+    general: `Generate a helpful, well-structured example that demonstrates:
+- Clear communication and organization
+- Comprehensive coverage of key points
+- Practical, actionable information
+- Professional presentation`
   };
 
   const prompt = `${taskPrompts[taskType] || taskPrompts.general}
 
-User's request: "${userRequest}"
+User's specific request: "${userRequest}"
 
-Provide a concise but high-quality example that shows the style and approach they should expect. Keep it under 300 words and make it directly relevant to their request.`;
+Create Example ${exampleNumber} that directly relates to their request. Make it:
+- Concise but high-quality (under 300 words)
+- Immediately relevant and useful
+- Something they can learn from or build upon
+- Professional but accessible
+
+Focus on showing the style, approach, and quality they should expect.`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -631,11 +656,80 @@ Provide a concise but high-quality example that shows the style and approach the
   console.log('✅ Example generated successfully:', {
     contentLength: example.length,
     model: 'gpt-4o',
-    taskType
+    taskType,
+    exampleNumber
   });
 
   return {
     example: example.trim(),
+    model: 'gpt-4o',
+    usage: data.usage
+  };
+}
+
+// NEW: Enhance prompt using GPT-4o when no examples provided
+async function enhancePrompt(userRequest, taskType, currentPrompt) {
+  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openaiApiKey) {
+    throw new Error('OPENAI_API_KEY not configured');
+  }
+
+  console.log('🚀 Enhancing prompt with GPT-4o for:', { userRequest, taskType });
+
+  const enhancementPrompt = `You are a prompt engineering expert. Enhance this basic prompt to get better AI results.
+
+Task Type: ${taskType}
+User's Request: "${userRequest}"
+Current Basic Prompt: "${currentPrompt}"
+
+Create an enhanced version that:
+1. Uses clear, specific instructions
+2. Provides relevant context and constraints
+3. Specifies the desired output format
+4. Includes helpful guidance for the AI
+5. Maintains the user's original intent
+
+Make it professional but not overly complex. The enhanced prompt should be 2-3x better at getting quality results from any AI model.
+
+Return only the enhanced prompt, no explanations.`;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${openaiApiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'user', content: enhancementPrompt }
+      ],
+      max_tokens: 800,
+      temperature: 0.3 // Lower temperature for consistent enhancement
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error('❌ GPT-4o prompt enhancement error:', response.status, errorData);
+    throw new Error(`Prompt enhancement failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const enhancedPrompt = data.choices?.[0]?.message?.content;
+
+  if (!enhancedPrompt) {
+    throw new Error('No enhanced prompt generated');
+  }
+
+  console.log('✅ Prompt enhanced successfully:', {
+    originalLength: currentPrompt.length,
+    enhancedLength: enhancedPrompt.length,
+    model: 'gpt-4o'
+  });
+
+  return {
+    enhancedPrompt: enhancedPrompt.trim(),
     model: 'gpt-4o',
     usage: data.usage
   };
@@ -1038,7 +1132,7 @@ serve(async (req) => {
       hasStream: !!requestBody.stream,
       isReasoningModel: isReasoningModel(requestBody.model),
       isGeminiModel: isGeminiModel(requestBody.model),
-      purpose: requestBody.purpose // NEW: Check for example generation purpose
+      purpose: requestBody.purpose // NEW: Check for example generation or prompt enhancement
     });
 
     // Initialize Supabase client
@@ -1076,7 +1170,11 @@ serve(async (req) => {
       console.log('🎯 Handling example generation request');
       
       try {
-        const result = await generateExample(requestBody.userRequest, requestBody.taskType);
+        const result = await generateExample(
+          requestBody.userRequest, 
+          requestBody.taskType,
+          requestBody.exampleNumber || 1
+        );
         
         return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -1086,6 +1184,32 @@ serve(async (req) => {
         return new Response(JSON.stringify({
           error: 'EXAMPLE_GENERATION_FAILED',
           message: error.message || 'Failed to generate example'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // NEW: Handle prompt enhancement for Prompt Helper
+    if (requestBody.purpose === 'enhance_prompt') {
+      console.log('🚀 Handling prompt enhancement request');
+      
+      try {
+        const result = await enhancePrompt(
+          requestBody.userRequest,
+          requestBody.taskType,
+          requestBody.currentPrompt
+        );
+        
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        console.error('❌ Prompt enhancement failed:', error);
+        return new Response(JSON.stringify({
+          error: 'PROMPT_ENHANCEMENT_FAILED',
+          message: error.message || 'Failed to enhance prompt'
         }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }

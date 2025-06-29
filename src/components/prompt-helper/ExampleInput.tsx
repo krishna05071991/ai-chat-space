@@ -46,6 +46,12 @@ export function ExampleInput({
       return
     }
 
+    // Validate taskType
+    if (!taskType || typeof taskType !== 'string') {
+      setError('Invalid task type. Please restart the prompt helper.')
+      return
+    }
+
     const setLoading = exampleNumber === 1 ? setIsGenerating1 : setIsGenerating2
     const setExample = exampleNumber === 1 ? setExample1 : setExample2
 

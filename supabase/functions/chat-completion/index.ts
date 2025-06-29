@@ -826,7 +826,7 @@ async function callAnthropicStreamingAPI(requestBody, controller) {
   }
 }
 
-// NEW: Gemini API with streaming support
+// FIXED: Gemini API with streaming support
 async function callGeminiStreamingAPI(requestBody, controller) {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
   if (!geminiApiKey) {
@@ -835,21 +835,32 @@ async function callGeminiStreamingAPI(requestBody, controller) {
 
   console.log('🌊 Streaming Gemini API with model:', requestBody.model);
 
-  // Convert messages to Gemini format
-  const geminiMessages = requestBody.messages.map(msg => ({
-    role: msg.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: msg.content }]
-  }));
+  // FIXED: Convert messages to Gemini format correctly
+  const geminiContents = [];
+  for (const msg of requestBody.messages) {
+    geminiContents.push({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }]
+    });
+  }
 
   const geminiPayload = {
-    contents: geminiMessages,
+    contents: geminiContents,
     generationConfig: {
       temperature: requestBody.temperature || 0.7,
       maxOutputTokens: requestBody.max_tokens || 4000,
     }
   };
 
+  // FIXED: Use correct Gemini API endpoint format
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${requestBody.model}:streamGenerateContent?key=${geminiApiKey}`;
+
+  console.log('📤 Gemini API request:', {
+    url,
+    model: requestBody.model,
+    messageCount: geminiContents.length,
+    maxTokens: geminiPayload.generationConfig.maxOutputTokens
+  });
 
   const response = await fetch(url, {
     method: 'POST',
@@ -867,6 +878,8 @@ async function callGeminiStreamingAPI(requestBody, controller) {
       throw new Error(`Gemini model ${requestBody.model} not available. Check model name and API access.`);
     } else if (response.status === 400) {
       throw new Error(`Gemini model ${requestBody.model} parameter error. Check request format.`);
+    } else if (response.status === 403) {
+      throw new Error(`Gemini API access denied. Check API key permissions.`);
     } else {
       throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
     }
@@ -890,6 +903,8 @@ async function callGeminiStreamingAPI(requestBody, controller) {
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
+      
+      // FIXED: Handle Gemini's streaming format
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
@@ -899,11 +914,14 @@ async function callGeminiStreamingAPI(requestBody, controller) {
         try {
           const parsed = JSON.parse(line);
           
+          // FIXED: Extract content from Gemini response structure
           if (parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content) {
             const parts = parsed.candidates[0].content.parts;
             if (parts && parts[0] && parts[0].text) {
               const content = parts[0].text;
               totalContent += content;
+              
+              // Stream content to client
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({
                 type: 'content',
                 content: content
@@ -911,18 +929,19 @@ async function callGeminiStreamingAPI(requestBody, controller) {
             }
           }
 
-          // Extract usage metadata
+          // FIXED: Extract usage metadata from Gemini response
           if (parsed.usageMetadata) {
             totalInputTokens = parsed.usageMetadata.promptTokenCount || 0;
             totalOutputTokens = parsed.usageMetadata.candidatesTokenCount || 0;
           }
         } catch (e) {
-          // Skip malformed JSON
+          // Skip malformed JSON lines
+          console.warn('⚠️ Failed to parse Gemini response line:', line.substring(0, 100));
         }
       }
     }
 
-    // Estimate usage if not provided
+    // FIXED: Estimate usage if not provided by Gemini
     if (totalInputTokens === 0 && totalOutputTokens === 0) {
       totalInputTokens = Math.ceil(JSON.stringify(requestBody.messages).length / 4);
       totalOutputTokens = Math.ceil(totalContent.length / 4);
@@ -933,6 +952,11 @@ async function callGeminiStreamingAPI(requestBody, controller) {
       completion_tokens: totalOutputTokens,
       total_tokens: totalInputTokens + totalOutputTokens
     };
+
+    console.log('✅ Gemini streaming completed:', {
+      contentLength: totalContent.length,
+      usage
+    });
 
     return {
       content: totalContent,

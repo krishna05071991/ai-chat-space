@@ -667,31 +667,44 @@ Focus on showing the style, approach, and quality they should expect.`;
   };
 }
 
-// NEW: Enhance prompt using GPT-4o when no examples provided
-async function enhancePrompt(userRequest, taskType, currentPrompt) {
+// ENHANCED: Enhance prompt using GPT-4o with Role-Task Format framework
+async function enhancePrompt(userRequest, taskType, userRole, currentPrompt) {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiApiKey) {
     throw new Error('OPENAI_API_KEY not configured');
   }
 
-  console.log('🚀 Enhancing prompt with GPT-4o for:', { userRequest, taskType });
+  console.log('🚀 Enhancing prompt with GPT-4o for:', { userRequest, taskType, userRole });
 
-  const enhancementPrompt = `You are a prompt engineering expert. Enhance this basic prompt to get better AI results.
+  // ENHANCED: Use Role-Task Format framework for prompt enhancement
+  const enhancementPrompt = `You are a prompt engineering expert specializing in the Role-Task Format framework. 
 
-Task Type: ${taskType}
+Enhance this basic prompt using the Role-Task Format framework to get significantly better AI results.
+
+CONTEXT:
+- Task Type: ${taskType}
+- User's Role Selection: ${userRole}
 User's Request: "${userRequest}"
-Current Basic Prompt: "${currentPrompt}"
+- Current Basic Prompt: "${currentPrompt}"
 
-Create an enhanced version that:
-1. Uses clear, specific instructions
-2. Provides relevant context and constraints
-3. Specifies the desired output format
-4. Includes helpful guidance for the AI
-5. Maintains the user's original intent
+ENHANCEMENT FRAMEWORK:
+Use the Role-Task Format which includes:
+1. ROLE: Clear identity and expertise for the AI
+2. TASK: Specific, actionable instructions
+3. FORMAT: Expected output structure and style
+4. CONTEXT: Relevant background and constraints
+5. EXAMPLES: If helpful patterns (but don't add unless truly beneficial)
 
-Make it professional but not overly complex. The enhanced prompt should be 2-3x better at getting quality results from any AI model.
+REQUIREMENTS:
+- Make the role more specific and authoritative
+- Break down the task into clear, actionable steps
+- Specify the exact format and style of response needed
+- Add relevant context that improves output quality
+- Keep the user's original intent intact
+- Make it 2-3x more effective than the basic version
 
-Return only the enhanced prompt, no explanations.`;
+RESPONSE:
+Return only the enhanced prompt using proper Role-Task Format. No explanations or meta-commentary.`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -705,7 +718,7 @@ Return only the enhanced prompt, no explanations.`;
         { role: 'user', content: enhancementPrompt }
       ],
       max_tokens: 800,
-      temperature: 0.3 // Lower temperature for consistent enhancement
+      temperature: 0.2 // Lower temperature for consistent, structured enhancement
     })
   });
 
@@ -723,9 +736,10 @@ Return only the enhanced prompt, no explanations.`;
   }
 
   console.log('✅ Prompt enhanced successfully:', {
-    originalLength: currentPrompt.length,
+    originalLength: currentPrompt?.length || 0,
     enhancedLength: enhancedPrompt.length,
-    model: 'gpt-4o'
+    model: 'gpt-4o',
+    framework: 'Role-Task Format'
   });
 
   return {
@@ -1139,6 +1153,59 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // NEW: Handle example generation for Prompt Helper
+    if (requestBody.purpose === 'generate_example') {
+      console.log('🎯 Handling example generation request');
+      
+      try {
+        const result = await generateExample(
+          requestBody.userRequest, 
+          requestBody.taskType,
+          requestBody.exampleNumber || 1
+        );
+        
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        console.error('❌ Example generation failed:', error);
+        return new Response(JSON.stringify({
+          error: 'EXAMPLE_GENERATION_FAILED',
+          message: error.message || 'Failed to generate example'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // NEW: Handle prompt enhancement for Prompt Helper
+    if (requestBody.purpose === 'enhance_prompt') {
+      console.log('🚀 Handling prompt enhancement request');
+      
+      try {
+        const result = await enhancePrompt(
+          requestBody.userRequest,
+          requestBody.taskType,
+          requestBody.userRole,
+          requestBody.currentPrompt
+        );
+        
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        console.error('❌ Prompt enhancement failed:', error);
+        return new Response(JSON.stringify({
+          error: 'PROMPT_ENHANCEMENT_FAILED',
+          message: error.message || 'Failed to enhance prompt'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
 
     // CRITICAL: Authentication
     const authToken = req.headers.get('authorization')?.replace('Bearer ', '');

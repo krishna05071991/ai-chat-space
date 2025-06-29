@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase'
 interface FinalPreviewProps {
   userRequest: string
   taskType: TaskType
+  userRole: string
   userExamples: UserExamples
   selectedModel: AIModel
   availableModels: AIModel[]
@@ -16,16 +17,28 @@ interface FinalPreviewProps {
   onBack: () => void
 }
 
-const ROLES = {
-  creative: 'You are a creative writer with exceptional imagination and natural style.',
-  coding: 'You are an expert software engineer with deep technical knowledge.',
-  analysis: 'You are a meticulous analyst with strong logical reasoning.',
-  general: 'You are a helpful and knowledgeable assistant.'
+// ENHANCED: Role definitions for different selections
+const ROLE_DEFINITIONS = {
+  expert_professional: (taskType: string) => 
+    `You are a senior expert professional with 15+ years of experience in ${taskType}. You provide authoritative, detailed guidance based on industry best practices and deep expertise.`,
+  
+  helpful_assistant: () => 
+    'You are a helpful, knowledgeable assistant who provides clear, practical guidance. You focus on being useful, accessible, and easy to understand.',
+  
+  creative_collaborator: () => 
+    'You are a creative collaborator with exceptional imagination and artistic vision. You approach challenges with innovation, originality, and creative problem-solving.',
+  
+  analytical_consultant: () => 
+    'You are an analytical consultant who approaches problems systematically. You use data-driven insights, logical reasoning, and structured methodologies.',
+  
+  mentor_teacher: () => 
+    'You are an experienced mentor and teacher who excels at breaking down complex concepts. You provide patient, clear explanations and guide learning step-by-step.'
 }
 
 export function FinalPreview({ 
   userRequest,
-  taskType, 
+  taskType,
+  userRole,
   userExamples, 
   selectedModel, 
   availableModels,
@@ -38,8 +51,18 @@ export function FinalPreview({
   const [isEnhancing, setIsEnhancing] = useState(false)
   const [enhancementError, setEnhancementError] = useState<string | null>(null)
 
-  const buildPrompt = () => {
-    let result = ROLES[taskType] + "\n\n"
+  // ENHANCED: Build prompt with role-task format
+  const buildBasicPrompt = () => {
+    // Determine role instruction
+    let roleInstruction = ''
+    if (ROLE_DEFINITIONS[userRole]) {
+      roleInstruction = ROLE_DEFINITIONS[userRole](taskType)
+    } else {
+      // Custom role - use as provided
+      roleInstruction = userRole.startsWith('You are') ? userRole : `You are ${userRole}`
+    }
+    
+    let result = roleInstruction + "\n\n"
     
     const hasExamples = userExamples.example1?.trim() || userExamples.example2?.trim()
     if (hasExamples) {
@@ -86,7 +109,8 @@ export function FinalPreview({
           purpose: 'enhance_prompt',
           userRequest: userRequest.trim(),
           taskType: taskType,
-          currentPrompt: buildPrompt()
+          userRole: userRole,
+          currentPrompt: buildBasicPrompt()
         })
       })
 
@@ -112,7 +136,7 @@ export function FinalPreview({
       console.error('❌ Prompt enhancement failed:', error)
       setEnhancementError(error.message || 'Failed to enhance prompt')
       // Fallback to basic prompt
-      setPrompt(buildPrompt())
+      setPrompt(buildBasicPrompt())
     } finally {
       setIsEnhancing(false)
     }
@@ -126,9 +150,9 @@ export function FinalPreview({
       enhancePrompt()
     } else {
       // Has examples - use basic prompt
-      setPrompt(buildPrompt())
+      setPrompt(buildBasicPrompt())
     }
-  }, [userRequest, userExamples, taskType])
+  }, [userRequest, userExamples, taskType, userRole])
 
   const handleSend = () => {
     if (prompt.trim()) {

@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react'
 import { Introduction } from './Introduction'
 import { RequestInput } from './RequestInput'
 import { TaskSelection } from './TaskSelection'
+import { RoleSelection } from './RoleSelection'
+import { CustomRoleInput } from './CustomRoleInput'
 import { ExampleInput } from './ExampleInput'
 import { FinalPreview } from './FinalPreview'
 import { AIModel } from '../../types/chat'
@@ -23,12 +25,13 @@ export interface UserExamples {
   example2: string
 }
 
-type Step = 'intro' | 'request' | 'task' | 'examples' | 'preview'
+type Step = 'intro' | 'request' | 'task' | 'role' | 'customRole' | 'examples' | 'preview'
 
 interface State {
   step: Step
   request: string
   task: TaskType | null
+  role: string
   examples: UserExamples
   hasStarted: boolean
 }
@@ -61,6 +64,7 @@ export function PromptHelper({
       step: 'intro' as Step,
       request: '',
       task: null,
+      role: '',
       examples: { example1: '', example2: '' },
       hasStarted: false
     }
@@ -105,7 +109,7 @@ export function PromptHelper({
   }
 
   const handleTaskComplete = (task: TaskType) => {
-    updateState({ step: 'examples', task })
+    updateState({ step: 'role', task })
     
     // Auto-select optimal model
     const taskModelMap: Record<TaskType, string> = {
@@ -119,6 +123,18 @@ export function PromptHelper({
     if (optimalModel) {
       onModelChange(optimalModel)
     }
+  }
+
+  const handleRoleComplete = (role: string) => {
+    if (role === 'custom') {
+      updateState({ step: 'customRole' })
+    } else {
+      updateState({ step: 'examples', role })
+    }
+  }
+
+  const handleCustomRoleComplete = (customRole: string) => {
+    updateState({ step: 'examples', role: customRole })
   }
 
   const handleExamplesComplete = (examples: UserExamples) => {
@@ -141,8 +157,10 @@ export function PromptHelper({
     const backMap: Record<Step, Step> = {
       intro: 'intro',
       request: 'intro',
-      task: 'request', 
-      examples: 'task',
+      task: 'request',
+      role: 'task',
+      customRole: 'role',
+      examples: state.role ? 'role' : 'task', // Handle both flows
       preview: 'examples'
     }
     updateState({ step: backMap[state.step] })
@@ -192,6 +210,24 @@ export function PromptHelper({
           />
         )}
         
+        {state.step === 'role' && state.task && (
+          <RoleSelection 
+            userRequest={state.request}
+            taskType={state.task}
+            onSelectRole={handleRoleComplete}
+            onBack={handleBack}
+          />
+        )}
+        
+        {state.step === 'customRole' && state.task && (
+          <CustomRoleInput 
+            userRequest={state.request}
+            taskType={state.task}
+            onComplete={handleCustomRoleComplete}
+            onBack={handleBack}
+          />
+        )}
+        
         {state.step === 'examples' && state.task && (
           <ExampleInput 
             taskType={state.task}
@@ -203,10 +239,11 @@ export function PromptHelper({
           />
         )}
         
-        {state.step === 'preview' && state.task && (
+        {state.step === 'preview' && state.task && state.role && (
           <FinalPreview
             userRequest={state.request}
             taskType={state.task}
+            userRole={state.role}
             userExamples={state.examples}
             selectedModel={selectedModel}
             availableModels={availableModels}

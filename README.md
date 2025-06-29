@@ -205,23 +205,6 @@ src/
 3. Row Level Security policies
 4. Real-time subscriptions
 
-## 🔮 Roadmap
-
-### Planned Features
-- [ ] Team collaboration and shared conversations
-- [ ] Custom model fine-tuning
-- [ ] Advanced analytics dashboard
-- [ ] API access for developers
-- [ ] Enterprise SSO integration
-- [ ] Mobile native apps (iOS/Android)
-
-### Technical Improvements
-- [ ] Virtual scrolling for large conversation lists
-- [ ] Advanced caching strategies
-- [ ] Offline support and PWA features
-- [ ] Performance optimization
-- [ ] Accessibility improvements (WCAG 2.1 AA)
-
 ## 📈 Performance
 
 ### Metrics
@@ -246,24 +229,6 @@ src/
 5. **Cross-Device Sync**: Seamless conversation synchronization
 6. **Latest AI Models**: Early access to 2025 cutting-edge models
 7. **Transparent Usage**: Clear token tracking with detailed analytics
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📞 Support
-
-- **Documentation**: Comprehensive guides and API reference
-- **Community**: GitHub Discussions for questions and feedback
-- **Enterprise**: Priority support for Pro tier users
 
 ---
 

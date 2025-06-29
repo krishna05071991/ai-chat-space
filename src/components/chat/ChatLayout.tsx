@@ -91,8 +91,19 @@ export function ChatLayout() {
       }
 
       setIsLoadingConversations(true)
+      setError(null) // Clear any previous errors
+      
       try {
         console.log('📥 Loading conversations from database for user:', user.id.substring(0, 8))
+        
+        // Test database connectivity first
+        console.log('🔍 Testing database connection...')
+        const connectionTest = await databaseService.testDatabaseConnection()
+        if (!connectionTest.success) {
+          throw new Error(`Database connection failed: ${connectionTest.details}`)
+        }
+        console.log('✅ Database connection successful')
+        
         const dbConversations = await databaseService.loadConversations()
         
         if (dbConversations && dbConversations.length > 0) {

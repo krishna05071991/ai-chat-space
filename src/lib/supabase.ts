@@ -4,34 +4,57 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+// Enhanced validation with detailed error messages
+function validateSupabaseConfig() {
+  const errors: string[] = []
+  
+  if (!supabaseUrl) {
+    errors.push('VITE_SUPABASE_URL is missing from environment variables')
+  } else {
+    try {
+      const url = new URL(supabaseUrl)
+      if (!url.hostname.includes('supabase.co')) {
+        errors.push(`VITE_SUPABASE_URL should be a Supabase URL (*.supabase.co), got: ${supabaseUrl}`)
+      }
+    } catch (error) {
+      errors.push(`VITE_SUPABASE_URL is not a valid URL: ${supabaseUrl}`)
+    }
+  }
+  
+  if (!supabaseAnonKey) {
+    errors.push('VITE_SUPABASE_ANON_KEY is missing from environment variables')
+  } else if (!supabaseAnonKey.startsWith('eyJ')) {
+    errors.push('VITE_SUPABASE_ANON_KEY appears to be invalid (should start with "eyJ")')
+  }
+  
+  if (errors.length > 0) {
+    const errorMessage = [
+      '❌ Supabase configuration errors:',
+      ...errors.map(err => `  • ${err}`),
+      '',
+      '🔧 To fix this:',
+      '  1. Check your .env file in the project root',
+      '  2. Ensure both VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set',
+      '  3. Get these values from your Supabase project dashboard',
+      '  4. Restart the development server after changes',
+      '',
+      '📖 Need help? Visit: https://supabase.com/docs/guides/getting-started'
+    ].join('\n')
+    
+    throw new Error(errorMessage)
+  }
+}
+
 // Validate environment variables
-if (!supabaseUrl) {
-  throw new Error(
-    'Missing VITE_SUPABASE_URL environment variable. Please check your .env file and ensure it contains your Supabase project URL.'
-  )
-}
-
-if (!supabaseAnonKey) {
-  throw new Error(
-    'Missing VITE_SUPABASE_ANON_KEY environment variable. Please check your .env file and ensure it contains your Supabase anon key.'
-  )
-}
-
-// Validate URL format
-try {
-  new URL(supabaseUrl)
-} catch (error) {
-  throw new Error(
-    `Invalid VITE_SUPABASE_URL format: "${supabaseUrl}". Please ensure it's a valid URL (e.g., https://your-project.supabase.co)`
-  )
-}
+validateSupabaseConfig()
 
 // Log configuration status (only in development)
 if (import.meta.env.DEV) {
-  console.log('✅ Supabase configuration loaded:', {
+  console.log('✅ Supabase client initialized:', {
     url: supabaseUrl,
-    hasAnonKey: !!supabaseAnonKey,
-    keyPrefix: supabaseAnonKey?.substring(0, 20) + '...'
+    project: supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1] || 'unknown',
+    keyPrefix: supabaseAnonKey?.substring(0, 20) + '...',
+    timestamp: new Date().toISOString()
   })
 }
 

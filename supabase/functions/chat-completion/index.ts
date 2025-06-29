@@ -1,4 +1,4 @@
-// FIXED: Edge Function with proper OpenAI reasoning model support and conversation handling
+// ENHANCED: Edge Function with example and prompt enhancement support
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -35,56 +35,64 @@ const VALID_CLAUDE_MODELS = [
   'claude-3-opus-20240229'
 ];
 
-// COMPLETE: Pricing tier definitions matching frontend
+// NEW: Valid Gemini models
+const VALID_GEMINI_MODELS = [
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
+  'gemini-2.5-flash',
+  'gemini-2.5-pro'
+];
+
+// FIXED: Updated pricing tier definitions to match frontend exactly
 const PRICING_TIERS = {
   free: {
     monthly_tokens: 35000,
     daily_messages: 25,
     allowed_models: [
       'gpt-4o-mini',
-      'claude-3-5-haiku-20241022'
+      'claude-3-5-haiku-20241022',
+      'gemini-2.0-flash'
     ]
   },
   basic: {
     monthly_tokens: 1000000,
     daily_messages: -1,
     allowed_models: [
-      'gpt-4o-mini',
-      'claude-3-5-haiku-20241022',
-      'gpt-4o',
-      'gpt-4.1',
-      'gpt-4.1-mini',
-      'claude-3-5-sonnet-20241022',
-      'claude-3-7-sonnet-20250219',
-      'claude-sonnet-4-20250514'
+      'gpt-4o-mini', 'claude-3-5-haiku-20241022', 'gemini-2.0-flash',
+      'gpt-4o', 'gpt-4.1', 'gpt-4.1-mini', 'claude-3-5-sonnet-20241022',
+      'claude-3-7-sonnet-20250219', 'claude-sonnet-4-20250514',
+      'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.5-flash'
     ]
   },
   pro: {
     monthly_tokens: 1500000,
     daily_messages: -1,
     allowed_models: [
-      'gpt-4o-mini',
-      'claude-3-5-haiku-20241022',
-      'gpt-4o',
-      'gpt-4.1',
-      'gpt-4.1-mini',
-      'gpt-4.1-nano',
-      'gpt-4-turbo',
-      'o3',
-      'o3-mini',
-      'o4-mini',
-      'claude-3-5-sonnet-20241022',
-      'claude-3-7-sonnet-20250219',
-      'claude-sonnet-4-20250514',
-      'claude-opus-4-20250514',
-      'claude-3-opus-20240229'
+      // OpenAI Models
+      'gpt-4o-mini', 'gpt-4o', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4-turbo',
+      'o3', 'o3-mini', 'o4-mini',
+      // Claude Models  
+      'claude-3-5-haiku-20241022', 'claude-3-5-sonnet-20241022', 'claude-3-7-sonnet-20250219',
+      'claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-opus-20240229',
+      // FIXED: All Gemini Models for Pro tier
+      'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.5-flash', 'gemini-2.5-pro'
     ]
   }
 };
 
 // NEW: Function to detect OpenAI reasoning models
 function isReasoningModel(modelId) {
-  return modelId.includes('o1') || modelId.includes('o3') || modelId.includes('o4');
+  return modelId && (modelId.includes('o1') || modelId.includes('o3') || modelId.includes('o4'));
+}
+
+function isClaudeModel(modelId) {
+  return modelId && VALID_CLAUDE_MODELS.includes(modelId);
+}
+
+// NEW: Function to detect Gemini models
+function isGeminiModel(modelId) {
+  return modelId && VALID_GEMINI_MODELS.includes(modelId);
 }
 
 // CRITICAL: Enhanced getUserTierAndUsage with anniversary-based reset logic
@@ -200,7 +208,8 @@ async function getUserTierAndUsage(supabase, userId) {
       messagesUsedToday: result.messagesUsedToday,
       tokensUsedThisMonth: result.tokensUsedThisMonth,
       monthlyLimit: result.tierLimits.monthly_tokens,
-      dailyLimit: result.tierLimits.daily_messages
+      dailyLimit: result.tierLimits.daily_messages,
+      allowedModels: result.tierLimits.allowed_models.length
     });
 
     return result;
@@ -567,8 +576,177 @@ async function getNextSequenceNumber(supabase, conversationId) {
   }
 }
 
-function isClaudeModel(modelId) {
-  return VALID_CLAUDE_MODELS.includes(modelId);
+// ENHANCED: Generate example using GPT-4o for Prompt Helper with better prompts
+async function generateExample(userRequest, taskType, exampleNumber = 1) {
+  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openaiApiKey) {
+    throw new Error('OPENAI_API_KEY not configured');
+  }
+
+  console.log('🎯 Generating example with GPT-4o for:', { userRequest, taskType, exampleNumber });
+
+  // ENHANCED: Better example generation prompts based on task type
+  const taskPrompts = {
+    creative: `Generate a compelling creative writing example that demonstrates:
+- Rich, vivid imagery and sensory details
+- Engaging narrative voice and style
+- Emotional depth and resonance
+- Clear structure and pacing`,
+    
+    coding: `Generate a clean, professional code example that demonstrates:
+- Best practices and clear structure
+- Proper commenting and documentation
+- Efficient, readable implementation
+- Modern coding standards`,
+    
+    analysis: `Generate a structured analytical example that demonstrates:
+- Logical reasoning and clear methodology
+- Data-driven insights and evidence
+- Systematic problem-solving approach
+- Clear conclusions and recommendations`,
+    
+    general: `Generate a helpful, well-structured example that demonstrates:
+- Clear communication and organization
+- Comprehensive coverage of key points
+- Practical, actionable information
+- Professional presentation`
+  };
+
+  const prompt = `${taskPrompts[taskType] || taskPrompts.general}
+
+User's specific request: "${userRequest}"
+
+Create Example ${exampleNumber} that directly relates to their request. Make it:
+- Concise but high-quality (under 300 words)
+- Immediately relevant and useful
+- Something they can learn from or build upon
+- Professional but accessible
+
+Focus on showing the style, approach, and quality they should expect.`;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${openaiApiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o', // Use GPT-4o for fast, high-quality examples
+      messages: [
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 500,
+      temperature: 0.7
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error('❌ GPT-4o example generation error:', response.status, errorData);
+    throw new Error(`Example generation failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const example = data.choices?.[0]?.message?.content;
+
+  if (!example) {
+    throw new Error('No example content generated');
+  }
+
+  console.log('✅ Example generated successfully:', {
+    contentLength: example.length,
+    model: 'gpt-4o',
+    taskType,
+    exampleNumber
+  });
+
+  return {
+    example: example.trim(),
+    model: 'gpt-4o',
+    usage: data.usage
+  };
+}
+
+// ENHANCED: Enhance prompt using GPT-4o with Role-Task Format framework
+async function enhancePrompt(userRequest, taskType, userRole, currentPrompt) {
+  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openaiApiKey) {
+    throw new Error('OPENAI_API_KEY not configured');
+  }
+
+  console.log('🚀 Enhancing prompt with GPT-4o for:', { userRequest, taskType, userRole });
+
+  // ENHANCED: Use Role-Task Format framework for prompt enhancement
+  const enhancementPrompt = `You are a prompt engineering expert specializing in the Role-Task Format framework. 
+
+Enhance this basic prompt using the Role-Task Format framework to get significantly better AI results.
+
+CONTEXT:
+- Task Type: ${taskType}
+- User's Role Selection: ${userRole}
+User's Request: "${userRequest}"
+- Current Basic Prompt: "${currentPrompt}"
+
+ENHANCEMENT FRAMEWORK:
+Use the Role-Task Format which includes:
+1. ROLE: Clear identity and expertise for the AI
+2. TASK: Specific, actionable instructions
+3. FORMAT: Expected output structure and style
+4. CONTEXT: Relevant background and constraints
+5. EXAMPLES: If helpful patterns (but don't add unless truly beneficial)
+
+REQUIREMENTS:
+- Make the role more specific and authoritative
+- Break down the task into clear, actionable steps
+- Specify the exact format and style of response needed
+- Add relevant context that improves output quality
+- Keep the user's original intent intact
+- Make it 2-3x more effective than the basic version
+
+RESPONSE:
+Return only the enhanced prompt using proper Role-Task Format. No explanations or meta-commentary.`;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${openaiApiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'user', content: enhancementPrompt }
+      ],
+      max_tokens: 800,
+      temperature: 0.2 // Lower temperature for consistent, structured enhancement
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error('❌ GPT-4o prompt enhancement error:', response.status, errorData);
+    throw new Error(`Prompt enhancement failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const enhancedPrompt = data.choices?.[0]?.message?.content;
+
+  if (!enhancedPrompt) {
+    throw new Error('No enhanced prompt generated');
+  }
+
+  console.log('✅ Prompt enhanced successfully:', {
+    originalLength: currentPrompt?.length || 0,
+    enhancedLength: enhancedPrompt.length,
+    model: 'gpt-4o',
+    framework: 'Role-Task Format'
+  });
+
+  return {
+    enhancedPrompt: enhancedPrompt.trim(),
+    model: 'gpt-4o',
+    usage: data.usage
+  };
 }
 
 // FIXED: OpenAI API with proper reasoning model support
@@ -820,6 +998,139 @@ async function callAnthropicStreamingAPI(requestBody, controller) {
   }
 }
 
+// NEW: Gemini API with enhanced error handling and rate limit detection
+async function callGeminiStreamingAPI(requestBody, controller) {
+  const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!geminiApiKey) {
+    throw new Error('GEMINI_API_KEY not configured');
+  }
+
+  console.log('🌊 Streaming Gemini API with model:', requestBody.model);
+
+  // Convert messages to Gemini format
+  const geminiMessages = requestBody.messages.map((msg) => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }]
+  }));
+
+  const geminiPayload = {
+    contents: geminiMessages,
+    generationConfig: {
+      maxOutputTokens: requestBody.max_tokens || 4000,
+      temperature: requestBody.temperature || 0.7
+    }
+  };
+
+  // FIXED: Use alt=sse for proper Server-Sent Events format
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${requestBody.model}:streamGenerateContent?alt=sse&key=${geminiApiKey}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(geminiPayload)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error('❌ Gemini API error:', response.status, errorData);
+    
+    // ENHANCED: Detect rate limits and provide user-friendly messages
+    if (response.status === 429 || errorData.includes('quota') || errorData.includes('rate limit')) {
+      throw new Error("We've hit Gemini API rate limits! Please try again in a few minutes, or use a different model like GPT-4o-mini or Claude 3.5 Haiku.");
+    } else if (response.status === 403 && errorData.includes('quota exceeded')) {
+      throw new Error("Gemini API quota exceeded. We've hit the daily limits for this model. Let's try using OpenAI or Claude models instead!");
+    } else if (response.status === 400 && errorData.includes('quota')) {
+      throw new Error("Gemini model quota exceeded. Let's try again later or use a different model like GPT-4o or Claude 3.5.");
+    } else if (response.status === 404) {
+      throw new Error(`Gemini model ${requestBody.model} not available. This might be a model access or API configuration issue.`);
+    } else {
+      throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
+    }
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('No response body reader available');
+  }
+
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let buffer = '';
+  let totalContent = '';
+  let usage = {
+    prompt_tokens: 0,
+    completion_tokens: 0,
+    total_tokens: 0
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            
+            // Extract content from Gemini response format
+            if (parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content) {
+              const parts = parsed.candidates[0].content.parts;
+              if (parts && parts[0] && parts[0].text) {
+                const content = parts[0].text;
+                totalContent += content;
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  type: 'content',
+                  content: content
+                })}\n\n`));
+              }
+            }
+
+            // Capture usage if available
+            if (parsed.usageMetadata) {
+              usage = {
+                prompt_tokens: parsed.usageMetadata.promptTokenCount || 0,
+                completion_tokens: parsed.usageMetadata.candidatesTokenCount || 0,
+                total_tokens: parsed.usageMetadata.totalTokenCount || 0
+              };
+            }
+          } catch (e) {
+            // Skip malformed JSON
+          }
+        }
+      }
+    }
+
+    // Estimate usage if not provided by Gemini
+    if (usage.total_tokens === 0) {
+      const estimatedPromptTokens = Math.ceil(JSON.stringify(requestBody.messages).length / 4);
+      const estimatedCompletionTokens = Math.ceil(totalContent.length / 4);
+      usage = {
+        prompt_tokens: estimatedPromptTokens,
+        completion_tokens: estimatedCompletionTokens,
+        total_tokens: estimatedPromptTokens + estimatedCompletionTokens
+      };
+    }
+
+    return {
+      content: totalContent,
+      usage,
+      model: requestBody.model
+    };
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -833,13 +1144,172 @@ serve(async (req) => {
       messageCount: requestBody.messages?.length,
       conversationId: requestBody.conversation_id,
       hasStream: !!requestBody.stream,
-      isReasoningModel: isReasoningModel(requestBody.model)
+      isReasoningModel: requestBody.model ? isReasoningModel(requestBody.model) : false,
+      isGeminiModel: requestBody.model ? isGeminiModel(requestBody.model) : false,
+      purpose: requestBody.purpose // NEW: Check for example generation or prompt enhancement
     });
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Extract common variables for special purposes
+    const { purpose, userRequest, taskType, userRole, currentPrompt, exampleNumber } = requestBody;
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+
+    // ENHANCED: Intelligent prompt enhancement for Smart Prompt Mode
+    if (purpose === 'enhance_prompt') {
+      console.log('🎯 Enhancing prompt with advanced prompt engineering')
+      
+      const enhancementSystemPrompt = `You are an expert prompt engineer who specializes in creating highly effective prompts for AI systems. Your expertise includes understanding user intent, structuring clear instructions, and applying prompt engineering best practices.
+
+Your task is to transform a user's basic request into a comprehensive, well-structured prompt that will yield superior AI responses.
+
+ENHANCEMENT PRINCIPLES:
+1. **Intent Analysis**: Understand what the user really wants to achieve
+2. **Outcome Definition**: Clearly specify the expected deliverable 
+3. **Context Setting**: Provide relevant background and constraints
+4. **Structure**: Organize the prompt logically with clear sections
+5. **Specificity**: Be precise about format, tone, and requirements
+6. **Task-Specific Optimization**: Tailor approach based on domain (creative, technical, analytical)
+
+ENHANCEMENT PROCESS:
+1. Analyze the user's request to understand their true intent
+2. Identify the specific outcome they need
+3. Determine the best role/persona for the AI to adopt
+4. Structure the prompt with clear sections (context, task, requirements, output format)
+5. Add relevant constraints and quality criteria
+6. Include examples or templates when helpful
+
+TASK TYPE SPECIALIZATIONS:
+- **Creative**: Focus on inspiration, style, audience, mood, creative constraints
+- **Coding**: Specify language, best practices, error handling, documentation, testing
+- **Analysis**: Define methodology, data sources, depth of analysis, presentation format
+- **General**: Ensure clarity, completeness, actionability, and user-focused outcomes
+
+Transform the user's basic request into a prompt that will produce significantly better AI responses. Make it comprehensive but not overwhelming. Focus on clarity and actionability.`
+
+      const enhancementMessages = [
+        {
+          role: 'system',
+          content: enhancementSystemPrompt
+        },
+        {
+          role: 'user', 
+          content: `Please enhance this prompt for better AI results:
+
+TASK TYPE: ${taskType}
+USER ROLE PREFERENCE: ${userRole}
+ORIGINAL REQUEST: "${userRequest}"
+CURRENT BASIC PROMPT: "${currentPrompt}"
+
+Create an enhanced version that follows prompt engineering best practices and will produce significantly better results. Structure it clearly and make it comprehensive yet focused.`
+        }
+      ]
+
+      try {
+        const enhancementResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini', // Use efficient model for enhancement
+            messages: enhancementMessages,
+            max_tokens: 1500,
+            temperature: 0.3, // Lower temperature for more consistent enhancement
+          }),
+        })
+
+        if (!enhancementResponse.ok) {
+          throw new Error(`Enhancement failed: ${enhancementResponse.status}`)
+        }
+
+        const enhancementData = await enhancementResponse.json()
+        const enhancedPrompt = enhancementData.choices?.[0]?.message?.content
+
+        if (!enhancedPrompt) {
+          throw new Error('No enhanced prompt received')
+        }
+
+        console.log('✅ Prompt enhanced successfully')
+        
+        return new Response(JSON.stringify({
+          enhancedPrompt: enhancedPrompt.trim(),
+          model: 'gpt-4o-mini',
+          usage: enhancementData.usage
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+
+      } catch (error) {
+        console.error('❌ Prompt enhancement failed:', error)
+        
+        return new Response(JSON.stringify({
+          error: 'PROMPT_ENHANCEMENT_FAILED',
+          message: `Failed to enhance prompt: ${error.message}`,
+          fallback: currentPrompt
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
+    // ENHANCED: Example generation for Smart Prompt Mode
+    if (purpose === 'generate_example') {
+      console.log('🎯 Handling example generation request');
+      
+      try {
+        const result = await generateExample(
+          requestBody.userRequest, 
+          requestBody.taskType,
+          requestBody.exampleNumber || 1
+        );
+        
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        console.error('❌ Example generation failed:', error);
+        return new Response(JSON.stringify({
+          error: 'EXAMPLE_GENERATION_FAILED',
+          message: error.message || 'Failed to generate example'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // NEW: Handle prompt enhancement for Prompt Helper
+    if (requestBody.purpose === 'enhance_prompt') {
+      console.log('🚀 Handling prompt enhancement request');
+      
+      try {
+        const result = await enhancePrompt(
+          requestBody.userRequest, 
+          requestBody.taskType, 
+          requestBody.userRole,
+          requestBody.currentPrompt
+        );
+        
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        console.error('❌ Prompt enhancement failed:', error);
+        return new Response(JSON.stringify({
+          error: 'PROMPT_ENHANCEMENT_FAILED',
+          message: error.message || 'Failed to enhance prompt'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
 
     // CRITICAL: Authentication
     const authToken = req.headers.get('authorization')?.replace('Bearer ', '');
@@ -869,9 +1339,22 @@ serve(async (req) => {
     // CRITICAL: Get user tier and usage with anniversary-based resets
     const userTierData = await getUserTierAndUsage(supabase, user.id);
 
+    // FIXED: Enhanced model validation with Gemini support
+    console.log('🔍 Validating model:', {
+      requestedModel: requestBody.model,
+      userTier: userTierData.tier,
+      allowedModels: userTierData.tierLimits.allowed_models.slice(0, 5) + '...' // Show first 5
+    });
+
     // CRITICAL: Pre-request validation
     // 1. Model allowance check
     if (!userTierData.tierLimits.allowed_models.includes(requestBody.model)) {
+      console.log('❌ Model not allowed for user tier:', {
+        model: requestBody.model,
+        tier: userTierData.tier,
+        allowedCount: userTierData.tierLimits.allowed_models.length
+      });
+
       return new Response(JSON.stringify({
         error: 'MODEL_NOT_ALLOWED',
         type: 'MODEL_NOT_ALLOWED',
@@ -937,9 +1420,20 @@ serve(async (req) => {
       });
     }
 
-    // Validate model
+    // ENHANCED: Validate model with multi-provider support
     const isAnthropic = isClaudeModel(requestBody.model);
-    const validModels = isAnthropic ? VALID_CLAUDE_MODELS : VALID_OPENAI_MODELS;
+    const isGemini = isGeminiModel(requestBody.model);
+    const isOpenAI = !isAnthropic && !isGemini;
+
+    let validModels;
+    if (isAnthropic) {
+      validModels = VALID_CLAUDE_MODELS;
+    } else if (isGemini) {
+      validModels = VALID_GEMINI_MODELS;
+    } else {
+      validModels = VALID_OPENAI_MODELS;
+    }
+
     if (!validModels.includes(requestBody.model)) {
       return new Response(JSON.stringify({
         error: 'INVALID_MODEL',
@@ -983,13 +1477,14 @@ serve(async (req) => {
       userSequence
     );
 
-    console.log(`🔄 Routing to ${isAnthropic ? 'Anthropic' : 'OpenAI'} API:`, {
+    console.log(`🔄 Routing to ${isGemini ? 'Gemini' : isAnthropic ? 'Anthropic' : 'OpenAI'} API:`, {
       model: requestBody.model,
       messageCount: requestBody.messages.length,
       userId: user.id,
       tier: userTierData.tier,
       conversationId,
-      isReasoningModel: !isAnthropic && isReasoningModel(requestBody.model)
+      isReasoningModel: isOpenAI && isReasoningModel(requestBody.model),
+      isGeminiModel: isGemini
     });
 
     // STREAMING: Process AI response
@@ -999,12 +1494,18 @@ serve(async (req) => {
       const stream = new ReadableStream({
         async start(controller) {
           try {
-            // Call AI API and get response
-            const result = isAnthropic 
-              ? await callAnthropicStreamingAPI(requestBody, controller)
-              : await callOpenAIStreamingAPI(requestBody, controller);
+            // ENHANCED: Route to appropriate AI provider
+            let result;
+            if (isGemini) {
+              result = await callGeminiStreamingAPI(requestBody, controller);
+            } else if (isAnthropic) {
+              result = await callAnthropicStreamingAPI(requestBody, controller);
+            } else {
+              result = await callOpenAIStreamingAPI(requestBody, controller);
+            }
 
             console.log('✅ AI response completed:', {
+              provider: isGemini ? 'Gemini' : isAnthropic ? 'Anthropic' : 'OpenAI',
               contentLength: result.content.length,
               tokensUsed: result.usage.total_tokens,
               model: result.model
@@ -1063,12 +1564,17 @@ serve(async (req) => {
             console.error('❌ Streaming error:', error);
             const encoder = new TextEncoder();
             
-            // ENHANCED: Better error type classification
+            // ENHANCED: Better error type classification with Gemini rate limit handling
             let errorType = 'INTERNAL_ERROR';
+            let userMessage = error.message;
+
             if (error.message.includes('API key') || error.message.includes('not configured')) {
               errorType = 'API_CONFIGURATION_ERROR';
             } else if (error.message.includes('Failed to save') || error.message.includes('Failed to create conversation')) {
               errorType = 'DATABASE_OPERATION_FAILED';
+            } else if (error.message.includes('rate limit') || error.message.includes('quota') || error.message.includes('Gemini API')) {
+              errorType = 'RATE_LIMIT_EXCEEDED';
+              // Keep the user-friendly message from the Gemini API function
             } else if (error.message.includes('OpenAI') || error.message.includes('Anthropic') || error.message.includes('reasoning model') || error.message.includes('Claude model')) {
               errorType = 'AI_SERVICE_ERROR';
             }
@@ -1076,7 +1582,7 @@ serve(async (req) => {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'error',
               error: errorType,
-              message: error.message
+              message: userMessage
             })}\n\n`));
             controller.close();
           }

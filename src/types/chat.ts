@@ -1,4 +1,4 @@
-// TypeScript interfaces for chat.space data structures with enhanced multi-provider integration
+// TypeScript interfaces for chat.space data structures with enhanced multi-provider integration including Gemini
 export interface User {
   id: string
   email: string
@@ -31,7 +31,7 @@ export interface AIModel {
   id: string
   name: string
   displayName: string
-  provider: 'openai' | 'anthropic'
+  provider: 'openai' | 'anthropic' | 'google'
   category: 'general' | 'reasoning' | 'coding' | 'simple'
   tier: 'flagship' | 'efficient' | 'latest' | 'premium' | 'nano'
   color: string
@@ -43,7 +43,7 @@ export interface AIModel {
   }
 }
 
-// Latest 2025 AI Models - Comprehensive List
+// Enhanced 2025 AI Models - Comprehensive List with Gemini Integration
 export const ALL_MODELS: AIModel[] = [
   // OpenAI GPT-4o Family (Most Popular)
   {
@@ -147,7 +147,6 @@ export const ALL_MODELS: AIModel[] = [
     pricing: { input: 1, output: 4 }
   },
 
-
   // Anthropic Claude Models
   {
     id: 'claude-3-5-sonnet-20241022',
@@ -186,7 +185,7 @@ export const ALL_MODELS: AIModel[] = [
     pricing: { input: 15, output: 75 }
   },
 
-  // Claude 3.7 Models (2025) - NEWLY ADDED
+  // Claude 3.7 Models (2025)
   {
     id: 'claude-3-7-sonnet-20250219',
     name: 'claude-3-7-sonnet-20250219',
@@ -200,7 +199,7 @@ export const ALL_MODELS: AIModel[] = [
     pricing: { input: 4, output: 20 }
   },
 
-  // Claude 4 Models (2025) - NEWLY ADDED
+  // Claude 4 Models (2025)
   {
     id: 'claude-sonnet-4-20250514',
     name: 'claude-sonnet-4-20250514',
@@ -224,6 +223,68 @@ export const ALL_MODELS: AIModel[] = [
     maxTokens: 200000,
     description: 'Most advanced Claude model for complex reasoning',
     pricing: { input: 20, output: 100 }
+  },
+
+  // NEW: Google Gemini Models (2025)
+  {
+    id: 'gemini-2.0-flash',
+    name: 'gemini-2.0-flash',
+    displayName: 'Gemini 2.0 Flash',
+    provider: 'google',
+    category: 'budget',
+    tier: 'efficient',
+    color: '#4285F4', // google-blue
+    maxTokens: 1000000,
+    description: 'Fast and reliable for everyday tasks',
+    pricing: { input: 0.075, output: 0.3 }
+  },
+  {
+    id: 'gemini-1.5-flash',
+    name: 'gemini-1.5-flash',
+    displayName: 'Gemini 1.5 Flash',
+    provider: 'google',
+    category: 'budget',
+    tier: 'efficient',
+    color: '#34A853', // google-green
+    maxTokens: 1000000,
+    description: 'Efficient model for general use',
+    pricing: { input: 0.075, output: 0.3 }
+  },
+  {
+    id: 'gemini-1.5-pro',
+    name: 'gemini-1.5-pro',
+    displayName: 'Gemini 1.5 Pro',
+    provider: 'google',
+    category: 'smart-daily',
+    tier: 'flagship',
+    color: '#EA4335', // google-red
+    maxTokens: 2000000,
+    description: 'Advanced capabilities with large context',
+    pricing: { input: 1.25, output: 5 }
+  },
+  {
+    id: 'gemini-2.5-flash',
+    name: 'gemini-2.5-flash',
+    displayName: 'Gemini 2.5 Flash',
+    provider: 'google',
+    category: 'smart-daily',
+    tier: 'latest',
+    color: '#FBBC04', // google-yellow
+    maxTokens: 1000000,
+    description: 'Latest fast model with enhanced capabilities',
+    pricing: { input: 0.1, output: 0.4 }
+  },
+  {
+    id: 'gemini-2.5-pro',
+    name: 'gemini-2.5-pro',
+    displayName: 'Gemini 2.5 Pro',
+    provider: 'google',
+    category: 'reasoning',
+    tier: 'premium',
+    color: '#9C27B0', // purple for premium
+    maxTokens: 2000000,
+    description: 'Most advanced Gemini model for complex tasks',
+    pricing: { input: 2, output: 8 }
   }
 ]
 
@@ -233,6 +294,7 @@ export const DEFAULT_MODEL_ID = 'gpt-4o-mini'
 // Legacy exports for backward compatibility
 export const OPENAI_MODELS = ALL_MODELS.filter(model => model.provider === 'openai')
 export const CLAUDE_MODELS = ALL_MODELS.filter(model => model.provider === 'anthropic')
+export const GEMINI_MODELS = ALL_MODELS.filter(model => model.provider === 'google')
 export const AI_MODELS = ALL_MODELS
 
 // Model category definitions for smart grouping
@@ -258,7 +320,7 @@ export const MODEL_CATEGORIES = {
 } as const
 
 // Helper function to get models by category and provider
-export function getModelsByCategory(provider: 'openai' | 'anthropic') {
+export function getModelsByCategory(provider: 'openai' | 'anthropic' | 'google') {
   const providerModels = ALL_MODELS.filter(model => model.provider === provider)
   
   const categories = Object.keys(MODEL_CATEGORIES).sort((a, b) => 
@@ -271,6 +333,7 @@ export function getModelsByCategory(provider: 'openai' | 'anthropic') {
     models: providerModels.filter(model => model.category === categoryKey)
   })).filter(group => group.models.length > 0)
 }
+
 // Get the default model
 export const getDefaultModel = (): AIModel => {
   return ALL_MODELS.find(model => model.id === DEFAULT_MODEL_ID) || ALL_MODELS[0]
@@ -303,14 +366,19 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
     name: 'Free',
     monthlyTokens: 35000,
     dailyMessages: 25,
-    models: ['gpt-4o-mini', 'claude-3-5-haiku-20241022'],
+    models: ['gpt-4o-mini', 'claude-3-5-haiku-20241022', 'gemini-2.0-flash'],
     warnings: [70, 90]
   },
   basic: {
     name: 'Basic',
     monthlyTokens: 1000000,
     dailyMessages: -1,
-    models: ['gpt-4o-mini', 'claude-3-5-haiku-20241022', 'gpt-4o', 'gpt-4.1', 'gpt-4.1-mini', 'claude-3-5-sonnet-20241022'],
+    models: [
+      'gpt-4o-mini', 'claude-3-5-haiku-20241022', 'gemini-2.0-flash',
+      'gpt-4o', 'gpt-4.1', 'gpt-4.1-mini', 'claude-3-5-sonnet-20241022',
+      'claude-3-7-sonnet-20250219', 'claude-sonnet-4-20250514',
+      'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.5-flash'
+    ],
     warnings: [50, 80, 95],
     price: '$6/month'
   },
@@ -318,7 +386,7 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
     name: 'Pro',
     monthlyTokens: 1500000,
     dailyMessages: -1,
-    models: ALL_MODELS.map(m => m.id), // All models
+    models: ALL_MODELS.map(m => m.id), // All models including Gemini
     warnings: [50, 80, 95],
     price: '$9/month'
   }
@@ -352,7 +420,7 @@ export interface NormalizedAPIResponse {
     total_tokens: number
   }
   model: string             // Model that was used
-  provider: 'openai' | 'anthropic'
+  provider: 'openai' | 'anthropic' | 'google'
   raw_response?: object     // Original API response
 }
 
@@ -383,27 +451,23 @@ export interface APIError {
   retryable: boolean
 }
 
-// Pricing tier definitions
+// UPDATED: Pricing tier definitions with Gemini models
 export const PRICING_TIERS: Record<string, UserTier> = {
   free: {
     tier: 'free',
     monthly_tokens: 35000,
     daily_messages: 25,
-    allowed_models: ['gpt-4o-mini', 'claude-3-5-haiku-20241022']
+    allowed_models: ['gpt-4o-mini', 'claude-3-5-haiku-20241022', 'gemini-2.0-flash']
   },
   basic: {
     tier: 'basic',
     monthly_tokens: 1000000,
     daily_messages: -1, // unlimited
     allowed_models: [
-      'gpt-4o-mini', 
-      'claude-3-5-haiku-20241022', 
-      'gpt-4o', 
-      'gpt-4.1', 
-      'gpt-4.1-mini', 
-      'claude-3-5-sonnet-20241022',
-      'claude-3-7-sonnet-20250219',
-      'claude-sonnet-4-20250514'
+      'gpt-4o-mini', 'claude-3-5-haiku-20241022', 'gemini-2.0-flash',
+      'gpt-4o', 'gpt-4.1', 'gpt-4.1-mini', 'claude-3-5-sonnet-20241022',
+      'claude-3-7-sonnet-20250219', 'claude-sonnet-4-20250514',
+      'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.5-flash'
     ],
     price: '$6/month'
   },
@@ -411,7 +475,7 @@ export const PRICING_TIERS: Record<string, UserTier> = {
     tier: 'pro',
     monthly_tokens: 1500000,
     daily_messages: -1, // unlimited
-    allowed_models: ALL_MODELS.map(m => m.id),
+    allowed_models: ALL_MODELS.map(m => m.id), // All models including all Gemini models
     price: '$9/month'
   }
 }
@@ -441,6 +505,7 @@ export function getProviderColor(provider: string): string {
   switch (provider) {
     case 'openai': return 'text-blue-600'
     case 'anthropic': return 'text-orange-600'
+    case 'google': return 'text-green-600'
     default: return 'text-gray-600'
   }
 }
@@ -449,6 +514,7 @@ export function getProviderBadgeColor(provider: string): string {
   switch (provider) {
     case 'openai': return 'bg-blue-100 text-blue-800'
     case 'anthropic': return 'bg-orange-100 text-orange-800'
+    case 'google': return 'bg-green-100 text-green-800'
     default: return 'bg-gray-100 text-gray-800'
   }
 }
@@ -475,5 +541,10 @@ export function getTierBadgeColor(tier: string): string {
 }
 
 export function getProviderIcon(provider: string): string {
-  return provider === 'anthropic' ? '🤖' : '🧠'
+  switch (provider) {
+    case 'anthropic': return '🤖'
+    case 'google': return '🟢'
+    case 'openai': 
+    default: return '🧠'
+  }
 }

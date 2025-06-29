@@ -1,12 +1,13 @@
-// Enhanced chat area component with Chat Models branding and clean header
-import React, { useEffect, useRef } from 'react'
+// Enhanced chat area component with Gemini performance warning
+import React, { useEffect, useRef, useState } from 'react'
 import { MessageBubble } from './MessageBubble'
 import { MessageInput } from './MessageInput'
 import { StreamingMessage } from './StreamingMessage'
 import { ErrorBanner } from './ErrorBanner'
 import { ModelSelector } from './ModelSelector'
-import { AIModel, StreamingState, getProviderIcon } from '../../types/chat'
-import { Sparkles, MessageSquare, Crown, ArrowRight, Clock } from 'lucide-react'
+import { PromptHelper } from '../prompt-helper/PromptHelper'
+import { AIModel, StreamingState, getProviderIcon, AI_MODELS } from '../../types/chat'
+import { Sparkles, MessageSquare, Crown, ArrowRight, Clock, Wand2, ToggleLeft, ToggleRight, AlertTriangle } from 'lucide-react'
 import { Logo } from '../common/Logo'
 
 import { useUsageStats } from '../../hooks/useUsageStats'
@@ -57,6 +58,10 @@ export function ChatArea({
   const { profile, displayName } = useUserProfile()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
+  
+  // FIXED: Check Pro status first, then manage mode
+  const isProUser = usageStats?.tier?.tier === 'pro'
+  const [isPromptHelperMode, setIsPromptHelperMode] = useState(false)
 
   // Enhanced auto-scroll for real-time streaming
   useEffect(() => {
@@ -66,6 +71,56 @@ export function ChatArea({
   }, [conversation?.messages, streamingState.currentMessage])
 
   const isLatest2025Model = selectedModel.id.includes('4.1') || selectedModel.id.includes('o3') || selectedModel.id.includes('o4')
+
+  // NEW: Check if current model is Gemini
+  const isGeminiModel = selectedModel.provider === 'google'
+
+  // Get available models for Pro users
+  const getAvailableModels = () => {
+    if (!usageStats) return AI_MODELS
+    return AI_MODELS.filter(model => 
+      usageStats.tier.allowed_models.includes(model.id)
+    )
+  }
+
+  // Handle enhanced prompt submission from Prompt Helper
+  const handleEnhancedPromptSubmission = (enhancedPrompt: string, model: AIModel) => {
+    // Switch to the selected model if different
+    if (model.id !== selectedModel.id) {
+      onModelChange(model)
+    }
+    
+    // Send the enhanced prompt
+    onSendMessage(enhancedPrompt)
+    
+    // Exit prompt helper mode
+    setIsPromptHelperMode(false)
+  }
+
+  // FIXED: Handle prompt helper mode toggle with Pro check FIRST
+  const handlePromptHelperToggle = () => {
+    // Check Pro status BEFORE activating mode to prevent flash
+    if (!isProUser) {
+      onUpgradePrompt?.('pro')
+      return
+    }
+    
+    // FIXED: Always start fresh prompt helper mode
+    setIsPromptHelperMode(true)
+  }
+
+  // If in prompt helper mode, show the prompt helper interface
+  if (isPromptHelperMode && isProUser) {
+    return (
+      <PromptHelper
+        onSendMessage={handleEnhancedPromptSubmission}
+        onExit={() => setIsPromptHelperMode(false)}
+        selectedModel={selectedModel}
+        onModelChange={onModelChange}
+        availableModels={getAvailableModels()}
+      />
+    )
+  }
 
   const renderEmptyState = () => (
     <div className="flex-1 flex items-center justify-center p-4 min-h-0">
@@ -91,11 +146,36 @@ export function ChatArea({
                 <span className="text-xs sm:text-sm font-medium text-purple-600">2025</span>
               </div>
             )}
+            {/* NEW: Gemini performance indicator */}
+            {isGeminiModel && (
+              <div className="flex items-center space-x-1 bg-amber-100 px-2 py-1 rounded-full flex-shrink-0">
+                <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600" />
+                <span className="text-xs sm:text-sm font-medium text-amber-600">Beta</span>
+              </div>
+            )}
           </div>
           <p className="text-gray-600 text-lg sm:text-xl leading-relaxed">
             Hi there! Ready to help with any questions or tasks.
           </p>
         </div>
+        
+        {/* MINIMAL: Pro feature hint (only for Pro users) */}
+        {isProUser && (
+          <div className="mb-8">
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+              <div className="flex items-center justify-center space-x-2 mb-3">
+                <Wand2 className="w-4 h-4 text-purple-600" />
+                <span className="text-sm font-medium text-purple-800">Try Smart Prompt Mode</span>
+              </div>
+              <button
+                onClick={() => setIsPromptHelperMode(true)}
+                className="text-xs text-purple-600 hover:text-purple-700 transition-colors"
+              >
+                Get better AI results with guided prompts →
+              </button>
+            </div>
+          </div>
+        )}
         
         {/* Minimal current plan display */}
         {usageStats && (
@@ -114,12 +194,57 @@ export function ChatArea({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
-      {/* CLEAN: Minimal header - REMOVED mobile logo */}
+      {/* FIXED: Clean header without interference */}
       <div className="relative z-20 flex-shrink-0 pt-safe">
-        <div className="flex items-center justify-center py-6 px-4 min-h-[80px]">
+        <div className="flex items-center justify-center py-4 px-4">
           {/* Desktop header */}
           <div className="hidden lg:flex items-center justify-between w-full max-w-6xl">
-            <div className="flex items-center">
+            <div className="flex items-center space-x-4">
+              <ModelSelector 
+                selectedModel={selectedModel}
+                onModelChange={onModelChange}
+                onUpgradePrompt={onUpgradePrompt}
+                compact={true}
+              />
+              
+              {/* MINIMAL: Desktop prompt helper toggle */}
+              {isProUser && (
+                <button
+                  onClick={handlePromptHelperToggle}
+                  className="flex items-center space-x-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl transition-colors text-sm"
+                >
+                  <Wand2 className="w-4 h-4" />
+                  <span>Smart Mode</span>
+                </button>
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-4 text-xs text-gray-500 font-medium">
+              {conversation && (
+                <span>{conversation.messages?.length || 0} messages</span>
+              )}
+              {usageStats && (
+                <span className="capitalize">{usageStats.tier.tier.replace('_', ' ')} Plan</span>
+              )}
+            </div>
+          </div>
+          
+          {/* FIXED: Mobile header without interference */}
+          <div className="lg:hidden flex items-center justify-between w-full">
+            {/* Empty left space to avoid hamburger interference */}
+            <div className="w-12"></div>
+            
+            <div className="flex items-center space-x-2">
+              {/* MINIMAL: Mobile prompt helper toggle */}
+              {isProUser && (
+                <button
+                  onClick={handlePromptHelperToggle}
+                  className="p-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-xl"
+                >
+                  <Wand2 className="w-4 h-4" />
+                </button>
+              )}
+              
               <ModelSelector 
                 selectedModel={selectedModel}
                 onModelChange={onModelChange}
@@ -127,28 +252,6 @@ export function ChatArea({
                 compact={true}
               />
             </div>
-            
-            <div className="flex items-center space-x-4 text-xs text-gray-500 font-medium">
-              {conversation && (
-                <span>{conversation.messages?.length || 0} message{(conversation.messages?.length || 0) !== 1 ? 's' : ''}</span>
-              )}
-              {usageStats && (
-                <div className="flex items-center space-x-1">
-                  <span>•</span>
-                  <span className="capitalize">{usageStats.tier.tier.replace('_', ' ')} Plan</span>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Mobile model selector - floating */}
-          <div className="lg:hidden fixed top-6 right-4 z-30 pt-safe" style={{ paddingRight: 'max(env(safe-area-inset-right), 0.5rem)' }}>
-            <ModelSelector 
-              selectedModel={selectedModel}
-              onModelChange={onModelChange}
-              onUpgradePrompt={onUpgradePrompt}
-              compact={true}
-            />
           </div>
         </div>
       </div>
@@ -203,6 +306,30 @@ export function ChatArea({
             </div>
           </div>
         )}
+
+        {/* NEW: Gemini performance warning banner */}
+        {isGeminiModel && usageStats && usageStats.tier.allowed_models.includes(selectedModel.id) && (
+          <div className="px-4 pb-2">
+            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-l-4 border-amber-400 p-4 rounded-r-xl">
+              <div className="flex items-start space-x-3">
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-amber-800 mb-1">
+                    Slower Response Expected
+                  </h3>
+                  <p className="text-sm text-amber-700 mb-2">
+                    <strong>{selectedModel.displayName}</strong> may take up to a minute to respond. We're working on improving response speeds.
+                  </p>
+                  <p className="text-xs text-amber-600">
+                    💡 For faster results, try <strong>GPT-4o</strong> or <strong>Claude 3.5 Sonnet</strong> instead.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer - Desktop only */}
@@ -213,6 +340,7 @@ export function ChatArea({
           </p>
         </div>
       </div>
+      
       {/* Messages area with proper bottom spacing for sticky input */}
       <div className="flex-1 flex flex-col min-h-0 relative z-10 overflow-hidden">
         {!hasMessages && !hasStreamingMessage ? renderEmptyState() : (
@@ -254,26 +382,4 @@ export function ChatArea({
       </div>
     </div>
   )
-}
-
-// Helper function to format reset time
-function formatResetTime(resetTime?: string): string {
-  if (!resetTime) return 'soon'
-  
-  const resetDate = new Date(resetTime)
-  const now = new Date()
-  const diffMs = resetDate.getTime() - now.getTime()
-  
-  if (diffMs < 24 * 60 * 60 * 1000) {
-    // Less than 24 hours - show relative time
-    const hours = Math.floor(diffMs / (60 * 60 * 1000))
-    const minutes = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000))
-    return `Resets in ${hours}h ${minutes}m`
-  } else {
-    // More than 24 hours - show date
-    return `on ${resetDate.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
-    })}`
-  }
 }

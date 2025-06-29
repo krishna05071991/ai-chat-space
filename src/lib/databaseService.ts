@@ -2,6 +2,16 @@
 import { supabase } from './supabase'
 import { Conversation, Message } from '../types/chat'
 
+// Add retry configuration for network requests
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  baseDelay: 1000, // 1 second
+  maxDelay: 5000   // 5 seconds
+}
+
+// Helper function to add delay
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
 interface UserUsageData {
   daily_messages_sent: number
   monthly_tokens_used: number
@@ -44,6 +54,74 @@ class DatabaseService {
   private pendingOperations: (() => Promise<void>)[] = []
 
   /**
+   * Test Supabase connectivity before making requests
+   */
+  private async testSupabaseConnectivity(): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Simple connectivity test - try to get session
+      const { data, error } = await supabase.auth.getSession()
+      
+      if (error) {
+        return { 
+          success: false, 
+          error: `Supabase auth error: ${error.message}` 
+        }
+      }
+      
+      return { success: true }
+    } catch (error) {
+      // Network-level errors
+      if (error.message?.includes('Failed to fetch')) {
+        return { 
+          success: false, 
+          error: 'Cannot reach Supabase servers. Please check your internet connection and Supabase project status.' 
+        }
+      }
+      
+      return { 
+        success: false, 
+        error: `Connectivity test failed: ${error.message}` 
+      }
+    }
+  }
+
+  /**
+   * Retry wrapper for database operations
+   */
+  private async withRetry<T>(
+    operation: () => Promise<T>, 
+    operationName: string,
+    retries = RETRY_CONFIG.maxRetries
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        return await operation()
+      } catch (error) {
+        const isLastAttempt = attempt === retries
+        const isNetworkError = error.message?.includes('Failed to fetch') || 
+                              error.message?.includes('fetch') ||
+                              error.message?.includes('network')
+        
+        if (isNetworkError && !isLastAttempt) {
+          const delayMs = Math.min(
+            RETRY_CONFIG.baseDelay * Math.pow(2, attempt - 1),
+            RETRY_CONFIG.maxDelay
+          )
+          
+          console.warn(`🔄 ${operationName} failed (attempt ${attempt}/${retries}), retrying in ${delayMs}ms...`, error.message)
+          await delay(delayMs)
+          continue
+        }
+        
+        // If it's the last attempt or not a network error, throw the error
+        throw error
+      }
+    }
+    
+    throw new Error(`Operation failed after ${retries} attempts`)
+  }
+
+  /**
    * Enhanced error handling for database operations
    */
   private handleDatabaseError(error: any, operation: string): Error {
@@ -52,7 +130,12 @@ class DatabaseService {
     // Handle network connectivity errors
     if (error.message?.includes('Failed to fetch') || error.name === 'TypeError') {
       return new Error(
-        `Unable to connect to the database. Please check your internet connection and Supabase configuration. If the problem persists, the service may be temporarily unavailable.`
+        `Unable to connect to Supabase. Please check:\n` +
+        `1. Your internet connection\n` +
+        `2. Supabase project status (visit dashboard.supabase.com)\n` +
+        `3. VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env file\n` +
+        `4. Project might be paused or suspended\n\n` +
+        `Current URL: ${import.meta.env.VITE_SUPABASE_URL || 'NOT SET'}`
       )
     }
 
@@ -188,14 +271,22 @@ class DatabaseService {
    * ENHANCED: Wrapper for database operations with better error handling
    */
   private async withAuth<T>(operation: () => Promise<T>, operationName: string): Promise<T> {
+    // First test connectivity
+    const connectivityTest = await this.testSupabaseConnectivity()
+    if (!connectivityTest.success) {
+      throw new Error(`Connection failed: ${connectivityTest.error}`)
+    }
+    
     try {
-      // Check authentication first
-      const isAuth = await this.isAuthenticated()
-      if (!isAuth) {
-        throw new Error(`Authentication required for ${operationName}. Please sign in again.`)
-      }
-      
-      return await operation()
+      return await this.withRetry(async () => {
+        // Check authentication first
+        const isAuth = await this.isAuthenticated()
+        if (!isAuth) {
+          throw new Error(`Authentication required for ${operationName}. Please sign in again.`)
+        }
+        
+        return await operation()
+      }, operationName)
     } catch (error) {
       // Use enhanced error handling
       throw this.handleDatabaseError(error, operationName)
@@ -423,6 +514,15 @@ class DatabaseService {
    */
   async testDatabaseConnection(): Promise<{ success: boolean; details: string }> {
     try {
+      // First test basic connectivity
+      const connectivityTest = await this.testSupabaseConnectivity()
+      if (!connectivityTest.success) {
+        return {
+          success: false,
+          details: `Connectivity test failed: ${connectivityTest.error}`
+        }
+      }
+      
       const isAuth = await this.isAuthenticated()
       if (!isAuth) {
         return {

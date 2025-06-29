@@ -239,7 +239,7 @@ export function PromptHelper({
           />
         )}
         
-        {state.step === 'preview' && state.task && state.role && (
+        {state.step === 'preview' && state.task && state.role !== '' && (
           <FinalPreview
             userRequest={state.request}
             taskType={state.task}

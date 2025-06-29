@@ -9,19 +9,10 @@ interface IntroductionProps {
 export function Introduction({ onContinue }: IntroductionProps) {
   return (
     <div className="max-w-md mx-auto text-center py-4">
-      {/* Add exit option for seamless feel */}
-      <div className="flex items-center justify-between mb-6">
-        <div></div> {/* Spacer */}
-        <h2 className="text-xl font-bold text-gray-800">
-          Smart Prompt Mode
-        </h2>
-        <button
-          onClick={() => window.history.back()}
-          className="text-gray-400 hover:text-gray-600 text-sm"
-        >
-          Exit
-        </button>
-      </div>
+      {/* SEAMLESS: Clean title without header structure */}
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">
+        Smart Prompt Mode
+      </h2>
       
       <p className="text-gray-600 mb-6 text-sm leading-relaxed">
         Get better AI results with guided prompt optimization, 

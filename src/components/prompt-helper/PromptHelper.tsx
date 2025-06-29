@@ -1,4 +1,4 @@
-// UPDATED: Pass required props for example generation
+// FIXED: Smart Prompt flow with proper state management and flow control
 import React, { useState, useEffect } from 'react'
 import { Introduction } from './Introduction'
 import { RequestInput } from './RequestInput'
@@ -8,7 +8,6 @@ import { CustomRoleInput } from './CustomRoleInput'
 import { ExampleInput } from './ExampleInput'
 import { FinalPreview } from './FinalPreview'
 import { AIModel } from '../../types/chat'
-import { X } from 'lucide-react'
 
 interface PromptHelperProps {
   onSendMessage: (content: string, model: AIModel) => void
@@ -33,10 +32,9 @@ interface State {
   task: TaskType | null
   role: string
   examples: UserExamples
-  hasStarted: boolean
 }
 
-const STORAGE_KEY = 'prompt-helper'
+const STORAGE_KEY = 'prompt-helper-state'
 
 export function PromptHelper({ 
   onSendMessage, 
@@ -45,91 +43,45 @@ export function PromptHelper({
   onModelChange,
   availableModels 
 }: PromptHelperProps) {
-  // FIXED: State loading with better validation
-  const [state, setState] = useState<State>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        // FIXED: Better validation and corruption handling
-        if (parsed.hasStarted) {
-          // Validate the state structure
-          const validatedState = {
-            step: parsed.step && ['intro', 'request', 'task', 'role', 'customRole', 'examples', 'preview'].includes(parsed.step) 
-              ? parsed.step 
-              : 'request',
-            request: typeof parsed.request === 'string' ? parsed.request : '',
-            task: parsed.task || null,
-            role: typeof parsed.role === 'string' ? parsed.role : '',
-            examples: parsed.examples && typeof parsed.examples === 'object' 
-              ? parsed.examples 
-              : { example1: '', example2: '' },
-            hasStarted: true
-          }
-          return validatedState
-        }
-      }
-    } catch (e) {
-      // Clear corrupted state and start fresh
-      localStorage.removeItem(STORAGE_KEY)
-    }
-    
-    return {
-      step: 'intro' as Step,
-      request: '',
-      task: null,
-      role: '',
-      examples: { example1: '', example2: '' },
-      hasStarted: false
-    }
+  // FIXED: Always start fresh - no localStorage persistence to avoid confusion
+  const [state, setState] = useState<State>({
+    step: 'intro',
+    request: '',
+    task: null,
+    role: '',
+    examples: { example1: '', example2: '' }
   })
 
-  // FIXED: Save state on every change
+  // Clear any previous state on mount to ensure fresh start
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-    } catch (e) {
-      // Ignore save errors
-    }
-  }, [state])
-
-  // FIXED: Persist across tab switches
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.hidden) {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-        } catch (e) {
-          // Ignore save errors
-        }
-      }
-    }
-
-    document.addEventListener('visibilitychange', handleVisibility)
-    return () => document.removeEventListener('visibilitychange', handleVisibility)
-  }, [state])
+    localStorage.removeItem(STORAGE_KEY)
+  }, [])
 
   const updateState = (updates: Partial<State>) => {
     setState(prev => ({ ...prev, ...updates }))
   }
 
-  // FIXED: Proper flow progression
+  // FIXED: Proper flow progression with validation
   const handleIntroComplete = () => {
-    updateState({ step: 'request', hasStarted: true })
+    updateState({ step: 'request' })
   }
 
   const handleRequestComplete = (request: string) => {
-    updateState({ step: 'task', request })
+    if (!request?.trim()) {
+      console.error('Request is required')
+      return
+    }
+    updateState({ step: 'task', request: request.trim() })
   }
 
   const handleTaskComplete = (task: TaskType) => {
     updateState({ step: 'role', task })
     
-    // Auto-select optimal model
+    // Auto-select optimal model based on task
     const taskModelMap: Record<TaskType, string> = {
       creative: 'gpt-4.1',
       coding: 'claude-3-7-sonnet-20250219',
-      analysis: 'o3',
+      analysis: 'o3-mini',
       general: 'claude-sonnet-4-20250514'
     }
     
@@ -140,28 +92,48 @@ export function PromptHelper({
   }
 
   const handleRoleComplete = (role: string) => {
+    if (!role?.trim()) {
+      console.error('Role is required')
+      return
+    }
+    
     if (role === 'custom') {
       updateState({ step: 'customRole' })
     } else {
-      updateState({ step: 'examples', role })
+      updateState({ step: 'examples', role: role.trim() })
     }
   }
 
   const handleCustomRoleComplete = (customRole: string) => {
-    updateState({ step: 'examples', role: customRole })
+    if (!customRole?.trim()) {
+      console.error('Custom role is required')
+      return
+    }
+    updateState({ step: 'examples', role: customRole.trim() })
   }
 
   const handleExamplesComplete = (examples: UserExamples) => {
+    // Validate we have minimum required data before final step
+    if (!state.request?.trim() || !state.task || !state.role?.trim()) {
+      console.error('Missing required data for final step', { 
+        hasRequest: !!state.request?.trim(), 
+        hasTask: !!state.task, 
+        hasRole: !!state.role?.trim() 
+      })
+      return
+    }
+    
     updateState({ step: 'preview', examples })
   }
 
   const handleSubmit = (prompt: string, model: AIModel) => {
-    // Clear state since we're done
-    try {
-      localStorage.removeItem(STORAGE_KEY)
-    } catch (e) {
-      // Ignore cleanup errors
+    if (!prompt?.trim()) {
+      console.error('Prompt is required for submission')
+      return
     }
+    
+    // Clear state since we're done
+    localStorage.removeItem(STORAGE_KEY)
     
     onSendMessage(prompt, model)
     onExit()
@@ -169,88 +141,90 @@ export function PromptHelper({
 
   const handleBack = () => {
     const backMap: Record<Step, Step> = {
-      intro: 'intro',
+      intro: 'intro', // Can't go back from intro
       request: 'intro',
       task: 'request',
       role: 'task',
       customRole: 'role',
-      examples: state.role ? 'role' : 'task', // Handle both flows
+      examples: state.role === 'custom' ? 'customRole' : 'role',
       preview: 'examples'
     }
-    updateState({ step: backMap[state.step] })
+    
+    const nextStep = backMap[state.step]
+    if (nextStep !== state.step) { // Only update if we can actually go back
+      updateState({ step: nextStep })
+    }
   }
 
-  const handleExit = () => {
-    // Keep state for next time
-    onExit()
-  }
-
+  // FIXED: Seamless canvas design - no headers, just content
   return (
     <div className="flex-1 flex flex-col h-full bg-white">
-      {/* MINIMAL: Content area */}
-      <div className="flex-1 p-4 pt-6">
-        {state.step === 'intro' && (
-          <Introduction onContinue={handleIntroComplete} />
-        )}
-        
-        {state.step === 'request' && (
-          <RequestInput 
-            initialValue={state.request}
-            onComplete={handleRequestComplete}
-            onBack={handleBack}
-          />
-        )}
-        
-        {state.step === 'task' && (
-          <TaskSelection 
-            userRequest={state.request}
-            onSelectTask={handleTaskComplete} 
-            onBack={handleBack}
-          />
-        )}
-        
-        {state.step === 'role' && state.task && (
-          <RoleSelection 
-            userRequest={state.request}
-            taskType={state.task}
-            onSelectRole={handleRoleComplete}
-            onBack={handleBack}
-          />
-        )}
-        
-        {state.step === 'customRole' && state.task && (
-          <CustomRoleInput 
-            userRequest={state.request}
-            taskType={state.task}
-            onComplete={handleCustomRoleComplete}
-            onBack={handleBack}
-          />
-        )}
-        
-        {state.step === 'examples' && state.task && (
-          <ExampleInput 
-            taskType={state.task}
-            initialExamples={state.examples}
-            onComplete={handleExamplesComplete}
-            onBack={handleBack}
-            userRequest={state.request} // NEW: Pass user request for example generation
-            availableModels={availableModels} // NEW: Pass available models for tier checking
-          />
-        )}
-        
-        {state.step === 'preview' && state.task && state.role !== '' && (
-          <FinalPreview
-            userRequest={state.request}
-            taskType={state.task}
-            userRole={state.role}
-            userExamples={state.examples}
-            selectedModel={selectedModel}
-            availableModels={availableModels}
-            onModelChange={onModelChange}
-            onSubmit={handleSubmit}
-            onBack={handleBack}
-          />
-        )}
+      {/* SEAMLESS: Direct content rendering without headers */}
+      <div className="flex-1 p-6 overflow-y-auto">
+        <div className="max-w-2xl mx-auto">
+          {state.step === 'intro' && (
+            <Introduction onContinue={handleIntroComplete} />
+          )}
+          
+          {state.step === 'request' && (
+            <RequestInput 
+              initialValue={state.request}
+              onComplete={handleRequestComplete}
+              onBack={handleBack}
+            />
+          )}
+          
+          {state.step === 'task' && (
+            <TaskSelection 
+              userRequest={state.request}
+              onSelectTask={handleTaskComplete} 
+              onBack={handleBack}
+            />
+          )}
+          
+          {state.step === 'role' && state.task && (
+            <RoleSelection 
+              userRequest={state.request}
+              taskType={state.task}
+              onSelectRole={handleRoleComplete}
+              onBack={handleBack}
+            />
+          )}
+          
+          {state.step === 'customRole' && state.task && (
+            <CustomRoleInput 
+              userRequest={state.request}
+              taskType={state.task}
+              onComplete={handleCustomRoleComplete}
+              onBack={handleBack}
+            />
+          )}
+          
+          {state.step === 'examples' && state.task && state.role && (
+            <ExampleInput 
+              taskType={state.task}
+              initialExamples={state.examples}
+              onComplete={handleExamplesComplete}
+              onBack={handleBack}
+              userRequest={state.request}
+              availableModels={availableModels}
+            />
+          )}
+          
+          {state.step === 'preview' && state.request && state.task && state.role && (
+            <FinalPreview
+              userRequest={state.request}
+              taskType={state.task}
+              userRole={state.role}
+              userExamples={state.examples}
+              selectedModel={selectedModel}
+              availableModels={availableModels}
+              onModelChange={onModelChange}
+              onSubmit={handleSubmit}
+              onBack={handleBack}
+            />
+          )}
+        </div>
       </div>
     </div>
   )

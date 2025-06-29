@@ -105,7 +105,8 @@ export function ChatArea({
       return
     }
     
-    setIsPromptHelperMode(!isPromptHelperMode)
+    // FIXED: Always start fresh prompt helper mode
+    setIsPromptHelperMode(true)
   }
 
   // If in prompt helper mode, show the prompt helper interface

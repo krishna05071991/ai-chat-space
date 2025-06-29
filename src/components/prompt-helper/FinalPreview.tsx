@@ -53,21 +53,25 @@ export function FinalPreview({
 
   // ENHANCED: Build prompt with role-task format
   const buildBasicPrompt = () => {
-    // FIXED: Add proper null/undefined checks
-    if (!userRequest || typeof userRequest !== 'string') {
+    // FIXED: Better validation with detailed logging
+    if (!userRequest || typeof userRequest !== 'string' || !userRequest.trim()) {
+      console.warn('Invalid userRequest:', { userRequest, type: typeof userRequest })
       return 'Please provide your request.'
     }
     
     // Determine role instruction
     let roleInstruction = ''
-    if (userRole && typeof userRole === 'string' && ROLE_DEFINITIONS[userRole]) {
-      roleInstruction = ROLE_DEFINITIONS[userRole](taskType || 'general')
-    } else if (userRole && typeof userRole === 'string') {
-      // Custom role - use as provided
-      roleInstruction = userRole.startsWith('You are') ? userRole : `You are ${userRole}`
-    } else {
-      // Fallback role
+    
+    // FIXED: Comprehensive role validation
+    if (!userRole || typeof userRole !== 'string') {
+      console.warn('Invalid userRole:', { userRole, type: typeof userRole })
       roleInstruction = 'You are a helpful assistant who provides clear, practical guidance.'
+    } else if (ROLE_DEFINITIONS[userRole]) {
+      roleInstruction = ROLE_DEFINITIONS[userRole](taskType || 'general')
+    } else {
+      // Custom role - use as provided
+      const roleText = userRole.trim()
+      roleInstruction = roleText.startsWith('You are') ? roleText : `You are ${roleText}`
     }
     
     let result = roleInstruction + "\n\n"

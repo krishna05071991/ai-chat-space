@@ -95,24 +95,32 @@ export function FinalPreview({
 
   // NEW: Enhance prompt using GPT-4o when no examples provided
   const enhancePrompt = async () => {
-    // FIXED: Add safety checks
-    if (!userRequest || typeof userRequest !== 'string' || !userRequest.trim()) {
-      setPrompt(buildBasicPrompt())
-      return
-    }
-    
     setIsEnhancing(true)
     setEnhancementError(null)
 
     try {
+      // FIXED: Validate required data
+      if (!userRequest || typeof userRequest !== 'string' || !userRequest.trim()) {
+        throw new Error('User request is required for enhancement')
+      }
+      
+      if (!taskType || typeof taskType !== 'string') {
+        throw new Error('Task type is required for enhancement')  
+      }
+      
+      if (!userRole || typeof userRole !== 'string') {
+        throw new Error('User role is required for enhancement')
+      }
+      
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         throw new Error('Authentication required')
       }
 
-      console.log('🚀 Enhancing prompt with GPT-4o:', {
+      console.log('🚀 Enhancing prompt with advanced prompt engineering:', {
         userRequest: userRequest.substring(0, 50) + '...',
         taskType,
+        userRole,
         hasExamples: !!(userExamples.example1?.trim() || userExamples.example2?.trim())
       })
 
@@ -134,6 +142,15 @@ export function FinalPreview({
 
       if (!response.ok) {
         const errorData = await response.json()
+        
+        // Handle specific enhancement errors
+        if (errorData.error === 'PROMPT_ENHANCEMENT_FAILED') {
+          console.warn('Enhancement failed, using fallback')
+          setPrompt(errorData.fallback || buildBasicPrompt())
+          setEnhancementError('Enhancement service unavailable, using basic prompt')
+          return
+        }
+        
         throw new Error(errorData.message || 'Failed to enhance prompt')
       }
 
@@ -141,10 +158,11 @@ export function FinalPreview({
       
       if (data.enhancedPrompt) {
         setPrompt(data.enhancedPrompt)
-        console.log('✅ Prompt enhanced successfully:', {
-          originalLength: buildPrompt().length,
+        console.log('✅ Prompt enhanced with advanced engineering:', {
+          originalLength: buildBasicPrompt().length,
           enhancedLength: data.enhancedPrompt.length,
-          model: data.model
+          model: data.model,
+          improvementRatio: (data.enhancedPrompt.length / buildBasicPrompt().length).toFixed(2) + 'x'
         })
       } else {
         throw new Error('No enhanced prompt received')

@@ -1154,8 +1154,112 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // NEW: Handle example generation for Prompt Helper
-    if (requestBody.purpose === 'generate_example') {
+    // Extract common variables for special purposes
+    const { purpose, userRequest, taskType, userRole, currentPrompt, exampleNumber } = requestBody;
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+
+    // ENHANCED: Intelligent prompt enhancement for Smart Prompt Mode
+    if (purpose === 'enhance_prompt') {
+      console.log('🎯 Enhancing prompt with advanced prompt engineering')
+      
+      const enhancementSystemPrompt = `You are an expert prompt engineer who specializes in creating highly effective prompts for AI systems. Your expertise includes understanding user intent, structuring clear instructions, and applying prompt engineering best practices.
+
+Your task is to transform a user's basic request into a comprehensive, well-structured prompt that will yield superior AI responses.
+
+ENHANCEMENT PRINCIPLES:
+1. **Intent Analysis**: Understand what the user really wants to achieve
+2. **Outcome Definition**: Clearly specify the expected deliverable 
+3. **Context Setting**: Provide relevant background and constraints
+4. **Structure**: Organize the prompt logically with clear sections
+5. **Specificity**: Be precise about format, tone, and requirements
+6. **Task-Specific Optimization**: Tailor approach based on domain (creative, technical, analytical)
+
+ENHANCEMENT PROCESS:
+1. Analyze the user's request to understand their true intent
+2. Identify the specific outcome they need
+3. Determine the best role/persona for the AI to adopt
+4. Structure the prompt with clear sections (context, task, requirements, output format)
+5. Add relevant constraints and quality criteria
+6. Include examples or templates when helpful
+
+TASK TYPE SPECIALIZATIONS:
+- **Creative**: Focus on inspiration, style, audience, mood, creative constraints
+- **Coding**: Specify language, best practices, error handling, documentation, testing
+- **Analysis**: Define methodology, data sources, depth of analysis, presentation format
+- **General**: Ensure clarity, completeness, actionability, and user-focused outcomes
+
+Transform the user's basic request into a prompt that will produce significantly better AI responses. Make it comprehensive but not overwhelming. Focus on clarity and actionability.`
+
+      const enhancementMessages = [
+        {
+          role: 'system',
+          content: enhancementSystemPrompt
+        },
+        {
+          role: 'user', 
+          content: `Please enhance this prompt for better AI results:
+
+TASK TYPE: ${taskType}
+USER ROLE PREFERENCE: ${userRole}
+ORIGINAL REQUEST: "${userRequest}"
+CURRENT BASIC PROMPT: "${currentPrompt}"
+
+Create an enhanced version that follows prompt engineering best practices and will produce significantly better results. Structure it clearly and make it comprehensive yet focused.`
+        }
+      ]
+
+      try {
+        const enhancementResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini', // Use efficient model for enhancement
+            messages: enhancementMessages,
+            max_tokens: 1500,
+            temperature: 0.3, // Lower temperature for more consistent enhancement
+          }),
+        })
+
+        if (!enhancementResponse.ok) {
+          throw new Error(`Enhancement failed: ${enhancementResponse.status}`)
+        }
+
+        const enhancementData = await enhancementResponse.json()
+        const enhancedPrompt = enhancementData.choices?.[0]?.message?.content
+
+        if (!enhancedPrompt) {
+          throw new Error('No enhanced prompt received')
+        }
+
+        console.log('✅ Prompt enhanced successfully')
+        
+        return new Response(JSON.stringify({
+          enhancedPrompt: enhancedPrompt.trim(),
+          model: 'gpt-4o-mini',
+          usage: enhancementData.usage
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+
+      } catch (error) {
+        console.error('❌ Prompt enhancement failed:', error)
+        
+        return new Response(JSON.stringify({
+          error: 'PROMPT_ENHANCEMENT_FAILED',
+          message: `Failed to enhance prompt: ${error.message}`,
+          fallback: currentPrompt
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
+    // ENHANCED: Example generation for Smart Prompt Mode
+    if (purpose === 'generate_example') {
       console.log('🎯 Handling example generation request');
       
       try {
@@ -1188,32 +1292,6 @@ serve(async (req) => {
         const result = await enhancePrompt(
           requestBody.userRequest, 
           requestBody.taskType, 
-          requestBody.userRole,
-          requestBody.currentPrompt
-        );
-        
-        return new Response(JSON.stringify(result), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      } catch (error) {
-        console.error('❌ Prompt enhancement failed:', error);
-        return new Response(JSON.stringify({
-          error: 'PROMPT_ENHANCEMENT_FAILED',
-          message: error.message || 'Failed to enhance prompt'
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    }
-    // NEW: Handle prompt enhancement for Prompt Helper
-    if (requestBody.purpose === 'enhance_prompt') {
-      console.log('🚀 Handling prompt enhancement request');
-      
-      try {
-        const result = await enhancePrompt(
-          requestBody.userRequest,
-          requestBody.taskType,
           requestBody.userRole,
           requestBody.currentPrompt
         );

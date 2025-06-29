@@ -1,4 +1,4 @@
-// Enhanced chat area component with Chat Models branding and Prompt Helper Mode
+// Enhanced chat area component with Gemini performance warning
 import React, { useEffect, useRef, useState } from 'react'
 import { MessageBubble } from './MessageBubble'
 import { MessageInput } from './MessageInput'
@@ -7,7 +7,7 @@ import { ErrorBanner } from './ErrorBanner'
 import { ModelSelector } from './ModelSelector'
 import { PromptHelper } from '../prompt-helper/PromptHelper'
 import { AIModel, StreamingState, getProviderIcon, AI_MODELS } from '../../types/chat'
-import { Sparkles, MessageSquare, Crown, ArrowRight, Clock, Wand2, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Sparkles, MessageSquare, Crown, ArrowRight, Clock, Wand2, ToggleLeft, ToggleRight, AlertTriangle } from 'lucide-react'
 import { Logo } from '../common/Logo'
 
 import { useUsageStats } from '../../hooks/useUsageStats'
@@ -71,6 +71,9 @@ export function ChatArea({
   }, [conversation?.messages, streamingState.currentMessage])
 
   const isLatest2025Model = selectedModel.id.includes('4.1') || selectedModel.id.includes('o3') || selectedModel.id.includes('o4')
+
+  // NEW: Check if current model is Gemini
+  const isGeminiModel = selectedModel.provider === 'google'
 
   // Get available models for Pro users
   const getAvailableModels = () => {
@@ -140,6 +143,13 @@ export function ChatArea({
               <div className="flex items-center space-x-1 bg-purple-100 px-2 py-1 rounded-full flex-shrink-0">
                 <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />
                 <span className="text-xs sm:text-sm font-medium text-purple-600">2025</span>
+              </div>
+            )}
+            {/* NEW: Gemini performance indicator */}
+            {isGeminiModel && (
+              <div className="flex items-center space-x-1 bg-amber-100 px-2 py-1 rounded-full flex-shrink-0">
+                <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600" />
+                <span className="text-xs sm:text-sm font-medium text-amber-600">Beta</span>
               </div>
             )}
           </div>
@@ -290,6 +300,30 @@ export function ChatArea({
                     View Upgrade Options
                     <ArrowRight className="ml-2 h-3 w-3 group-hover:translate-x-1 transition-transform" />
                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* NEW: Gemini performance warning banner */}
+        {isGeminiModel && usageStats && usageStats.tier.allowed_models.includes(selectedModel.id) && (
+          <div className="px-4 pb-2">
+            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-l-4 border-amber-400 p-4 rounded-r-xl">
+              <div className="flex items-start space-x-3">
+                <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-amber-800 mb-1">
+                    Slower Response Expected
+                  </h3>
+                  <p className="text-sm text-amber-700 mb-2">
+                    <strong>{selectedModel.displayName}</strong> may take up to a minute to respond. We're working on improving response speeds.
+                  </p>
+                  <p className="text-xs text-amber-600">
+                    💡 For faster results, try <strong>GPT-4o</strong> or <strong>Claude 3.5 Sonnet</strong> instead.
+                  </p>
                 </div>
               </div>
             </div>

@@ -1,3 +1,4 @@
+// UPDATED: Edge Function with example generation support using GPT-4o
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -83,6 +84,10 @@ const PRICING_TIERS = {
 // NEW: Function to detect OpenAI reasoning models
 function isReasoningModel(modelId) {
   return modelId.includes('o1') || modelId.includes('o3') || modelId.includes('o4');
+}
+
+function isClaudeModel(modelId) {
+  return VALID_CLAUDE_MODELS.includes(modelId);
 }
 
 // NEW: Function to detect Gemini models
@@ -571,8 +576,69 @@ async function getNextSequenceNumber(supabase, conversationId) {
   }
 }
 
-function isClaudeModel(modelId) {
-  return VALID_CLAUDE_MODELS.includes(modelId);
+// NEW: Generate example using GPT-4o for Prompt Helper
+async function generateExample(userRequest, taskType) {
+  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openaiApiKey) {
+    throw new Error('OPENAI_API_KEY not configured');
+  }
+
+  console.log('🎯 Generating example with GPT-4o for:', { userRequest, taskType });
+
+  // Build example generation prompt based on task type
+  const taskPrompts = {
+    creative: 'Generate a creative writing example that demonstrates high-quality style, vivid imagery, and engaging storytelling.',
+    coding: 'Generate a clean, well-commented code example that demonstrates best practices and clear structure.',
+    analysis: 'Generate an analytical example that demonstrates logical reasoning, clear structure, and data-driven insights.',
+    general: 'Generate a helpful, well-structured example that demonstrates clear communication and comprehensive coverage.'
+  };
+
+  const prompt = `${taskPrompts[taskType] || taskPrompts.general}
+
+User's request: "${userRequest}"
+
+Provide a concise but high-quality example that shows the style and approach they should expect. Keep it under 300 words and make it directly relevant to their request.`;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${openaiApiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o', // Use GPT-4o for fast, high-quality examples
+      messages: [
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 500,
+      temperature: 0.7
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error('❌ GPT-4o example generation error:', response.status, errorData);
+    throw new Error(`Example generation failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const example = data.choices?.[0]?.message?.content;
+
+  if (!example) {
+    throw new Error('No example content generated');
+  }
+
+  console.log('✅ Example generated successfully:', {
+    contentLength: example.length,
+    model: 'gpt-4o',
+    taskType
+  });
+
+  return {
+    example: example.trim(),
+    model: 'gpt-4o',
+    usage: data.usage
+  };
 }
 
 // FIXED: OpenAI API with proper reasoning model support
@@ -971,7 +1037,8 @@ serve(async (req) => {
       conversationId: requestBody.conversation_id,
       hasStream: !!requestBody.stream,
       isReasoningModel: isReasoningModel(requestBody.model),
-      isGeminiModel: isGeminiModel(requestBody.model)
+      isGeminiModel: isGeminiModel(requestBody.model),
+      purpose: requestBody.purpose // NEW: Check for example generation purpose
     });
 
     // Initialize Supabase client
@@ -1004,6 +1071,29 @@ serve(async (req) => {
       });
     }
 
+    // NEW: Handle example generation for Prompt Helper
+    if (requestBody.purpose === 'generate_example') {
+      console.log('🎯 Handling example generation request');
+      
+      try {
+        const result = await generateExample(requestBody.userRequest, requestBody.taskType);
+        
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        console.error('❌ Example generation failed:', error);
+        return new Response(JSON.stringify({
+          error: 'EXAMPLE_GENERATION_FAILED',
+          message: error.message || 'Failed to generate example'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // Continue with regular chat completion logic...
     // CRITICAL: Get user tier and usage with anniversary-based resets
     const userTierData = await getUserTierAndUsage(supabase, user.id);
 

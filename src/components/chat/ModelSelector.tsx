@@ -1,6 +1,6 @@
-// UPDATED: Mobile-first model selector with Google/Gemini provider support
+// UPDATED: Mobile-first model selector with Gemini performance warning
 import React, { useState } from 'react'
-import { ChevronDown, Check, Lock, Crown, Sparkles } from 'lucide-react'
+import { ChevronDown, Check, Lock, Crown, Sparkles, Clock, AlertTriangle } from 'lucide-react'
 import { AIModel, getModelsByCategory, MODEL_CATEGORIES, PRICING_TIERS } from '../../types/chat'
 import { useUsageStats } from '../../hooks/useUsageStats'
 
@@ -21,6 +21,11 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
   // UPDATED: Enhanced model allowance check
   const isModelAllowed = (model: AIModel): boolean => {
     return allowedModels.includes(model.id)
+  }
+
+  // NEW: Check if model is Gemini
+  const isGeminiModel = (model: AIModel): boolean => {
+    return model.provider === 'google'
   }
 
   // UPDATED: Get required tier for model access
@@ -129,6 +134,7 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
           {models.map((model) => {
             const isSelected = selectedModel.id === model.id
             const isAllowed = isModelAllowed(model)
+            const isGemini = isGeminiModel(model)
             
             return (
               <button
@@ -165,6 +171,14 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
                       <div className="flex items-center space-x-1 flex-shrink-0">
                         <Sparkles className="w-3 h-3 text-purple-500" />
                         <span className="text-xs text-purple-600 font-medium hidden sm:inline">2025</span>
+                      </div>
+                    )}
+
+                    {/* NEW: Gemini performance warning */}
+                    {isGemini && isAllowed && (
+                      <div className="flex items-center space-x-1 flex-shrink-0">
+                        <Clock className="w-3 h-3 text-amber-500" />
+                        <span className="text-xs text-amber-600 font-medium hidden sm:inline">Slow</span>
                       </div>
                     )}
                   </div>
@@ -214,6 +228,10 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
         >
           <span className="truncate font-medium">{selectedModel.displayName}</span>
           {!isModelAllowed(selectedModel) && <Lock className="w-3 h-3 text-amber-600 animate-pulse flex-shrink-0" />}
+          {/* NEW: Show performance warning icon for Gemini models */}
+          {isGeminiModel(selectedModel) && isModelAllowed(selectedModel) && (
+            <Clock className="w-3 h-3 text-amber-500 flex-shrink-0" />
+          )}
           <ChevronDown className={`w-3 h-3 text-gray-500 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
         </button>
 
@@ -245,11 +263,31 @@ export function ModelSelector({ selectedModel, onModelChange, onUpgradePrompt, c
                 )}
               </div>
 
-              {/* NEW: Mobile-optimized Google/Gemini models section */}
+              {/* NEW: Mobile-optimized Google/Gemini models section with performance warning */}
               <div className="border-b border-gray-200">
                 <div className="px-3 py-2 bg-green-50 border-b border-gray-200">
-                  <span className="text-xs font-semibold text-green-800">Google Gemini</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-green-800">Google Gemini</span>
+                    <div className="flex items-center space-x-1">
+                      <Clock className="w-3 h-3 text-amber-500" />
+                      <span className="text-xs text-amber-600 font-medium">Beta</span>
+                    </div>
+                  </div>
                 </div>
+                
+                {/* NEW: Performance warning banner */}
+                <div className="px-3 py-2 bg-amber-50 border-b border-amber-200">
+                  <div className="flex items-start space-x-2">
+                    <AlertTriangle className="w-3 h-3 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-amber-800 font-medium mb-1">Slower Response Times</p>
+                      <p className="text-xs text-amber-700">
+                        We're working on improving Gemini response speeds. For faster results, try GPT-4o or Claude models.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 {getModelsByCategory('google').map(({ category, categoryInfo, models }) =>
                   renderCategoryGroup(category, categoryInfo, models, 'google')
                 )}

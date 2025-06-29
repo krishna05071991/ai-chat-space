@@ -1,4 +1,4 @@
-// FIXED: Edge Function with proper OpenAI reasoning model support and conversation handling
+// ENHANCED: Edge Function with Gemini support and example generation
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -8,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
-// COMPLETE: All supported models with reasoning model detection
+// COMPLETE: All supported models including Gemini
 const VALID_OPENAI_MODELS = [
   'gpt-3.5-turbo',
   'gpt-4o-mini',
@@ -35,14 +35,24 @@ const VALID_CLAUDE_MODELS = [
   'claude-3-opus-20240229'
 ];
 
-// COMPLETE: Pricing tier definitions matching frontend
+// NEW: Valid Gemini models
+const VALID_GEMINI_MODELS = [
+  'gemini-2.5-pro',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro'
+];
+
+// UPDATED: Pricing tier definitions matching frontend with Gemini models
 const PRICING_TIERS = {
   free: {
     monthly_tokens: 35000,
     daily_messages: 25,
     allowed_models: [
       'gpt-4o-mini',
-      'claude-3-5-haiku-20241022'
+      'claude-3-5-haiku-20241022',
+      'gemini-2.0-flash'
     ]
   },
   basic: {
@@ -51,40 +61,40 @@ const PRICING_TIERS = {
     allowed_models: [
       'gpt-4o-mini',
       'claude-3-5-haiku-20241022',
+      'gemini-2.0-flash',
       'gpt-4o',
       'gpt-4.1',
       'gpt-4.1-mini',
       'claude-3-5-sonnet-20241022',
       'claude-3-7-sonnet-20250219',
-      'claude-sonnet-4-20250514'
+      'claude-sonnet-4-20250514',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
+      'gemini-2.5-flash'
     ]
   },
   pro: {
     monthly_tokens: 1500000,
     daily_messages: -1,
     allowed_models: [
-      'gpt-4o-mini',
-      'claude-3-5-haiku-20241022',
-      'gpt-4o',
-      'gpt-4.1',
-      'gpt-4.1-mini',
-      'gpt-4.1-nano',
-      'gpt-4-turbo',
-      'o3',
-      'o3-mini',
-      'o4-mini',
-      'claude-3-5-sonnet-20241022',
-      'claude-3-7-sonnet-20250219',
-      'claude-sonnet-4-20250514',
-      'claude-opus-4-20250514',
-      'claude-3-opus-20240229'
+      ...VALID_OPENAI_MODELS,
+      ...VALID_CLAUDE_MODELS,
+      ...VALID_GEMINI_MODELS
     ]
   }
 };
 
-// NEW: Function to detect OpenAI reasoning models
+// NEW: Helper functions for model detection
 function isReasoningModel(modelId) {
   return modelId.includes('o1') || modelId.includes('o3') || modelId.includes('o4');
+}
+
+function isClaudeModel(modelId) {
+  return VALID_CLAUDE_MODELS.includes(modelId);
+}
+
+function isGeminiModel(modelId) {
+  return VALID_GEMINI_MODELS.includes(modelId);
 }
 
 // CRITICAL: Enhanced getUserTierAndUsage with anniversary-based reset logic
@@ -567,10 +577,6 @@ async function getNextSequenceNumber(supabase, conversationId) {
   }
 }
 
-function isClaudeModel(modelId) {
-  return VALID_CLAUDE_MODELS.includes(modelId);
-}
-
 // FIXED: OpenAI API with proper reasoning model support
 async function callOpenAIStreamingAPI(requestBody, controller) {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -820,6 +826,201 @@ async function callAnthropicStreamingAPI(requestBody, controller) {
   }
 }
 
+// NEW: Gemini API with streaming support
+async function callGeminiStreamingAPI(requestBody, controller) {
+  const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!geminiApiKey) {
+    throw new Error('GEMINI_API_KEY not configured');
+  }
+
+  console.log('🌊 Streaming Gemini API with model:', requestBody.model);
+
+  // Convert messages to Gemini format
+  const geminiMessages = requestBody.messages.map(msg => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }]
+  }));
+
+  const geminiPayload = {
+    contents: geminiMessages,
+    generationConfig: {
+      temperature: requestBody.temperature || 0.7,
+      maxOutputTokens: requestBody.max_tokens || 4000,
+    }
+  };
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${requestBody.model}:streamGenerateContent?key=${geminiApiKey}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(geminiPayload)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error('❌ Gemini API error:', response.status, errorData);
+    
+    if (response.status === 404) {
+      throw new Error(`Gemini model ${requestBody.model} not available. Check model name and API access.`);
+    } else if (response.status === 400) {
+      throw new Error(`Gemini model ${requestBody.model} parameter error. Check request format.`);
+    } else {
+      throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
+    }
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('No response body reader available');
+  }
+
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  let buffer = '';
+  let totalContent = '';
+  let totalInputTokens = 0;
+  let totalOutputTokens = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.trim() === '') continue;
+
+        try {
+          const parsed = JSON.parse(line);
+          
+          if (parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content) {
+            const parts = parsed.candidates[0].content.parts;
+            if (parts && parts[0] && parts[0].text) {
+              const content = parts[0].text;
+              totalContent += content;
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                type: 'content',
+                content: content
+              })}\n\n`));
+            }
+          }
+
+          // Extract usage metadata
+          if (parsed.usageMetadata) {
+            totalInputTokens = parsed.usageMetadata.promptTokenCount || 0;
+            totalOutputTokens = parsed.usageMetadata.candidatesTokenCount || 0;
+          }
+        } catch (e) {
+          // Skip malformed JSON
+        }
+      }
+    }
+
+    // Estimate usage if not provided
+    if (totalInputTokens === 0 && totalOutputTokens === 0) {
+      totalInputTokens = Math.ceil(JSON.stringify(requestBody.messages).length / 4);
+      totalOutputTokens = Math.ceil(totalContent.length / 4);
+    }
+
+    const usage = {
+      prompt_tokens: totalInputTokens,
+      completion_tokens: totalOutputTokens,
+      total_tokens: totalInputTokens + totalOutputTokens
+    };
+
+    return {
+      content: totalContent,
+      usage,
+      model: requestBody.model
+    };
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+// NEW: Generate example for Smart Prompt Mode
+async function generateExample(userRequest, taskType, userTier) {
+  const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!geminiApiKey) {
+    throw new Error('GEMINI_API_KEY not configured for example generation');
+  }
+
+  // Select appropriate model based on user tier
+  let model = 'gemini-2.0-flash'; // Free tier default
+  if (userTier === 'basic' || userTier === 'pro') {
+    model = 'gemini-1.5-pro'; // Better model for paid tiers
+  }
+
+  console.log('✨ Generating example with Gemini:', { model, taskType, userTier });
+
+  // Construct prompt for example generation
+  const examplePrompt = `You are helping create a style example for a user who wants help with ${taskType} tasks. 
+
+The user's request is: "${userRequest}"
+
+Please create a brief, high-quality example that demonstrates the style and approach they might want. This should be:
+- Concise (under 200 words)
+- Relevant to their request
+- A good demonstration of ${taskType} work
+- Professional and well-crafted
+
+Just provide the example content directly, no explanations or meta-text.`;
+
+  const geminiPayload = {
+    contents: [{
+      role: 'user',
+      parts: [{ text: examplePrompt }]
+    }],
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 400
+    }
+  };
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(geminiPayload)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error('❌ Gemini example generation error:', response.status, errorData);
+    throw new Error(`Failed to generate example: ${response.status} - ${errorData}`);
+  }
+
+  const data = await response.json();
+  
+  if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+    const content = data.candidates[0].content.parts[0].text;
+    const usage = {
+      prompt_tokens: data.usageMetadata?.promptTokenCount || 0,
+      completion_tokens: data.usageMetadata?.candidatesTokenCount || 0,
+      total_tokens: (data.usageMetadata?.promptTokenCount || 0) + (data.usageMetadata?.candidatesTokenCount || 0)
+    };
+
+    console.log('✅ Example generated successfully:', { contentLength: content.length, usage });
+
+    return {
+      content: content.trim(),
+      usage,
+      model
+    };
+  } else {
+    throw new Error('Invalid response format from Gemini API');
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -833,7 +1034,9 @@ serve(async (req) => {
       messageCount: requestBody.messages?.length,
       conversationId: requestBody.conversation_id,
       hasStream: !!requestBody.stream,
-      isReasoningModel: isReasoningModel(requestBody.model)
+      purpose: requestBody.purpose,
+      isReasoningModel: isReasoningModel(requestBody.model),
+      isGeminiModel: isGeminiModel(requestBody.model)
     });
 
     // Initialize Supabase client
@@ -866,8 +1069,51 @@ serve(async (req) => {
       });
     }
 
-    // CRITICAL: Get user tier and usage with anniversary-based resets
+    // Get user tier and usage with anniversary-based resets
     const userTierData = await getUserTierAndUsage(supabase, user.id);
+
+    // NEW: Handle example generation requests
+    if (requestBody.purpose === 'generate_example') {
+      console.log('✨ Processing example generation request');
+
+      const { userRequest, taskType } = requestBody;
+      if (!userRequest || !taskType) {
+        return new Response(JSON.stringify({
+          error: 'INVALID_REQUEST',
+          message: 'userRequest and taskType required for example generation'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      try {
+        const exampleResult = await generateExample(userRequest, taskType, userTierData.tier);
+        
+        // Track usage for example generation
+        await updateUserUsage(supabase, user.id, exampleResult.usage.total_tokens, 0);
+        await updateUsageTracking(supabase, user.id, exampleResult.usage.total_tokens, 0, exampleResult.model);
+
+        return new Response(JSON.stringify({
+          example: exampleResult.content,
+          usage: exampleResult.usage,
+          model: exampleResult.model
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+
+      } catch (error) {
+        console.error('❌ Example generation failed:', error);
+        return new Response(JSON.stringify({
+          error: 'EXAMPLE_GENERATION_FAILED',
+          message: error.message
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
 
     // CRITICAL: Pre-request validation
     // 1. Model allowance check
@@ -939,7 +1185,17 @@ serve(async (req) => {
 
     // Validate model
     const isAnthropic = isClaudeModel(requestBody.model);
-    const validModels = isAnthropic ? VALID_CLAUDE_MODELS : VALID_OPENAI_MODELS;
+    const isGemini = isGeminiModel(requestBody.model);
+    let validModels;
+    
+    if (isAnthropic) {
+      validModels = VALID_CLAUDE_MODELS;
+    } else if (isGemini) {
+      validModels = VALID_GEMINI_MODELS;
+    } else {
+      validModels = VALID_OPENAI_MODELS;
+    }
+
     if (!validModels.includes(requestBody.model)) {
       return new Response(JSON.stringify({
         error: 'INVALID_MODEL',
@@ -983,13 +1239,13 @@ serve(async (req) => {
       userSequence
     );
 
-    console.log(`🔄 Routing to ${isAnthropic ? 'Anthropic' : 'OpenAI'} API:`, {
+    console.log(`🔄 Routing to ${isGemini ? 'Gemini' : isAnthropic ? 'Anthropic' : 'OpenAI'} API:`, {
       model: requestBody.model,
       messageCount: requestBody.messages.length,
       userId: user.id,
       tier: userTierData.tier,
       conversationId,
-      isReasoningModel: !isAnthropic && isReasoningModel(requestBody.model)
+      isReasoningModel: !isAnthropic && !isGemini && isReasoningModel(requestBody.model)
     });
 
     // STREAMING: Process AI response
@@ -999,10 +1255,15 @@ serve(async (req) => {
       const stream = new ReadableStream({
         async start(controller) {
           try {
-            // Call AI API and get response
-            const result = isAnthropic 
-              ? await callAnthropicStreamingAPI(requestBody, controller)
-              : await callOpenAIStreamingAPI(requestBody, controller);
+            // Call appropriate AI API and get response
+            let result;
+            if (isGemini) {
+              result = await callGeminiStreamingAPI(requestBody, controller);
+            } else if (isAnthropic) {
+              result = await callAnthropicStreamingAPI(requestBody, controller);
+            } else {
+              result = await callOpenAIStreamingAPI(requestBody, controller);
+            }
 
             console.log('✅ AI response completed:', {
               contentLength: result.content.length,
@@ -1069,7 +1330,7 @@ serve(async (req) => {
               errorType = 'API_CONFIGURATION_ERROR';
             } else if (error.message.includes('Failed to save') || error.message.includes('Failed to create conversation')) {
               errorType = 'DATABASE_OPERATION_FAILED';
-            } else if (error.message.includes('OpenAI') || error.message.includes('Anthropic') || error.message.includes('reasoning model') || error.message.includes('Claude model')) {
+            } else if (error.message.includes('OpenAI') || error.message.includes('Anthropic') || error.message.includes('Gemini') || error.message.includes('reasoning model') || error.message.includes('Claude model')) {
               errorType = 'AI_SERVICE_ERROR';
             }
 

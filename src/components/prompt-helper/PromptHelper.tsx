@@ -1,4 +1,4 @@
-// COMPLETELY REWRITTEN: Minimal state machine with proper persistence
+// UPDATED: Pass required props for example generation
 import React, { useState, useEffect } from 'react'
 import { Introduction } from './Introduction'
 import { RequestInput } from './RequestInput'
@@ -198,6 +198,8 @@ export function PromptHelper({
             initialExamples={state.examples}
             onComplete={handleExamplesComplete}
             onBack={handleBack}
+            userRequest={state.request} // NEW: Pass user request for example generation
+            availableModels={availableModels} // NEW: Pass available models for tier checking
           />
         )}
         

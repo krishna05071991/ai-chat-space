@@ -1,18 +1,30 @@
-// MINIMAL: Clean example input with 1000 chars
+// ENHANCED: Clean example input with Gemini-powered example generation
 import React, { useState } from 'react'
-import { ArrowLeft, ArrowRight, SkipForward } from 'lucide-react'
+import { ArrowLeft, ArrowRight, SkipForward, Wand2, Loader2 } from 'lucide-react'
 import { TaskType, UserExamples } from './PromptHelper'
+import { supabase } from '../../lib/supabase'
 
 interface ExampleInputProps {
   taskType: TaskType
   initialExamples: UserExamples
   onComplete: (examples: UserExamples) => void
   onBack: () => void
+  userRequest?: string // NEW: Pass user request for example generation
+  availableModels?: any[] // NEW: Pass available models for tier checking
 }
 
-export function ExampleInput({ taskType, initialExamples, onComplete, onBack }: ExampleInputProps) {
+export function ExampleInput({ 
+  taskType, 
+  initialExamples, 
+  onComplete, 
+  onBack,
+  userRequest = '',
+  availableModels = []
+}: ExampleInputProps) {
   const [example1, setExample1] = useState(initialExamples.example1)
   const [example2, setExample2] = useState(initialExamples.example2)
+  const [isGeneratingExample, setIsGeneratingExample] = useState(false)
+  const [exampleGenerationError, setExampleGenerationError] = useState<string | null>(null)
 
   const handleContinue = () => {
     onComplete({ example1: example1.trim(), example2: example2.trim() })
@@ -20,6 +32,65 @@ export function ExampleInput({ taskType, initialExamples, onComplete, onBack }: 
 
   const handleSkip = () => {
     onComplete({ example1: '', example2: '' })
+  }
+
+  // NEW: Generate example using Gemini API
+  const handleGenerateExample = async () => {
+    if (!userRequest.trim()) {
+      setExampleGenerationError('Please provide your request first')
+      return
+    }
+
+    setIsGeneratingExample(true)
+    setExampleGenerationError(null)
+
+    try {
+      // Get user session
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        throw new Error('Authentication required')
+      }
+
+      // Call Edge Function for example generation
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-completion`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          purpose: 'generate_example',
+          userRequest: userRequest.trim(),
+          taskType: taskType
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to generate example')
+      }
+
+      const data = await response.json()
+      
+      if (data.example) {
+        // Set the generated example in the first example field
+        setExample1(data.example)
+        console.log('✅ Example generated successfully:', {
+          contentLength: data.example.length,
+          model: data.model,
+          usage: data.usage
+        })
+      } else {
+        throw new Error('No example content received')
+      }
+
+    } catch (error) {
+      console.error('❌ Example generation failed:', error)
+      setExampleGenerationError(error.message || 'Failed to generate example')
+    } finally {
+      setIsGeneratingExample(false)
+    }
   }
 
   return (
@@ -57,6 +128,39 @@ export function ExampleInput({ taskType, initialExamples, onComplete, onBack }: 
             {example2.length}/1000
           </div>
         </div>
+
+        {/* NEW: Generate Example Button */}
+        {userRequest.trim() && (
+          <div className="mt-3">
+            <button
+              onClick={handleGenerateExample}
+              disabled={isGeneratingExample}
+              className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 text-white text-sm font-medium rounded-xl transition-all duration-200 disabled:cursor-not-allowed"
+            >
+              {isGeneratingExample ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <Wand2 className="w-4 h-4" />
+                  <span>Generate Example</span>
+                </>
+              )}
+            </button>
+            
+            {exampleGenerationError && (
+              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-xs text-red-600">{exampleGenerationError}</p>
+              </div>
+            )}
+            
+            <p className="text-xs text-gray-500 mt-1 text-center">
+              AI-powered example based on your request
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between">

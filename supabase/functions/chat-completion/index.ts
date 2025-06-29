@@ -83,16 +83,16 @@ const PRICING_TIERS = {
 
 // NEW: Function to detect OpenAI reasoning models
 function isReasoningModel(modelId) {
-  return modelId.includes('o1') || modelId.includes('o3') || modelId.includes('o4');
+  return modelId && (modelId.includes('o1') || modelId.includes('o3') || modelId.includes('o4'));
 }
 
 function isClaudeModel(modelId) {
-  return VALID_CLAUDE_MODELS.includes(modelId);
+  return modelId && VALID_CLAUDE_MODELS.includes(modelId);
 }
 
 // NEW: Function to detect Gemini models
 function isGeminiModel(modelId) {
-  return VALID_GEMINI_MODELS.includes(modelId);
+  return modelId && VALID_GEMINI_MODELS.includes(modelId);
 }
 
 // CRITICAL: Enhanced getUserTierAndUsage with anniversary-based reset logic
@@ -1130,8 +1130,8 @@ serve(async (req) => {
       messageCount: requestBody.messages?.length,
       conversationId: requestBody.conversation_id,
       hasStream: !!requestBody.stream,
-      isReasoningModel: isReasoningModel(requestBody.model),
-      isGeminiModel: isGeminiModel(requestBody.model),
+      isReasoningModel: requestBody.model ? isReasoningModel(requestBody.model) : false,
+      isGeminiModel: requestBody.model ? isGeminiModel(requestBody.model) : false,
       purpose: requestBody.purpose // NEW: Check for example generation or prompt enhancement
     });
 
@@ -1165,59 +1165,6 @@ serve(async (req) => {
       });
     }
 
-    // NEW: Handle example generation for Prompt Helper
-    if (requestBody.purpose === 'generate_example') {
-      console.log('🎯 Handling example generation request');
-      
-      try {
-        const result = await generateExample(
-          requestBody.userRequest, 
-          requestBody.taskType,
-          requestBody.exampleNumber || 1
-        );
-        
-        return new Response(JSON.stringify(result), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      } catch (error) {
-        console.error('❌ Example generation failed:', error);
-        return new Response(JSON.stringify({
-          error: 'EXAMPLE_GENERATION_FAILED',
-          message: error.message || 'Failed to generate example'
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    }
-
-    // NEW: Handle prompt enhancement for Prompt Helper
-    if (requestBody.purpose === 'enhance_prompt') {
-      console.log('🚀 Handling prompt enhancement request');
-      
-      try {
-        const result = await enhancePrompt(
-          requestBody.userRequest,
-          requestBody.taskType,
-          requestBody.currentPrompt
-        );
-        
-        return new Response(JSON.stringify(result), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      } catch (error) {
-        console.error('❌ Prompt enhancement failed:', error);
-        return new Response(JSON.stringify({
-          error: 'PROMPT_ENHANCEMENT_FAILED',
-          message: error.message || 'Failed to enhance prompt'
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    }
-
-    // Continue with regular chat completion logic...
     // CRITICAL: Get user tier and usage with anniversary-based resets
     const userTierData = await getUserTierAndUsage(supabase, user.id);
 

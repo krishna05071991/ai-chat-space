@@ -1,4 +1,3 @@
-// ENHANCED: Edge Function with proper Gemini API implementation and rate limit handling
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -8,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
-// COMPLETE: All supported models including Gemini
+// COMPLETE: All supported models with reasoning model detection
 const VALID_OPENAI_MODELS = [
   'gpt-3.5-turbo',
   'gpt-4o-mini',
@@ -35,15 +34,16 @@ const VALID_CLAUDE_MODELS = [
   'claude-3-opus-20240229'
 ];
 
-// FIXED: Valid Gemini models with correct naming
+// NEW: Valid Gemini models
 const VALID_GEMINI_MODELS = [
-  'gemini-2.0-flash-exp',
+  'gemini-2.0-flash',
   'gemini-1.5-flash',
   'gemini-1.5-pro',
-  'gemini-1.5-flash-8b'
+  'gemini-2.5-flash',
+  'gemini-2.5-pro'
 ];
 
-// UPDATED: Pricing tier definitions matching frontend with Gemini models
+// FIXED: Updated pricing tier definitions to match frontend exactly
 const PRICING_TIERS = {
   free: {
     monthly_tokens: 35000,
@@ -51,46 +51,41 @@ const PRICING_TIERS = {
     allowed_models: [
       'gpt-4o-mini',
       'claude-3-5-haiku-20241022',
-      'gemini-2.0-flash-exp'
+      'gemini-2.0-flash'
     ]
   },
   basic: {
     monthly_tokens: 1000000,
     daily_messages: -1,
     allowed_models: [
-      'gpt-4o-mini',
-      'claude-3-5-haiku-20241022',
-      'gemini-2.0-flash-exp',
-      'gpt-4o',
-      'gpt-4.1',
-      'gpt-4.1-mini',
-      'claude-3-5-sonnet-20241022',
-      'claude-3-7-sonnet-20250219',
-      'claude-sonnet-4-20250514',
-      'gemini-1.5-flash',
-      'gemini-1.5-pro'
+      'gpt-4o-mini', 'claude-3-5-haiku-20241022', 'gemini-2.0-flash',
+      'gpt-4o', 'gpt-4.1', 'gpt-4.1-mini', 'claude-3-5-sonnet-20241022',
+      'claude-3-7-sonnet-20250219', 'claude-sonnet-4-20250514',
+      'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.5-flash'
     ]
   },
   pro: {
     monthly_tokens: 1500000,
     daily_messages: -1,
     allowed_models: [
-      ...VALID_OPENAI_MODELS,
-      ...VALID_CLAUDE_MODELS,
-      ...VALID_GEMINI_MODELS
+      // OpenAI Models
+      'gpt-4o-mini', 'gpt-4o', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4-turbo',
+      'o3', 'o3-mini', 'o4-mini',
+      // Claude Models  
+      'claude-3-5-haiku-20241022', 'claude-3-5-sonnet-20241022', 'claude-3-7-sonnet-20250219',
+      'claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-opus-20240229',
+      // FIXED: All Gemini Models for Pro tier
+      'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.5-flash', 'gemini-2.5-pro'
     ]
   }
 };
 
-// NEW: Helper functions for model detection
+// NEW: Function to detect OpenAI reasoning models
 function isReasoningModel(modelId) {
   return modelId.includes('o1') || modelId.includes('o3') || modelId.includes('o4');
 }
 
-function isClaudeModel(modelId) {
-  return VALID_CLAUDE_MODELS.includes(modelId);
-}
-
+// NEW: Function to detect Gemini models
 function isGeminiModel(modelId) {
   return VALID_GEMINI_MODELS.includes(modelId);
 }
@@ -208,7 +203,8 @@ async function getUserTierAndUsage(supabase, userId) {
       messagesUsedToday: result.messagesUsedToday,
       tokensUsedThisMonth: result.tokensUsedThisMonth,
       monthlyLimit: result.tierLimits.monthly_tokens,
-      dailyLimit: result.tierLimits.daily_messages
+      dailyLimit: result.tierLimits.daily_messages,
+      allowedModels: result.tierLimits.allowed_models.length
     });
 
     return result;
@@ -575,6 +571,10 @@ async function getNextSequenceNumber(supabase, conversationId) {
   }
 }
 
+function isClaudeModel(modelId) {
+  return VALID_CLAUDE_MODELS.includes(modelId);
+}
+
 // FIXED: OpenAI API with proper reasoning model support
 async function callOpenAIStreamingAPI(requestBody, controller) {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -824,7 +824,7 @@ async function callAnthropicStreamingAPI(requestBody, controller) {
   }
 }
 
-// FIXED: Gemini API with proper rate limit handling
+// NEW: Gemini API with enhanced error handling and rate limit detection
 async function callGeminiStreamingAPI(requestBody, controller) {
   const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
   if (!geminiApiKey) {
@@ -833,38 +833,27 @@ async function callGeminiStreamingAPI(requestBody, controller) {
 
   console.log('🌊 Streaming Gemini API with model:', requestBody.model);
 
-  // FIXED: Convert messages to proper Gemini format
-  const geminiContents = [];
-  for (const msg of requestBody.messages) {
-    geminiContents.push({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }]
-    });
-  }
+  // Convert messages to Gemini format
+  const geminiMessages = requestBody.messages.map((msg) => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }]
+  }));
 
   const geminiPayload = {
-    contents: geminiContents,
+    contents: geminiMessages,
     generationConfig: {
-      temperature: requestBody.temperature || 0.7,
       maxOutputTokens: requestBody.max_tokens || 4000,
+      temperature: requestBody.temperature || 0.7
     }
   };
 
-  // CRITICAL FIX: Use correct Gemini API endpoint with alt=sse for proper streaming
+  // FIXED: Use alt=sse for proper Server-Sent Events format
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${requestBody.model}:streamGenerateContent?alt=sse&key=${geminiApiKey}`;
-
-  console.log('📤 Gemini API request:', {
-    url,
-    model: requestBody.model,
-    messageCount: geminiContents.length,
-    maxTokens: geminiPayload.generationConfig.maxOutputTokens,
-    hasAltSSE: url.includes('alt=sse')
-  });
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(geminiPayload)
   });
@@ -873,26 +862,15 @@ async function callGeminiStreamingAPI(requestBody, controller) {
     const errorData = await response.text();
     console.error('❌ Gemini API error:', response.status, errorData);
     
-    // CRITICAL: Enhanced rate limit handling with user-friendly messages
-    if (response.status === 429) {
-      throw new Error(`We've hit Gemini API rate limits! Please try again in a few minutes, or use a different model like GPT-4o-mini or Claude 3.5 Haiku.`);
-    } else if (response.status === 403) {
-      // Check if it's a quota/rate limit issue
-      if (errorData.includes('quota') || errorData.includes('rate limit') || errorData.includes('FreeTier')) {
-        throw new Error(`Gemini API quota exceeded. We've hit the daily limits for this model. Let's try using OpenAI or Claude models instead!`);
-      } else {
-        throw new Error(`Gemini API access denied. Check API key permissions.`);
-      }
-    } else if (response.status === 400) {
-      // Check for quota/rate limit in error message
-      if (errorData.includes('quota') || errorData.includes('rate limit') || errorData.includes('FreeTier')) {
-        throw new Error(`Gemini model quota exceeded. Let's try again later or use a different model like GPT-4o or Claude 3.5.`);
-      } else {
-        const errorDetail = errorData.includes('does not exist') ? ' Model may not exist or be accessible.' : '';
-        throw new Error(`Gemini model ${requestBody.model} parameter error.${errorDetail} Check request format and model availability.`);
-      }
+    // ENHANCED: Detect rate limits and provide user-friendly messages
+    if (response.status === 429 || errorData.includes('quota') || errorData.includes('rate limit')) {
+      throw new Error("We've hit Gemini API rate limits! Please try again in a few minutes, or use a different model like GPT-4o-mini or Claude 3.5 Haiku.");
+    } else if (response.status === 403 && errorData.includes('quota exceeded')) {
+      throw new Error("Gemini API quota exceeded. We've hit the daily limits for this model. Let's try using OpenAI or Claude models instead!");
+    } else if (response.status === 400 && errorData.includes('quota')) {
+      throw new Error("Gemini model quota exceeded. Let's try again later or use a different model like GPT-4o or Claude 3.5.");
     } else if (response.status === 404) {
-      throw new Error(`Gemini model ${requestBody.model} not available. Try using 'gemini-2.0-flash-exp' or switch to OpenAI/Claude models.`);
+      throw new Error(`Gemini model ${requestBody.model} not available. This might be a model access or API configuration issue.`);
     } else {
       throw new Error(`Gemini API error: ${response.status} - ${errorData}`);
     }
@@ -907,10 +885,11 @@ async function callGeminiStreamingAPI(requestBody, controller) {
   const encoder = new TextEncoder();
   let buffer = '';
   let totalContent = '';
-  let totalInputTokens = 0;
-  let totalOutputTokens = 0;
-
-  console.log('📥 Starting to process Gemini streaming response...');
+  let usage = {
+    prompt_tokens: 0,
+    completion_tokens: 0,
+    total_tokens: 0
+  };
 
   try {
     while (true) {
@@ -918,84 +897,55 @@ async function callGeminiStreamingAPI(requestBody, controller) {
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      
-      // FIXED: Handle both SSE format and raw JSON format
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
       for (const line of lines) {
-        if (line.trim() === '') continue;
-
-        let jsonData = null;
-
-        // FIXED: Handle SSE format with data: prefix
         if (line.startsWith('data: ')) {
-          jsonData = line.slice(6).trim();
-        } else {
-          // FIXED: Handle raw JSON format (fallback)
-          jsonData = line.trim();
-        }
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
 
-        if (!jsonData || jsonData === '[DONE]') continue;
-
-        try {
-          const parsed = JSON.parse(jsonData);
-          console.log('📄 Parsed Gemini response chunk:', JSON.stringify(parsed).substring(0, 200));
-          
-          // FIXED: Extract content from Gemini response structure
-          if (parsed.candidates && parsed.candidates[0]) {
-            const candidate = parsed.candidates[0];
+          try {
+            const parsed = JSON.parse(data);
             
-            // Extract text content
-            if (candidate.content && candidate.content.parts) {
-              for (const part of candidate.content.parts) {
-                if (part.text) {
-                  const content = part.text;
-                  totalContent += content;
-                  
-                  // Stream content to client in our standardized format
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({
-                    type: 'content',
-                    content: content
-                  })}\n\n`));
-                  
-                  console.log('✅ Streaming content chunk:', content.substring(0, 50) + '...');
-                }
+            // Extract content from Gemini response format
+            if (parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content) {
+              const parts = parsed.candidates[0].content.parts;
+              if (parts && parts[0] && parts[0].text) {
+                const content = parts[0].text;
+                totalContent += content;
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                  type: 'content',
+                  content: content
+                })}\n\n`));
               }
             }
-          }
 
-          // FIXED: Extract usage metadata from Gemini response
-          if (parsed.usageMetadata) {
-            totalInputTokens = parsed.usageMetadata.promptTokenCount || 0;
-            totalOutputTokens = parsed.usageMetadata.candidatesTokenCount || 0;
-            console.log('📊 Gemini usage metadata:', parsed.usageMetadata);
+            // Capture usage if available
+            if (parsed.usageMetadata) {
+              usage = {
+                prompt_tokens: parsed.usageMetadata.promptTokenCount || 0,
+                completion_tokens: parsed.usageMetadata.candidatesTokenCount || 0,
+                total_tokens: parsed.usageMetadata.totalTokenCount || 0
+              };
+            }
+          } catch (e) {
+            // Skip malformed JSON
           }
-        } catch (parseError) {
-          // Skip malformed JSON lines but log for debugging
-          console.warn('⚠️ Failed to parse Gemini response line:', jsonData.substring(0, 100), 'Error:', parseError.message);
         }
       }
     }
 
-    // FIXED: Estimate usage if not provided by Gemini
-    if (totalInputTokens === 0 && totalOutputTokens === 0) {
-      totalInputTokens = Math.ceil(JSON.stringify(requestBody.messages).length / 4);
-      totalOutputTokens = Math.ceil(totalContent.length / 4);
-      console.log('📊 Estimated Gemini usage (no metadata provided):', { totalInputTokens, totalOutputTokens });
+    // Estimate usage if not provided by Gemini
+    if (usage.total_tokens === 0) {
+      const estimatedPromptTokens = Math.ceil(JSON.stringify(requestBody.messages).length / 4);
+      const estimatedCompletionTokens = Math.ceil(totalContent.length / 4);
+      usage = {
+        prompt_tokens: estimatedPromptTokens,
+        completion_tokens: estimatedCompletionTokens,
+        total_tokens: estimatedPromptTokens + estimatedCompletionTokens
+      };
     }
-
-    const usage = {
-      prompt_tokens: totalInputTokens,
-      completion_tokens: totalOutputTokens,
-      total_tokens: totalInputTokens + totalOutputTokens
-    };
-
-    console.log('✅ Gemini streaming completed successfully:', {
-      contentLength: totalContent.length,
-      usage,
-      model: requestBody.model
-    });
 
     return {
       content: totalContent,
@@ -1004,97 +954,6 @@ async function callGeminiStreamingAPI(requestBody, controller) {
     };
   } finally {
     reader.releaseLock();
-  }
-}
-
-// ENHANCED: Generate example using Gemini API with proper model selection
-async function generateExample(userRequest, taskType, userTier) {
-  const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-  if (!geminiApiKey) {
-    throw new Error('GEMINI_API_KEY not configured for example generation');
-  }
-
-  // FIXED: Use available models based on user tier
-  let model = 'gemini-2.0-flash-exp'; // Free tier default (most reliable)
-  if (userTier === 'basic' || userTier === 'pro') {
-    model = 'gemini-1.5-pro'; // Better model for paid tiers
-  }
-
-  console.log('✨ Generating example with Gemini:', { model, taskType, userTier });
-
-  // Construct prompt for example generation
-  const examplePrompt = `You are helping create a style example for a user who wants help with ${taskType} tasks. 
-
-The user's request is: "${userRequest}"
-
-Please create a brief, high-quality example that demonstrates the style and approach they might want. This should be:
-- Concise (under 200 words)
-- Relevant to their request
-- A good demonstration of ${taskType} work
-- Professional and well-crafted
-
-Just provide the example content directly, no explanations or meta-text.`;
-
-  const geminiPayload = {
-    contents: [{
-      role: 'user',
-      parts: [{ text: examplePrompt }]
-    }],
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 400
-    }
-  };
-
-  // FIXED: Use non-streaming endpoint for example generation
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(geminiPayload)
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('❌ Gemini example generation error:', response.status, errorData);
-      
-      // CRITICAL: Handle rate limits in example generation
-      if (response.status === 429) {
-        throw new Error(`Gemini rate limits reached. Please try again in a few minutes.`);
-      } else if (response.status === 403 && (errorData.includes('quota') || errorData.includes('FreeTier'))) {
-        throw new Error(`Gemini quota exceeded. Please try again later or upgrade your API plan.`);
-      } else {
-        throw new Error(`Failed to generate example: ${response.status} - ${errorData}`);
-      }
-    }
-
-    const data = await response.json();
-    
-    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-      const content = data.candidates[0].content.parts[0].text;
-      const usage = {
-        prompt_tokens: data.usageMetadata?.promptTokenCount || 0,
-        completion_tokens: data.usageMetadata?.candidatesTokenCount || 0,
-        total_tokens: (data.usageMetadata?.promptTokenCount || 0) + (data.usageMetadata?.candidatesTokenCount || 0)
-      };
-
-      console.log('✅ Example generated successfully:', { contentLength: content.length, usage });
-
-      return {
-        content: content.trim(),
-        usage,
-        model
-      };
-    } else {
-      throw new Error('Invalid response format from Gemini API');
-    }
-  } catch (error) {
-    console.error('❌ Example generation failed:', error);
-    throw error;
   }
 }
 
@@ -1111,7 +970,6 @@ serve(async (req) => {
       messageCount: requestBody.messages?.length,
       conversationId: requestBody.conversation_id,
       hasStream: !!requestBody.stream,
-      purpose: requestBody.purpose,
       isReasoningModel: isReasoningModel(requestBody.model),
       isGeminiModel: isGeminiModel(requestBody.model)
     });
@@ -1146,55 +1004,25 @@ serve(async (req) => {
       });
     }
 
-    // Get user tier and usage with anniversary-based resets
+    // CRITICAL: Get user tier and usage with anniversary-based resets
     const userTierData = await getUserTierAndUsage(supabase, user.id);
 
-    // NEW: Handle example generation requests
-    if (requestBody.purpose === 'generate_example') {
-      console.log('✨ Processing example generation request');
-
-      const { userRequest, taskType } = requestBody;
-      if (!userRequest || !taskType) {
-        return new Response(JSON.stringify({
-          error: 'INVALID_REQUEST',
-          message: 'userRequest and taskType required for example generation'
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      try {
-        const exampleResult = await generateExample(userRequest, taskType, userTierData.tier);
-        
-        // Track usage for example generation
-        await updateUserUsage(supabase, user.id, exampleResult.usage.total_tokens, 0);
-        await updateUsageTracking(supabase, user.id, exampleResult.usage.total_tokens, 0, exampleResult.model);
-
-        return new Response(JSON.stringify({
-          example: exampleResult.content,
-          usage: exampleResult.usage,
-          model: exampleResult.model
-        }), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-
-      } catch (error) {
-        console.error('❌ Example generation failed:', error);
-        return new Response(JSON.stringify({
-          error: 'EXAMPLE_GENERATION_FAILED',
-          message: error.message
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    }
+    // FIXED: Enhanced model validation with Gemini support
+    console.log('🔍 Validating model:', {
+      requestedModel: requestBody.model,
+      userTier: userTierData.tier,
+      allowedModels: userTierData.tierLimits.allowed_models.slice(0, 5) + '...' // Show first 5
+    });
 
     // CRITICAL: Pre-request validation
     // 1. Model allowance check
     if (!userTierData.tierLimits.allowed_models.includes(requestBody.model)) {
+      console.log('❌ Model not allowed for user tier:', {
+        model: requestBody.model,
+        tier: userTierData.tier,
+        allowedCount: userTierData.tierLimits.allowed_models.length
+      });
+
       return new Response(JSON.stringify({
         error: 'MODEL_NOT_ALLOWED',
         type: 'MODEL_NOT_ALLOWED',
@@ -1260,11 +1088,12 @@ serve(async (req) => {
       });
     }
 
-    // Validate model
+    // ENHANCED: Validate model with multi-provider support
     const isAnthropic = isClaudeModel(requestBody.model);
     const isGemini = isGeminiModel(requestBody.model);
+    const isOpenAI = !isAnthropic && !isGemini;
+
     let validModels;
-    
     if (isAnthropic) {
       validModels = VALID_CLAUDE_MODELS;
     } else if (isGemini) {
@@ -1277,7 +1106,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         error: 'INVALID_MODEL',
         type: 'INVALID_MODEL',
-        message: `Model ${requestBody.model} is not supported. Available models: ${validModels.join(', ')}`
+        message: `Model ${requestBody.model} is not supported`
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -1322,7 +1151,8 @@ serve(async (req) => {
       userId: user.id,
       tier: userTierData.tier,
       conversationId,
-      isReasoningModel: !isAnthropic && !isGemini && isReasoningModel(requestBody.model)
+      isReasoningModel: isOpenAI && isReasoningModel(requestBody.model),
+      isGeminiModel: isGemini
     });
 
     // STREAMING: Process AI response
@@ -1332,7 +1162,7 @@ serve(async (req) => {
       const stream = new ReadableStream({
         async start(controller) {
           try {
-            // Call appropriate AI API and get response
+            // ENHANCED: Route to appropriate AI provider
             let result;
             if (isGemini) {
               result = await callGeminiStreamingAPI(requestBody, controller);
@@ -1343,6 +1173,7 @@ serve(async (req) => {
             }
 
             console.log('✅ AI response completed:', {
+              provider: isGemini ? 'Gemini' : isAnthropic ? 'Anthropic' : 'OpenAI',
               contentLength: result.content.length,
               tokensUsed: result.usage.total_tokens,
               model: result.model
@@ -1404,20 +1235,15 @@ serve(async (req) => {
             // ENHANCED: Better error type classification with Gemini rate limit handling
             let errorType = 'INTERNAL_ERROR';
             let userMessage = error.message;
-            
+
             if (error.message.includes('API key') || error.message.includes('not configured')) {
               errorType = 'API_CONFIGURATION_ERROR';
             } else if (error.message.includes('Failed to save') || error.message.includes('Failed to create conversation')) {
               errorType = 'DATABASE_OPERATION_FAILED';
-            } else if (error.message.includes('rate limit') || error.message.includes('quota exceeded') || error.message.includes('FreeTier')) {
-              // CRITICAL: Rate limit specific handling
+            } else if (error.message.includes('rate limit') || error.message.includes('quota') || error.message.includes('Gemini API')) {
               errorType = 'RATE_LIMIT_EXCEEDED';
-              if (error.message.includes('Gemini')) {
-                userMessage = 'Gemini API rate limits reached. Please try again in a few minutes or use a different model like GPT-4o-mini or Claude 3.5 Haiku.';
-              } else {
-                userMessage = 'API rate limits reached. Please try again in a few minutes.';
-              }
-            } else if (error.message.includes('OpenAI') || error.message.includes('Anthropic') || error.message.includes('Gemini') || error.message.includes('reasoning model') || error.message.includes('Claude model')) {
+              // Keep the user-friendly message from the Gemini API function
+            } else if (error.message.includes('OpenAI') || error.message.includes('Anthropic') || error.message.includes('reasoning model') || error.message.includes('Claude model')) {
               errorType = 'AI_SERVICE_ERROR';
             }
 
@@ -1454,10 +1280,9 @@ serve(async (req) => {
   } catch (error) {
     console.error('💥 Edge function error:', error);
     
-    // ENHANCED: Better error classification with rate limit handling
+    // ENHANCED: Better error classification
     let errorType = 'INTERNAL_ERROR';
     let statusCode = 500;
-    let userMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     
     if (error.message.includes('Authentication') || error.message.includes('User not found')) {
       errorType = 'AUTHENTICATION_FAILED';
@@ -1465,16 +1290,12 @@ serve(async (req) => {
     } else if (error.message.includes('Failed to fetch user data') || error.message.includes('database')) {
       errorType = 'DATABASE_OPERATION_FAILED';
       statusCode = 503;
-    } else if (error.message.includes('rate limit') || error.message.includes('quota exceeded')) {
-      errorType = 'RATE_LIMIT_EXCEEDED';
-      statusCode = 429;
-      userMessage = 'API rate limits reached. Please try again in a few minutes or use a different model.';
     }
 
     return new Response(JSON.stringify({
       error: errorType,
       type: errorType,
-      message: userMessage
+      message: error instanceof Error ? error.message : 'An unexpected error occurred'
     }), {
       status: statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

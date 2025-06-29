@@ -51,13 +51,61 @@ export function PromptHelper({
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         const parsed = JSON.parse(saved)
-        // If user has started before, skip intro
-        if (parsed.hasStarted) {
-          return { ...parsed, step: parsed.step || 'request' }
+        // FIXED: Validate parsed state and reset if corrupted
+        if (parsed && typeof parsed === 'object' && parsed.hasStarted) {
+          // Ensure all required fields exist with defaults
+          return {
+            step: parsed.step || 'request',
+            request: parsed.request || '',
+            task: parsed.task || null,
+            role: parsed.role || '',
+            examples: parsed.examples || { example1: '', example2: '' },
+            hasStarted: true
+          }
         }
       }
     } catch (e) {
-      // Ignore loading errors
+      // Clear corrupted state
+      localStorage.removeItem(STORAGE_KEY)
+    }
+    
+    return {
+      step: 'intro' as Step,
+      request: '',
+      task: null,
+      role: '',
+      examples: { example1: '', example2: '' },
+      hasStarted: false
+    }
+  })
+
+  // FIXED: State loading with better validation
+  const [state, setState] = useState<State>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        // FIXED: Better validation and corruption handling
+        if (parsed.hasStarted) {
+          // Validate the state structure
+          const validatedState = {
+            step: parsed.step && ['intro', 'request', 'task', 'role', 'customRole', 'examples', 'preview'].includes(parsed.step) 
+              ? parsed.step 
+              : 'request',
+            request: typeof parsed.request === 'string' ? parsed.request : '',
+            task: parsed.task || null,
+            role: typeof parsed.role === 'string' ? parsed.role : '',
+            examples: parsed.examples && typeof parsed.examples === 'object' 
+              ? parsed.examples 
+              : { example1: '', example2: '' },
+            hasStarted: true
+          }
+          return validatedState
+        }
+      }
+    } catch (e) {
+      // Clear corrupted state and start fresh
+      localStorage.removeItem(STORAGE_KEY)
     }
     
     return {
@@ -173,23 +221,8 @@ export function PromptHelper({
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white">
-      {/* MINIMAL: Clean header */}
-      <div className="flex-shrink-0 border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
-              <span className="text-white text-xs">✨</span>
-            </div>
-            <span className="font-medium text-gray-800">Smart Prompt Mode</span>
-          </div>
-          <button onClick={handleExit} className="p-1 hover:bg-gray-100 rounded">
-            <X className="w-4 h-4 text-gray-500" />
-          </button>
-        </div>
-      </div>
-
       {/* MINIMAL: Content area */}
-      <div className="flex-1 p-4">
+      <div className="flex-1 p-4 pt-6">
         {state.step === 'intro' && (
           <Introduction onContinue={handleIntroComplete} />
         )}

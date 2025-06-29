@@ -20,7 +20,7 @@ interface FinalPreviewProps {
 // ENHANCED: Role definitions for different selections
 const ROLE_DEFINITIONS = {
   expert_professional: (taskType: string) => 
-    `You are a senior expert professional with 15+ years of experience in ${taskType}. You provide authoritative, detailed guidance based on industry best practices and deep expertise.`,
+    `You are a senior expert professional with 15+ years of experience in ${taskType || 'your field'}. You provide authoritative, detailed guidance based on industry best practices and deep expertise.`,
   
   helpful_assistant: () => 
     'You are a helpful, knowledgeable assistant who provides clear, practical guidance. You focus on being useful, accessible, and easy to understand.',
@@ -53,26 +53,34 @@ export function FinalPreview({
 
   // ENHANCED: Build prompt with role-task format
   const buildBasicPrompt = () => {
+    // FIXED: Add proper null/undefined checks
+    if (!userRequest || typeof userRequest !== 'string') {
+      return 'Please provide your request.'
+    }
+    
     // Determine role instruction
     let roleInstruction = ''
-    if (ROLE_DEFINITIONS[userRole]) {
-      roleInstruction = ROLE_DEFINITIONS[userRole](taskType)
-    } else {
+    if (userRole && typeof userRole === 'string' && ROLE_DEFINITIONS[userRole]) {
+      roleInstruction = ROLE_DEFINITIONS[userRole](taskType || 'general')
+    } else if (userRole && typeof userRole === 'string') {
       // Custom role - use as provided
       roleInstruction = userRole.startsWith('You are') ? userRole : `You are ${userRole}`
+    } else {
+      // Fallback role
+      roleInstruction = 'You are a helpful assistant who provides clear, practical guidance.'
     }
     
     let result = roleInstruction + "\n\n"
     
-    const hasExamples = userExamples.example1?.trim() || userExamples.example2?.trim()
+    const hasExamples = userExamples?.example1?.trim() || userExamples?.example2?.trim()
     if (hasExamples) {
       result += "Examples of the style I want:\n\n"
       
-      if (userExamples.example1?.trim()) {
+      if (userExamples?.example1?.trim()) {
         result += `Example 1: ${userExamples.example1.trim()}\n\n`
       }
       
-      if (userExamples.example2?.trim()) {
+      if (userExamples?.example2?.trim()) {
         result += `Example 2: ${userExamples.example2.trim()}\n\n`
       }
     }
@@ -83,6 +91,12 @@ export function FinalPreview({
 
   // NEW: Enhance prompt using GPT-4o when no examples provided
   const enhancePrompt = async () => {
+    // FIXED: Add safety checks
+    if (!userRequest || typeof userRequest !== 'string' || !userRequest.trim()) {
+      setPrompt(buildBasicPrompt())
+      return
+    }
+    
     setIsEnhancing(true)
     setEnhancementError(null)
 
@@ -107,9 +121,9 @@ export function FinalPreview({
         },
         body: JSON.stringify({
           purpose: 'enhance_prompt',
-          userRequest: userRequest.trim(),
-          taskType: taskType,
-          userRole: userRole,
+          userRequest: userRequest?.trim() || '',
+          taskType: taskType || 'general',
+          userRole: userRole || 'helpful_assistant',
           currentPrompt: buildBasicPrompt()
         })
       })
@@ -143,7 +157,8 @@ export function FinalPreview({
   }
 
   useEffect(() => {
-    const hasExamples = userExamples.example1?.trim() || userExamples.example2?.trim()
+    // FIXED: Add proper null checks
+    const hasExamples = userExamples?.example1?.trim() || userExamples?.example2?.trim()
     
     if (!hasExamples) {
       // No examples - enhance the prompt automatically
@@ -155,12 +170,12 @@ export function FinalPreview({
   }, [userRequest, userExamples, taskType, userRole])
 
   const handleSend = () => {
-    if (prompt.trim()) {
+    if (prompt && prompt.trim()) {
       onSubmit(prompt, selectedModel)
     }
   }
 
-  const hasExamples = userExamples.example1?.trim() || userExamples.example2?.trim()
+  const hasExamples = userExamples?.example1?.trim() || userExamples?.example2?.trim()
 
   return (
     <div className="max-w-lg mx-auto py-4">

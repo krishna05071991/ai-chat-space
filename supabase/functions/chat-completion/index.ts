@@ -1186,6 +1186,32 @@ serve(async (req) => {
       
       try {
         const result = await enhancePrompt(
+          requestBody.userRequest, 
+          requestBody.taskType, 
+          requestBody.userRole,
+          requestBody.currentPrompt
+        );
+        
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        console.error('❌ Prompt enhancement failed:', error);
+        return new Response(JSON.stringify({
+          error: 'PROMPT_ENHANCEMENT_FAILED',
+          message: error.message || 'Failed to enhance prompt'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+    // NEW: Handle prompt enhancement for Prompt Helper
+    if (requestBody.purpose === 'enhance_prompt') {
+      console.log('🚀 Handling prompt enhancement request');
+      
+      try {
+        const result = await enhancePrompt(
           requestBody.userRequest,
           requestBody.taskType,
           requestBody.userRole,

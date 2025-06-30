@@ -101,6 +101,11 @@ export function ExampleInput({
           model: data.model,
           usage: data.usage
         })
+        
+        // Trigger usage stats refresh after example generation
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('refreshUsageStats'))
+        }, 1000)
       } else {
         throw new Error('No example content received')
       }
@@ -119,8 +124,16 @@ export function ExampleInput({
         Add examples (optional)
       </h2>
       <p className="text-gray-600 text-sm text-center mb-4">
-        Show your preferred style or approach
+        Examples help the AI understand exactly what you want - your tone, style, and format preferences
       </p>
+
+      {/* Educational note about examples */}
+      <div className="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-200">
+        <p className="text-xs text-blue-800 font-medium mb-1">💡 Why examples matter:</p>
+        <p className="text-xs text-blue-700">
+          Examples guide the AI to match your exact style, tone, and format. They're especially useful for creative tasks, specific writing styles, or when you need consistent output formatting.
+        </p>
+      </div>
 
       <div className="space-y-4 mb-4">
         {/* Example 1 */}
@@ -152,11 +165,7 @@ export function ExampleInput({
             onChange={(e) => setExample1(e.target.value)}
             placeholder="Example 1..."
             className="w-full h-20 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm"
-            maxLength={1000}
           />
-          <div className="text-right text-xs text-gray-500 mt-1">
-            {example1?.length || 0}/1000
-          </div>
         </div>
 
         {/* Example 2 */}
@@ -188,11 +197,7 @@ export function ExampleInput({
             onChange={(e) => setExample2(e.target.value)}
             placeholder="Example 2..."
             className="w-full h-20 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm"
-            maxLength={1000}
           />
-          <div className="text-right text-xs text-gray-500 mt-1">
-            {example2?.length || 0}/1000
-          </div>
         </div>
 
         {/* Error display */}
@@ -205,7 +210,7 @@ export function ExampleInput({
         {/* Help text */}
         {userRequest && userRequest.trim() && (
           <p className="text-xs text-gray-500 text-center">
-            💡 Click "Generate" to create AI-powered examples based on your request
+            💡 Click "Generate" to create AI-powered examples that match your request style
           </p>
         )}
       </div>

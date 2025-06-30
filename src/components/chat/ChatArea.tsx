@@ -33,6 +33,7 @@ interface ChatAreaProps {
   selectedModel: AIModel
   onModelChange: (model: AIModel) => void
   onUpgradePrompt?: (requiredTier: string) => void
+  onBack?: () => void
   onSendMessage: (content: string) => void
   streamingState: StreamingState
   onCancelGeneration: () => void
@@ -48,6 +49,7 @@ export function ChatArea({
   selectedModel, 
   onModelChange,
   onUpgradePrompt,
+  onBack,
   onSendMessage,
   streamingState,
   onCancelGeneration,
@@ -197,8 +199,20 @@ export function ChatArea({
       {/* FIXED: Clean header without interference */}
       <div className="relative z-20 flex-shrink-0 pt-safe">
         <div className="flex items-center justify-center py-4 px-4">
+          {/* Clickable logo to exit prompt helper */}
+          <div className="absolute left-4 top-1/2 transform -translate-y-1/2 lg:hidden">
+            <button onClick={onBack} className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors">
+              <Logo size="md" compact />
+            </button>
+          </div>
+          
           {/* Desktop header */}
           <div className="hidden lg:flex items-center justify-between w-full max-w-6xl">
+            {/* Desktop clickable logo */}
+            <button onClick={onBack} className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors">
+              <Logo size="md" showText={true} />
+            </button>
+            
             <div className="flex items-center space-x-4">
               <ModelSelector 
                 selectedModel={selectedModel}
@@ -239,7 +253,7 @@ export function ChatArea({
               {isProUser && (
                 <button
                   onClick={handlePromptHelperToggle}
-                  className="p-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-xl"
+                  className="p-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-xl transition-colors hover:bg-purple-100"
                 >
                   <Wand2 className="w-4 h-4" />
                 </button>

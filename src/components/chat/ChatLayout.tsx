@@ -660,6 +660,7 @@ export function ChatLayout() {
             selectedModel={selectedModel}
             onModelChange={handleModelChange}
             onUpgradePrompt={handleUpgradePrompt}
+            onBack={() => setIsPromptHelperMode(false)}
             onSendMessage={handleSendMessage}
             streamingState={streamingState}
             onCancelGeneration={handleCancelGeneration}

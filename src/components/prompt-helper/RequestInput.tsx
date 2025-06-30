@@ -1,6 +1,5 @@
-// MINIMAL: Clean request input
 import React, { useState } from 'react'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Wand2 } from 'lucide-react'
 
 interface RequestInputProps {
   initialValue: string
@@ -18,50 +17,45 @@ export function RequestInput({ initialValue, onComplete, onBack }: RequestInputP
   }
 
   return (
-    <div className="max-w-lg mx-auto py-4">
-      <h2 className="text-lg font-bold text-gray-800 mb-3 text-center">
-        What do you need help with?
-      </h2>
+    <div className="py-4">
+      <div className="flex items-center justify-center space-x-2 mb-4">
+        <Wand2 className="w-5 h-5 text-purple-600" />
+        <h2 className="text-lg font-bold text-gray-800">Smart Prompt Mode</h2>
+      </div>
+      
+      <p className="text-gray-600 text-sm text-center mb-6">
+        I'll help you create the perfect prompt for better AI results
+      </p>
       
       <textarea
         value={request}
         onChange={(e) => setRequest(e.target.value)}
-        placeholder="Describe your request..."
-        className="w-full h-32 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm"
+        placeholder="What would you like help with? Be as specific as possible..."
+        className="w-full h-40 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-base leading-relaxed"
         autoFocus
       />
 
       <div className="flex items-center justify-between mt-4">
         <button
           onClick={onBack}
-          className="flex items-center space-x-1 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-xl text-sm"
+          className="flex items-center space-x-1 px-3 py-2 text-gray-500 hover:text-gray-700 transition-colors text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back</span>
+          <span>Exit</span>
         </button>
 
         <button
           onClick={handleContinue}
           disabled={!request.trim()}
-          className={`flex items-center space-x-1 px-4 py-2 rounded-xl text-sm font-medium ${
+          className={`flex items-center space-x-1 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
             request.trim()
-              ? 'bg-purple-600 text-white'
+              ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
           <span>Continue</span>
           <ArrowRight className="w-4 h-4" />
         </button>
-      </div>
-
-      {/* Progress */}
-      <div className="flex justify-center mt-4">
-        <div className="flex space-x-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-          <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-          <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-          <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-        </div>
       </div>
     </div>
   )

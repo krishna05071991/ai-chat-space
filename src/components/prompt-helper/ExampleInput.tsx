@@ -119,32 +119,24 @@ export function ExampleInput({
   }
 
   return (
-    <div className="max-w-lg mx-auto py-4">
+    <div className="py-4">
       <h2 className="text-lg font-bold text-gray-800 mb-2 text-center">
-        Add examples (optional)
+        Add style examples?
       </h2>
       <p className="text-gray-600 text-sm text-center mb-4">
         Examples help the AI understand exactly what you want - your tone, style, and format preferences
       </p>
 
-      {/* Educational note about examples */}
-      <div className="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-200">
-        <p className="text-xs text-blue-800 font-medium mb-1">💡 Why examples matter:</p>
-        <p className="text-xs text-blue-700">
-          Examples guide the AI to match your exact style, tone, and format. They're especially useful for creative tasks, specific writing styles, or when you need consistent output formatting.
-        </p>
-      </div>
-
-      <div className="space-y-4 mb-4">
+      <div className="space-y-4 mb-6">
         {/* Example 1 */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-gray-700">Example 1</label>
+            <label className="text-sm font-medium text-gray-700">Style Example 1</label>
             {userRequest && userRequest.trim() && (
               <button
                 onClick={() => handleGenerateExample(1)}
                 disabled={isGenerating1}
-                className="flex items-center space-x-1 text-xs px-2 py-1 bg-green-100 hover:bg-green-200 disabled:bg-gray-100 text-green-700 disabled:text-gray-500 rounded-md transition-colors disabled:cursor-not-allowed"
+                className="flex items-center space-x-1 text-xs px-3 py-1.5 bg-purple-100 hover:bg-purple-200 disabled:bg-gray-100 text-purple-700 disabled:text-gray-500 rounded-xl transition-colors disabled:cursor-not-allowed"
               >
                 {isGenerating1 ? (
                   <>
@@ -163,20 +155,20 @@ export function ExampleInput({
           <textarea
             value={example1}
             onChange={(e) => setExample1(e.target.value)}
-            placeholder="Example 1..."
-            className="w-full h-20 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm"
+            placeholder="Paste or type an example of your preferred style..."
+            className="w-full h-32 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm leading-relaxed"
           />
         </div>
 
         {/* Example 2 */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-gray-700">Example 2</label>
+            <label className="text-sm font-medium text-gray-700">Style Example 2</label>
             {userRequest && userRequest.trim() && (
               <button
                 onClick={() => handleGenerateExample(2)}
                 disabled={isGenerating2}
-                className="flex items-center space-x-1 text-xs px-2 py-1 bg-green-100 hover:bg-green-200 disabled:bg-gray-100 text-green-700 disabled:text-gray-500 rounded-md transition-colors disabled:cursor-not-allowed"
+                className="flex items-center space-x-1 text-xs px-3 py-1.5 bg-purple-100 hover:bg-purple-200 disabled:bg-gray-100 text-purple-700 disabled:text-gray-500 rounded-xl transition-colors disabled:cursor-not-allowed"
               >
                 {isGenerating2 ? (
                   <>
@@ -195,8 +187,8 @@ export function ExampleInput({
           <textarea
             value={example2}
             onChange={(e) => setExample2(e.target.value)}
-            placeholder="Example 2..."
-            className="w-full h-20 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm"
+            placeholder="Add another example for better results..."
+            className="w-full h-32 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm leading-relaxed"
           />
         </div>
 
@@ -207,10 +199,10 @@ export function ExampleInput({
           </div>
         )}
 
-        {/* Help text */}
+        {/* Simplified help text */}
         {userRequest && userRequest.trim() && (
-          <p className="text-xs text-gray-500 text-center">
-            💡 Click "Generate" to create AI-powered examples that match your request style
+          <p className="text-xs text-gray-500 text-center bg-gray-50 rounded-xl p-3">
+            💡 Click "Generate" for AI-created examples based on your request
           </p>
         )}
       </div>
@@ -218,7 +210,7 @@ export function ExampleInput({
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="flex items-center space-x-1 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-xl text-sm"
+          className="flex items-center space-x-1 px-3 py-2 text-gray-500 hover:text-gray-700 transition-colors text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back</span>
@@ -227,7 +219,7 @@ export function ExampleInput({
         <div className="flex space-x-2">
           <button
             onClick={handleSkip}
-            className="flex items-center space-x-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm"
+            className="flex items-center space-x-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm transition-colors"
           >
             <SkipForward className="w-4 h-4" />
             <span>Skip</span>
@@ -235,21 +227,11 @@ export function ExampleInput({
           
           <button
             onClick={handleContinue}
-            className="flex items-center space-x-1 bg-purple-600 text-white font-medium px-4 py-2 rounded-xl text-sm"
+            className="flex items-center space-x-1 bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-2 rounded-xl text-sm transition-all shadow-lg hover:shadow-xl"
           >
             <span>Continue</span>
             <ArrowRight className="w-4 h-4" />
           </button>
-        </div>
-      </div>
-
-      {/* Progress */}
-      <div className="flex justify-center mt-4">
-        <div className="flex space-x-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-          <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
         </div>
       </div>
     </div>

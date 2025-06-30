@@ -200,9 +200,9 @@ export function FinalPreview({
   const hasExamples = userExamples?.example1?.trim() || userExamples?.example2?.trim()
 
   return (
-    <div className="max-w-lg mx-auto py-4">
+    <div className="py-4">
       <h2 className="text-lg font-bold text-gray-800 mb-3 text-center">
-        Review & Send
+        Ready to send
       </h2>
 
       {/* Enhancement status */}
@@ -237,7 +237,7 @@ export function FinalPreview({
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          className="w-full h-40 p-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-xs bg-white"
+          className="w-full h-48 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm bg-white leading-relaxed"
           disabled={isEnhancing}
         />
       </div>
@@ -245,7 +245,7 @@ export function FinalPreview({
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="flex items-center space-x-1 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-xl text-sm"
+          className="flex items-center space-x-1 px-3 py-2 text-gray-500 hover:text-gray-700 transition-colors text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back</span>
@@ -257,7 +257,7 @@ export function FinalPreview({
             <button
               onClick={() => setShowModelDropdown(!showModelDropdown)}
               className="flex items-center space-x-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm"
-            >
+              className="flex items-center space-x-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-medium px-6 py-3 rounded-xl text-sm disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
               <span>{selectedModel.displayName}</span>
               <ChevronDown className={`w-3 h-3 ${showModelDropdown ? 'rotate-180' : ''}`} />
             </button>
@@ -293,16 +293,6 @@ export function FinalPreview({
             <Send className="w-4 h-4" />
             <span>Send</span>
           </button>
-        </div>
-      </div>
-
-      {/* Progress */}
-      <div className="flex justify-center mt-4">
-        <div className="flex space-x-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
         </div>
       </div>
     </div>

@@ -24,7 +24,7 @@ export interface UserExamples {
   example2: string
 }
 
-type Step = 'intro' | 'request' | 'task' | 'role' | 'customRole' | 'examples' | 'preview'
+type Step = 'request' | 'task' | 'role' | 'customRole' | 'examples' | 'preview'
 
 interface State {
   step: Step
@@ -35,6 +35,7 @@ interface State {
 }
 
 const STORAGE_KEY = 'prompt-helper-state'
+const INTRO_SEEN_KEY = 'prompt-helper-intro-seen'
 
 export function PromptHelper({ 
   onSendMessage, 
@@ -43,9 +44,12 @@ export function PromptHelper({
   onModelChange,
   availableModels 
 }: PromptHelperProps) {
-  // FIXED: Always start fresh - no localStorage persistence to avoid confusion
+  // Check if user has seen intro before
+  const hasSeenIntro = localStorage.getItem(INTRO_SEEN_KEY) === 'true'
+  
+  // Start directly at request step if user has seen intro
   const [state, setState] = useState<State>({
-    step: 'intro',
+    step: 'request',
     request: '',
     task: null,
     role: '',
@@ -54,16 +58,13 @@ export function PromptHelper({
 
   // Clear any previous state on mount to ensure fresh start
   useEffect(() => {
+    // Mark intro as seen
+    localStorage.setItem(INTRO_SEEN_KEY, 'true')
     localStorage.removeItem(STORAGE_KEY)
   }, [])
 
   const updateState = (updates: Partial<State>) => {
     setState(prev => ({ ...prev, ...updates }))
-  }
-
-  // FIXED: Proper flow progression with validation
-  const handleIntroComplete = () => {
-    updateState({ step: 'request' })
   }
 
   const handleRequestComplete = (request: string) => {
@@ -141,8 +142,7 @@ export function PromptHelper({
 
   const handleBack = () => {
     const backMap: Record<Step, Step> = {
-      intro: 'intro', // Can't go back from intro
-      request: 'intro',
+      request: 'request', // First step - exit to main chat
       task: 'request',
       role: 'task',
       customRole: 'role',
@@ -151,21 +151,19 @@ export function PromptHelper({
     }
     
     const nextStep = backMap[state.step]
-    if (nextStep !== state.step) { // Only update if we can actually go back
+    if (nextStep === 'request' && state.step === 'request') {
+      // If we're at the first step and try to go back, exit prompt helper
+      onExit()
+    } else if (nextStep !== state.step) {
       updateState({ step: nextStep })
     }
   }
 
-  // FIXED: Seamless canvas design - no headers, just content
+  // STREAMLINED: Direct content without unnecessary intro
   return (
     <div className="flex-1 flex flex-col h-full bg-white">
-      {/* SEAMLESS: Direct content rendering without headers */}
       <div className="flex-1 p-6 overflow-y-auto">
-        <div className="max-w-2xl mx-auto">
-          {state.step === 'intro' && (
-            <Introduction onContinue={handleIntroComplete} />
-          )}
-          
+        <div className="max-w-lg mx-auto">
           {state.step === 'request' && (
             <RequestInput 
               initialValue={state.request}

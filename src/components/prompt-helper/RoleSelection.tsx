@@ -1,6 +1,5 @@
-// NEW: Role selection step for prompt helper
 import React from 'react'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 
 interface RoleSelectionProps {
   userRequest: string
@@ -12,67 +11,57 @@ interface RoleSelectionProps {
 const ROLE_OPTIONS = [
   {
     id: 'expert_professional',
-    title: 'Expert Professional',
-    description: 'A seasoned expert with deep knowledge and experience',
-    example: 'You are a senior expert with 15+ years of experience...'
+    title: '👔 Expert',
+    subtitle: 'Professional with deep expertise'
   },
   {
     id: 'helpful_assistant',
-    title: 'Helpful Assistant',
-    description: 'A friendly, knowledgeable assistant focused on helping',
-    example: 'You are a helpful assistant who provides clear, practical guidance...'
+    title: '🤝 Helper',
+    subtitle: 'Friendly and practical'
   },
   {
     id: 'creative_collaborator',
-    title: 'Creative Collaborator',
-    description: 'An imaginative partner for creative and innovative work',
-    example: 'You are a creative collaborator with exceptional imagination...'
+    title: '🎨 Creative',
+    subtitle: 'Imaginative and innovative'
   },
   {
     id: 'analytical_consultant',
-    title: 'Analytical Consultant',
-    description: 'A logical, methodical consultant focused on analysis',
-    example: 'You are an analytical consultant who approaches problems systematically...'
+    title: '📊 Analyst',
+    subtitle: 'Logical and methodical'
   },
   {
     id: 'mentor_teacher',
-    title: 'Mentor & Teacher',
-    description: 'An experienced teacher who explains concepts clearly',
-    example: 'You are an experienced mentor who breaks down complex ideas...'
+    title: '🎓 Teacher',
+    subtitle: 'Patient and explanatory'
   },
   {
     id: 'custom',
-    title: 'Custom Role',
-    description: 'Define your own specific role for the AI',
-    example: 'Specify exactly what role you want the AI to play...'
+    title: '⚙️ Custom',
+    subtitle: 'Define your own role'
   }
 ]
 
 export function RoleSelection({ userRequest, taskType, onSelectRole, onBack }: RoleSelectionProps) {
   return (
-    <div className="max-w-lg mx-auto py-4">
-      <h2 className="text-lg font-bold text-gray-800 mb-3 text-center">
-        What role should the AI play?
+    <div className="py-4">
+      <h2 className="text-lg font-bold text-gray-800 mb-2 text-center">
+        How should the AI respond?
       </h2>
       
-      {/* Show context */}
-      <div className="bg-gray-50 rounded-xl p-3 mb-4">
-        <div className="text-xs text-gray-500 mb-1">Your request:</div>
-        <p className="text-gray-800 text-xs italic">"{userRequest}"</p>
-        <div className="text-xs text-gray-500 mt-1">Task type: <span className="capitalize">{taskType}</span></div>
-      </div>
+      <p className="text-gray-600 text-sm text-center mb-6">
+        Choose the personality and expertise level
+      </p>
 
-      {/* Role grid */}
-      <div className="space-y-3 mb-4">
+      <div className="grid grid-cols-2 gap-3 mb-6">
         {ROLE_OPTIONS.map((role) => (
           <button
             key={role.id}
             onClick={() => onSelectRole(role.id)}
-            className="w-full bg-white border border-gray-200 hover:border-purple-300 hover:bg-purple-50 rounded-xl p-3 text-left transition-all"
+            className="bg-white border border-gray-200 hover:border-purple-300 hover:shadow-md rounded-xl p-4 text-center transition-all group"
           >
-            <h3 className="font-medium text-gray-800 text-sm mb-1">{role.title}</h3>
-            <p className="text-xs text-gray-600 mb-2">{role.description}</p>
-            <p className="text-xs text-gray-500 italic">{role.example}</p>
+            <div className="text-lg mb-2 group-hover:scale-110 transition-transform">{role.title.split(' ')[0]}</div>
+            <h3 className="font-semibold text-gray-800 text-sm mb-1">{role.title.split(' ').slice(1).join(' ')}</h3>
+            <p className="text-xs text-gray-500">{role.subtitle}</p>
           </button>
         ))}
       </div>
@@ -80,22 +69,11 @@ export function RoleSelection({ userRequest, taskType, onSelectRole, onBack }: R
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="flex items-center space-x-1 px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-xl text-sm"
+          className="flex items-center space-x-1 px-3 py-2 text-gray-500 hover:text-gray-700 transition-colors text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back</span>
         </button>
-      </div>
-
-      {/* Progress */}
-      <div className="flex justify-center mt-4">
-        <div className="flex space-x-1">
-          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-          <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-          <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-          <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-        </div>
       </div>
     </div>
   )

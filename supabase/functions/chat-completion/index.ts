@@ -1158,6 +1158,257 @@ serve(async (req) => {
     const { purpose, userRequest, taskType, userRole, currentPrompt, exampleNumber } = requestBody;
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
+    // NEW: Handle example generation requests
+    if (purpose === 'generate_example') {
+      console.log('🎯 Generating example for prompt helper')
+      
+      try {
+        const { userRequest, taskType, exampleNumber } = requestBody
+        
+        if (!userRequest || !taskType || !exampleNumber) {
+          throw new Error('Missing required fields for example generation')
+        }
+        
+        // Track token usage for example generation
+        let totalTokensUsed = 0
+        
+        // Create example generation prompt with specific instructions
+        const examplePrompt = [
+          {
+            role: 'system',
+            content: `You are an expert at creating examples for AI prompting. Your task is to generate a high-quality example that demonstrates the style, tone, and approach the user wants for their ${taskType} task.
+
+CRITICAL: Keep your example under 1000 characters total.
+
+Guidelines for ${taskType} examples:
+- Make it realistic and useful
+- Demonstrate the exact style and tone they want  
+- Be specific and concrete
+- Include relevant details but stay concise
+- Generate Example ${exampleNumber} (vary from other examples)
+- LIMIT: Stay within 1000 characters maximum`
+          },
+          {
+            role: 'user',
+            content: `Task type: ${taskType}
+User's request: "${userRequest}"
+
+Please generate Example ${exampleNumber} that shows their desired style. Keep it under 1000 characters.`
+          }
+        ]
+        
+        // Use GPT-4o-mini for example generation (fast and cost-effective)
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: examplePrompt,
+            max_tokens: 500,
+            temperature: 0.8
+          })
+        })
+        
+        if (!openaiResponse.ok) {
+          const errorData = await openaiResponse.text()
+          console.error('❌ OpenAI example generation error:', errorData)
+          throw new Error('Failed to generate example')
+        }
+        
+        const openaiData = await openaiResponse.json()
+        const example = openaiData.choices?.[0]?.message?.content?.trim()
+        const exampleUsage = openaiData.usage
+        
+        if (!example) {
+          throw new Error('No example content generated')
+        }
+        
+        // Track tokens used for example generation
+        if (exampleUsage) {
+          totalTokensUsed = exampleUsage.total_tokens
+          
+          // Update user's monthly token usage for example generation
+          const { error: updateError } = await supabaseClient
+            .from('users')
+            .update({ 
+              monthly_tokens_used: userTierData.tokensUsedThisMonth + totalTokensUsed,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', userId)
+          
+          if (updateError) {
+            console.error('❌ Failed to update usage for example generation:', updateError)
+          } else {
+            console.log('✅ Updated usage stats for example generation:', {
+              tokensUsed: totalTokensUsed,
+              newTotal: userTierData.tokensUsedThisMonth + totalTokensUsed
+            })
+          }
+        }
+        
+        console.log('✅ Example generated successfully:', {
+          exampleNumber,
+          length: example.length,
+          tokensUsed: totalTokensUsed
+        })
+        
+        return new Response(JSON.stringify({
+          example,
+          model: 'gpt-4o-mini',
+          usage: exampleUsage
+        }), {
+          headers: corsHeaders,
+          status: 200
+        })
+        
+      } catch (error) {
+        console.error('❌ Example generation failed:', error)
+        return new Response(JSON.stringify({
+          error: 'EXAMPLE_GENERATION_FAILED',
+          message: error.message || 'Failed to generate example'
+        }), {
+          headers: corsHeaders,
+          status: 500
+        })
+      }
+    }
+    
+    // NEW: Handle prompt enhancement requests  
+    if (purpose === 'enhance_prompt') {
+      console.log('🚀 Enhancing prompt with advanced prompt engineering')
+      
+      try {
+        const { userRequest, taskType, userRole, currentPrompt } = requestBody
+        
+        if (!userRequest || !taskType || !userRole) {
+          throw new Error('Missing required fields for prompt enhancement')
+        }
+        
+        // Track token usage for prompt enhancement
+        let totalTokensUsed = 0
+        
+        // Advanced prompt enhancement system prompt
+        const enhancementPrompt = [
+          {
+            role: 'system',
+            content: `You are an expert prompt engineer. Your task is to enhance the user's basic prompt into a sophisticated, high-performance prompt that will get much better results from AI models.
+
+Enhancement Techniques:
+- Add context and background information
+- Include step-by-step instructions
+- Specify desired output format
+- Add constraints and quality criteria
+- Include examples or templates when helpful
+- Use advanced prompting techniques (chain-of-thought, few-shot, etc.)
+- Optimize for the specific task type: ${taskType}
+
+The enhanced prompt should be comprehensive yet focused, and significantly improve upon the basic version.`
+          },
+          {
+            role: 'user', 
+            content: `Task Type: ${taskType}
+User Role: ${userRole}
+Original Request: "${userRequest}"
+
+Current Basic Prompt:
+${currentPrompt}
+
+Please create an enhanced version that will produce much better AI results. Make it comprehensive and optimized for ${taskType} tasks.`
+          }
+        ]
+        
+        // Use GPT-4o for prompt enhancement (higher quality reasoning)
+        const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: enhancementPrompt,
+            max_tokens: 1000,
+            temperature: 0.3
+          })
+        })
+        
+        if (!openaiResponse.ok) {
+          const errorData = await openaiResponse.text()
+          console.error('❌ OpenAI enhancement error:', errorData)
+          
+          // Fallback to basic prompt if enhancement fails
+          return new Response(JSON.stringify({
+            error: 'PROMPT_ENHANCEMENT_FAILED',
+            message: 'Enhancement service unavailable',
+            fallback: currentPrompt
+          }), {
+            headers: corsHeaders,
+            status: 200
+          })
+        }
+        
+        const openaiData = await openaiResponse.json()
+        const enhancedPrompt = openaiData.choices?.[0]?.message?.content?.trim()
+        const enhancementUsage = openaiData.usage
+        
+        if (!enhancedPrompt) {
+          throw new Error('No enhanced prompt generated')
+        }
+        
+        // Track tokens used for prompt enhancement
+        if (enhancementUsage) {
+          totalTokensUsed = enhancementUsage.total_tokens
+          
+          // Update user's monthly token usage for prompt enhancement
+          const { error: updateError } = await supabaseClient
+            .from('users')
+            .update({ 
+              monthly_tokens_used: userTierData.tokensUsedThisMonth + totalTokensUsed,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', userId)
+          
+          if (updateError) {
+            console.error('❌ Failed to update usage for prompt enhancement:', updateError)
+          } else {
+            console.log('✅ Updated usage stats for prompt enhancement:', {
+              tokensUsed: totalTokensUsed,
+              newTotal: userTierData.tokensUsedThisMonth + totalTokensUsed
+            })
+          }
+        }
+        
+        console.log('✅ Prompt enhanced successfully:', {
+          originalLength: currentPrompt.length,
+          enhancedLength: enhancedPrompt.length,
+          tokensUsed: totalTokensUsed
+        })
+        
+        return new Response(JSON.stringify({
+          enhancedPrompt,
+          model: 'gpt-4o',
+          usage: enhancementUsage
+        }), {
+          headers: corsHeaders,
+          status: 200
+        })
+        
+      } catch (error) {
+        console.error('❌ Prompt enhancement failed:', error)
+        return new Response(JSON.stringify({
+          error: 'PROMPT_ENHANCEMENT_FAILED',
+          message: error.message || 'Failed to enhance prompt',
+          fallback: currentPrompt
+        }), {
+          headers: corsHeaders,
+          status: 500
+        })
+      }
+    }
+
     // ENHANCED: Intelligent prompt enhancement for Smart Prompt Mode
     if (purpose === 'enhance_prompt') {
       console.log('🎯 Enhancing prompt with advanced prompt engineering')

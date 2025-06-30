@@ -1,4 +1,4 @@
-// FIXED: Individual example generation with proper null checks
+// FIXED: Example generation with proper supabase usage and token tracking
 import React, { useState } from 'react'
 import { ArrowLeft, ArrowRight, SkipForward, Wand2, Loader2 } from 'lucide-react'
 import { TaskType, UserExamples } from './PromptHelper'
@@ -38,15 +38,14 @@ export function ExampleInput({
     onComplete({ example1: '', example2: '' })
   }
 
-  // FIXED: Generate example for specific box with proper error handling
+  // FIXED: Generate example with proper token usage tracking
   const handleGenerateExample = async (exampleNumber: 1 | 2) => {
-    // FIXED: Proper null/undefined checks
+    // Validate inputs
     if (!userRequest || typeof userRequest !== 'string' || !userRequest.trim()) {
       setError('Please provide your request first')
       return
     }
 
-    // Validate taskType
     if (!taskType || typeof taskType !== 'string') {
       setError('Invalid task type. Please restart the prompt helper.')
       return
@@ -59,7 +58,7 @@ export function ExampleInput({
     setError(null)
 
     try {
-      // Get user session
+      // FIXED: Correct supabase usage
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         throw new Error('Authentication required')
@@ -71,7 +70,7 @@ export function ExampleInput({
         exampleNumber
       })
 
-      // Call Edge Function for example generation
+      // FIXED: Call Edge Function with proper payload structure
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-completion`, {
         method: 'POST',
         headers: {
@@ -83,7 +82,12 @@ export function ExampleInput({
           purpose: 'generate_example',
           userRequest: userRequest.trim(),
           taskType: taskType,
-          exampleNumber: exampleNumber // Pass which example we're generating
+          exampleNumber: exampleNumber,
+          // ADDED: System prompt constraint for 1000 character limit
+          constraints: {
+            maxLength: 1000,
+            outputType: 'example'
+          }
         })
       })
 
@@ -102,7 +106,8 @@ export function ExampleInput({
           usage: data.usage
         })
         
-        // Trigger usage stats refresh after example generation
+        // CRITICAL: Trigger usage stats refresh after example generation
+        // This ensures token usage from example generation is tracked
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('refreshUsageStats'))
         }, 1000)
@@ -123,12 +128,12 @@ export function ExampleInput({
       <h2 className="text-lg font-bold text-gray-800 mb-2 text-center">
         Add style examples?
       </h2>
-      <p className="text-gray-600 text-sm text-center mb-4">
-        Examples help the AI understand exactly what you want - your tone, style, and format preferences
+      <p className="text-gray-600 text-sm text-center mb-6">
+        Examples help the AI match your exact style and format preferences
       </p>
 
       <div className="space-y-4 mb-6">
-        {/* Example 1 */}
+        {/* Example 1 - REMOVED character count */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-medium text-gray-700">Style Example 1</label>
@@ -160,7 +165,7 @@ export function ExampleInput({
           />
         </div>
 
-        {/* Example 2 */}
+        {/* Example 2 - REMOVED character count */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-medium text-gray-700">Style Example 2</label>
@@ -187,23 +192,25 @@ export function ExampleInput({
           <textarea
             value={example2}
             onChange={(e) => setExample2(e.target.value)}
-            placeholder="Add another example for better results..."
+            placeholder="Add another example for even better results..."
             className="w-full h-32 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm leading-relaxed"
           />
         </div>
 
         {/* Error display */}
         {error && (
-          <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-xl">
+          <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-xl">
             <p className="text-xs text-red-600">{error}</p>
           </div>
         )}
 
         {/* Simplified help text */}
         {userRequest && userRequest.trim() && (
-          <p className="text-xs text-gray-500 text-center bg-gray-50 rounded-xl p-3">
-            💡 Click "Generate" for AI-created examples based on your request
-          </p>
+          <div className="bg-purple-50 border border-purple-200 rounded-xl p-3">
+            <p className="text-xs text-purple-700 text-center">
+              💡 Click "Generate" for AI-created examples based on your request
+            </p>
+          </div>
         )}
       </div>
 

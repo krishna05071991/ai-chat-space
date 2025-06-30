@@ -1361,7 +1361,7 @@ Please create an enhanced version that will produce much better AI results. Make
           totalTokensUsed = enhancementUsage.total_tokens
           
           // Update user's monthly token usage for prompt enhancement
-          const { error: updateError } = await supabaseClient
+          const { error: updateError } = await supabase
             .from('users')
             .update({ 
               monthly_tokens_used: userTierData.tokensUsedThisMonth + totalTokensUsed,

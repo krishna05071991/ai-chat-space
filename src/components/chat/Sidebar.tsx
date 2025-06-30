@@ -81,7 +81,9 @@ export function Sidebar({
         <div className="flex-shrink-0 border-b border-gray-200/30">
           {/* Mobile header with close button */}
           <div className="flex items-center justify-between p-4 lg:hidden">
-            <Logo showText={true} size="md" />
+            <button onClick={onNewChat} className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors">
+              <Logo showText={true} size="md" />
+            </button>
             <button
               onClick={onToggle}
               className="p-2 hover:bg-gray-100/50 rounded-xl transition-colors"
@@ -90,9 +92,14 @@ export function Sidebar({
             </button>
           </div>
           
-          {/* Desktop header with logo */}
+          {/* Desktop header with clickable logo */}
           <div className="hidden lg:block p-6 pt-8">
-            <Logo showText={true} size="lg" />
+            <button 
+              onClick={onNewChat}
+              className="flex items-center space-x-3 hover:opacity-80 transition-opacity cursor-pointer"
+            >
+              <Logo showText={true} size="lg" />
+            </button>
           </div>
           
           {/* Start New Button with clean design */}
@@ -309,7 +316,7 @@ export function Sidebar({
                     <LogOut className="w-4 h-4 text-gray-600 flex-shrink-0" />
                     <span className="text-sm text-gray-700">Log out</span>
                   </button>
-                </div>
+                  </div>
               </div>
             )}
           </div>

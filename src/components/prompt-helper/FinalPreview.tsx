@@ -257,7 +257,7 @@ export function FinalPreview({
             <button
               onClick={() => setShowModelDropdown(!showModelDropdown)}
               className="flex items-center space-x-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm"
-              className="flex items-center space-x-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-medium px-6 py-3 rounded-xl text-sm disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+            >
               <span>{selectedModel.displayName}</span>
               <ChevronDown className={`w-3 h-3 ${showModelDropdown ? 'rotate-180' : ''}`} />
             </button>

@@ -1155,7 +1155,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Extract common variables for special purposes
-    const { purpose, userRequest, taskType, userRole, currentPrompt, exampleNumber } = requestBody;
+    const { purpose, userRequest, taskType, userRole, currentPrompt, exampleNumber, constraints } = requestBody;
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
     // NEW: Handle example generation requests
@@ -1163,7 +1163,7 @@ serve(async (req) => {
       console.log('🎯 Generating example for prompt helper')
       
       try {
-        const { userRequest, taskType, exampleNumber } = requestBody
+        const { userRequest, taskType, exampleNumber, constraints } = requestBody
         
         if (!userRequest || !taskType || !exampleNumber) {
           throw new Error('Missing required fields for example generation')
@@ -1172,30 +1172,31 @@ serve(async (req) => {
         // Track token usage for example generation
         let totalTokensUsed = 0
         
-        // Create example generation prompt with specific instructions
-        const examplePrompt = [
-          {
-            role: 'system',
-            content: `You are an expert at creating examples for AI prompting. Your task is to generate a high-quality example that demonstrates the style, tone, and approach the user wants for their ${taskType} task.
+        // UPDATED: System prompt with 1000 character limit constraint
+        const examplePrompt = `You are an expert prompt engineer helping users create examples for AI prompts.
 
-CRITICAL: Keep your example under 1000 characters total.
+Task: Generate a high-quality example for a ${taskType} task.
 
-Guidelines for ${taskType} examples:
-- Make it realistic and useful
-- Demonstrate the exact style and tone they want  
-- Be specific and concrete
-- Include relevant details but stay concise
-- Generate Example ${exampleNumber} (vary from other examples)
-- LIMIT: Stay within 1000 characters maximum`
-          },
-          {
-            role: 'user',
-            content: `Task type: ${taskType}
 User's request: "${userRequest}"
+Example number: ${exampleNumber}
 
-Please generate Example ${exampleNumber} that shows their desired style. Keep it under 1000 characters.`
-          }
-        ]
+CRITICAL CONSTRAINT: Your response must be under 1000 characters while still being a complete, useful example.
+
+Be concise but comprehensive. Focus on quality over length.
+
+Generate a specific, detailed example that demonstrates:
+- The exact style and tone the user wants
+- The format and structure they prefer
+- The level of detail they're looking for
+- The approach they should take
+
+Requirements:
+- Be specific and actionable
+- Match the ${taskType} task type perfectly
+- Keep it under 1000 characters
+- Make it a perfect example of what they want
+
+Generate only the example content, nothing else.`
         
         // Use GPT-4o-mini for example generation (fast and cost-effective)
         const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -1206,7 +1207,9 @@ Please generate Example ${exampleNumber} that shows their desired style. Keep it
           },
           body: JSON.stringify({
             model: 'gpt-4o-mini',
-            messages: examplePrompt,
+            messages: [
+              { role: 'user', content: examplePrompt }
+            ],
             max_tokens: 500,
             temperature: 0.8
           })
@@ -1226,27 +1229,22 @@ Please generate Example ${exampleNumber} that shows their desired style. Keep it
           throw new Error('No example content generated')
         }
         
-        // Track tokens used for example generation
-        if (exampleUsage) {
-          totalTokensUsed = exampleUsage.total_tokens
-          
-          // Update user's monthly token usage for example generation
-          const { error: updateError } = await supabaseClient
-            .from('users')
-            .update({ 
-              monthly_tokens_used: userTierData.tokensUsedThisMonth + totalTokensUsed,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', userId)
-          
-          if (updateError) {
-            console.error('❌ Failed to update usage for example generation:', updateError)
-          } else {
-            console.log('✅ Updated usage stats for example generation:', {
-              tokensUsed: totalTokensUsed,
-              newTotal: userTierData.tokensUsedThisMonth + totalTokensUsed
-            })
-          }
+        // ADDED: Token usage tracking for example generation
+        const usage = exampleData.usage || {}
+        
+        console.log('📊 Example generation usage:', {
+          exampleNumber,
+          usage,
+          contentLength: example.length
+        })
+        
+        // Track token usage in user's account
+        if (usage.total_tokens > 0) {
+          await updateUserUsage(supabase, userId, {
+            tokens_used: usage.total_tokens,
+            messages_sent: 0, // Examples don't count as messages
+            operation: 'example_generation'
+          })
         }
         
         console.log('✅ Example generated successfully:', {
@@ -1258,7 +1256,7 @@ Please generate Example ${exampleNumber} that shows their desired style. Keep it
         return new Response(JSON.stringify({
           example,
           model: 'gpt-4o-mini',
-          usage: exampleUsage
+          usage: usage
         }), {
           headers: corsHeaders,
           status: 200
